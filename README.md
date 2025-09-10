@@ -1,7 +1,7 @@
 <h1 align="center">Aquiles-Image</h1>
 
 <div align="center">
-  <img src="aquilesimage/static/aquilesim.png" alt="Aquiles-Image Logo" width="200"/>
+  <img src="aquilesimage/static/aquilesim.png" alt="Aquiles-Image Logo" width="400"/>
 </div>
 
 <p align="center">
