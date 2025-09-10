@@ -33,6 +33,7 @@ dependencies = [
     "transformers",
     "sentencepiece",
     "fastapi",
+    "click>=8.0.0",
     "uvicorn",
     "diffusers @ git+https://github.com/F4k3r22/diffusers-async.git@main"
 ]
