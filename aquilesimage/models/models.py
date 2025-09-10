@@ -10,7 +10,7 @@ class ImageModel(str, Enum):
     """I plan to have all of these models optimized for the Aquiles-Image runtime"""
     SD3 = 'stabilityai/stable-diffusion-3-medium'
     SD3_5 = 'stabilityai/stable-diffusion-3.5-large' 'stabilityai/stable-diffusion-3.5-large-turbo', 'stabilityai/stable-diffusion-3.5-medium'
-    Flux = 'black-forest-labs/FLUX.1-dev', 'black-forest-labs/FLUX.1-schnell', 'black-forest-labs/FLUX.1-Redux-dev', 'black-forest-labs/FLUX.1-Kontext-dev', 'black-forest-labs/FLUX.1-Krea-dev'
+    Flux = 'black-forest-labs/FLUX.1-dev', 'black-forest-labs/FLUX.1-schnell', 'black-forest-labs/FLUX.1-Kontext-dev', 'black-forest-labs/FLUX.1-Krea-dev'
     Qwen = 'Qwen/Qwen-Image-Edit', 'Qwen/Qwen-Image'
 
 
