@@ -8,10 +8,21 @@ All these models are made based on the OpenAI openapi file to make the image gen
 
 class ImageModel(str, Enum):
     """I plan to have all of these models optimized for the Aquiles-Image runtime"""
-    SD3 = 'stabilityai/stable-diffusion-3-medium'
-    SD3_5 = 'stabilityai/stable-diffusion-3.5-large' 'stabilityai/stable-diffusion-3.5-large-turbo', 'stabilityai/stable-diffusion-3.5-medium'
-    Flux = 'black-forest-labs/FLUX.1-dev', 'black-forest-labs/FLUX.1-schnell', 'black-forest-labs/FLUX.1-Kontext-dev', 'black-forest-labs/FLUX.1-Krea-dev'
-    Qwen = 'Qwen/Qwen-Image-Edit', 'Qwen/Qwen-Image'
+    # Stable Diffusion models
+    SD3_MEDIUM = 'stabilityai/stable-diffusion-3-medium'
+    SD3_5_LARGE = 'stabilityai/stable-diffusion-3.5-large'
+    SD3_5_LARGE_TURBO = 'stabilityai/stable-diffusion-3.5-large-turbo'
+    SD3_5_MEDIUM = 'stabilityai/stable-diffusion-3.5-medium'
+    
+    # FLUX models
+    FLUX_1_DEV = 'black-forest-labs/FLUX.1-dev'
+    FLUX_1_SCHNELL = 'black-forest-labs/FLUX.1-schnell'
+    FLUX_1_KONTEXT_DEV = 'black-forest-labs/FLUX.1-Kontext-dev'
+    FLUX_1_KREA_DEV = 'black-forest-labs/FLUX.1-Krea-dev'
+    
+    # Qwen models
+    QWEN_IMAGE_EDIT = 'Qwen/Qwen-Image-Edit'
+    QWEN_IMAGE = 'Qwen/Qwen-Image'
 
 
 class ResponseFormat(str, Enum):
