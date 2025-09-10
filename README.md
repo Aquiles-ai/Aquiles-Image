@@ -1,3 +1,10 @@
-# Aquiles-Image
+<h1 align="center">Aquiles-Image</h1>
 
-This is a placeholder for the image generation server
+<div align="center">
+  <img src="aquiles/static/aquilesim.png" alt="Aquiles-Image Logo" width="200"/>
+</div>
+
+<p align="center">
+  <strong>Easy, fast and cheap Diffusion Models that work for everyone.</strong><br/>
+  🚀 FastAPI • Diffusers • Compatible with the OpenAI client
+</p>

@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aquiles-image"
+version = "0.1.0"
+description = "Aquiles-Image."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Apache License 2.0"}
+authors = [
+    {name = "Aquiles-ai / Fredy", email = "riveraaai200678@gmail.com"}
+]
+keywords = [
+    "fastapi",
+    "ai", 
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Environment :: Web Environment",
+    "Topic :: Software Development :: Build Tools",
+]
+dependencies = [
+    "torch",
+    "torchvision",
+    "transformers",
+    "sentencepiece",
+    "fastapi",
+    "uvicorn",
+    "diffusers @ git+https://github.com/F4k3r22/diffusers-async.git@main"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "isort",
+    "mypy",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Aquiles-ai/Aquiles-Image"
+"Issues" = "https://github.com/Aquiles-ai/Aquiles-Image/issues"
+
+[project.scripts]
+aquiles-image = "aquilesimage.cli:cli"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["aquilesimage", "aquilesimage.*"]
+
+[tool.setuptools.package-data]
+"aquilesimage" = ["templates/**/*", "static/**/*"]
