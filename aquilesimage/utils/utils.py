@@ -53,7 +53,7 @@ def setup_colored_logger(name: str, level: int = logging.INFO) -> logging.Logger
     
     return logger
 
-logger_utils = setup_colored_logger("Aquiles-Image-Utils", logging.INFO)
+logger_utils = setup_colored_logger("Aquiles-Image-Utils", logging.WARNING)
 
 security = HTTPBearer()
 
