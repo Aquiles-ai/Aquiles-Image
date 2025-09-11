@@ -1,1 +1,1 @@
-from .pipelines import PipelineSD3, PipelineFlux, PipelineFluxKontext, PipelineQwenImage, PipelineQwenImageEdit
+from .pipelines import PipelineSD3, PipelineFlux, PipelineFluxKontext, PipelineQwenImage, PipelineQwenImageEdit, ModelPipelineInit
