@@ -82,31 +82,7 @@ class PipelineSD3:
                 logger_p.info(f"XFormers not available: {e}")
             
             if torch.__version__ >= "2.0.0":
-                try:
-                    if hasattr(self.pipeline, 'transformer') and self.pipeline.transformer is not None:
-                        self.pipeline.transformer = torch.compile(
-                            self.pipeline.transformer,
-                            mode="reduce-overhead",
-                            fullgraph=False, 
-                            dynamic=True,
-                        )
-                        logger_p.info("Transformer compiled with torch.compile")
-                    
-                    if hasattr(self.pipeline.vae, 'decode'):
-                        self.pipeline.vae.decode = torch.compile(
-                            self.pipeline.vae.decode,
-                            mode="reduce-overhead",
-                            fullgraph=False,
-                        )
-                        logger_p.info("VAE decoder compiled with torch.compile")
-                        
-                except Exception as e:
-                    logger_p.warning(f"Could not compile components: {e}")
-                    logger_p.info("Running without torch.compile optimization")
-            
-            self.pipeline.eval()
-            for param in self.pipeline.parameters():
-                param.requires_grad = False
+                logger_p.info("Skipping torch.compile - running without compile optimizations by design")
             
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
@@ -134,19 +110,14 @@ class PipelineSD3:
                     memory_format=torch.channels_last
                 )
             
-            self.pipeline.eval()
-            for param in self.pipeline.parameters():
-                param.requires_grad = False
                 
             logger_p.info("MPS pipeline optimized and ready")
             
         else:
             raise Exception("No CUDA or MPS device available")
         
-        # ============================================================
-        # OPTIONAL WARMUP (Uncomment if you want to preheat)
-        # ============================================================
-        # self._warmup()
+        # OPTIONAL WARMUP
+        self._warmup()
         
         logger_p.info("Pipeline initialization completed successfully")
     
