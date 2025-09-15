@@ -8,10 +8,11 @@ POST /images/edits (edit)
 POST /images/generations (generate)
 """
 
-from fastapi import FastAPI, UploadFile, File, Request
+from fastapi import FastAPI, UploadFile, File, Request, HTTPException 
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
-from aquilesimage.models import CreateImageRequest, ImagesResponse, CreateImageEditRequest, CreateImageVariationRequest
+from aquilesimage.models import CreateImageRequest, ImagesResponse, CreateImageEditRequest, CreateImageVariationRequest, Image, ImageModel
 from aquilesimage.utils import Utils, setup_colored_logger
 from aquilesimage.runtime import RequestScopedPipeline
 from aquilesimage.pipelines import ModelPipelineInit
@@ -22,6 +23,8 @@ from contextlib import asynccontextmanager
 import threading
 import torch
 import random
+import os
+import gc
 
 logger = setup_colored_logger("Aquiles-Image", logging.INFO)
 
@@ -77,6 +80,8 @@ async def lifespan(app: FastAPI):
     app.state.MODEL_PIPELINE = model_pipeline
     app.state.REQUEST_PIPE = request_pipe
     app.state.PIPELINE_LOCK = pipeline_lock
+
+    app.state.model = app.state.config.get("model")
 
     # dumb config
     app.state.utils_app = Utils(
@@ -138,12 +143,118 @@ async def count_requests_middleware(request: Request, call_next):
 
 @app.post("/images/generations", response_model=ImagesResponse, tags=["Generation"])
 async def create_image(input_r: CreateImageRequest):
+    import time
+    import base64
+    import io
+    
+    utils_app = app.state.utils_app
+
     def make_generator():
         g = torch.Generator(device=initializer.device)
         return g.manual_seed(random.randint(0, 10_000_000))
 
+    prompt = input_r.prompt
+    model = input_r.model
+
+    if model not in ImageModel or model not in app.state.model:
+        HTTPException(500, f"Model not available")
+
+    n = input_r.n
+    size = input_r.size
+    response_format = input_r.response_format or "url"
+    quality = input_r.quality or "auto"
+    background = input_r.background or "auto"
+    output_format = input_r.output_format or "png"
+
+    if size == "1024x1024":
+        h, w = 1024, 1024
+    elif size == "1536x1024":
+        h, w = 1536, 1024
+    elif size == "1024x1536":
+        h, w = 1024, 1536
+    elif size == "256x256":
+        h, w = 256, 256
+    elif size == "512x512":
+        h, w = 512, 512
+    elif size == "1792x1024":
+        h, w = 1792, 1024
+    elif size == "1024x1792":
+        h, w = 1024, 1792
+    else:
+        h, w = 1024, 1024
+        size = "1024x1024"
+
     req_pipe = app.state.REQUEST_PIPE
-    pass
+
+    def infer():
+        gen = make_generator()
+        return req_pipe.generate(
+            prompt=prompt,
+            generator=gen,
+            num_inference_steps=30,
+            height=h,
+            width=w,
+            num_images_per_prompt=n,
+            device=initializer.device,
+            output_type="pil",
+        )
+
+    try:
+        async with app.state.metrics_lock:
+            app.state.active_inferences += 1
+
+        output = await run_in_threadpool(infer)
+
+        async with app.state.metrics_lock:
+            app.state.active_inferences = max(0, app.state.active_inferences - 1)
+        
+        images_data = []
+        
+        for img in output.images:
+            image_obj = {}
+            
+            if response_format == "b64_json":
+                buffer = io.BytesIO()
+                img.save(buffer, format=output_format.upper())
+                img_str = base64.b64encode(buffer.getvalue()).decode()
+                image_obj["b64_json"] = img_str
+            else:
+                url = utils_app.save_image(img)
+                image_obj["url"] = url
+            
+            images_data.append(Image(**image_obj))
+
+        response_data = {
+            "created": int(time.time()),
+            "data": images_data,
+        }
+        
+        if size:
+            response_data["size"] = size
+        if quality:
+            response_data["quality"] = quality
+        if background:
+            response_data["background"] = background
+        if output_format:
+            response_data["output_format"] = output_format
+            
+
+        return ImagesResponse(**response_data)
+        
+    except Exception as e:
+        async with app.state.metrics_lock:
+            app.state.active_inferences = max(0, app.state.active_inferences - 1)
+        logger.error(f"Error during inference: {e}")
+        raise HTTPException(500, f"Error in processing: {e}")
+
+    finally:
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats()
+            torch.cuda.ipc_collect()
+        gc.collect()
+
 
 @app.post("/images/edits", response_model=ImagesResponse, tags=["Edit"])  
 async def create_image_edit(input_r: CreateImageEditRequest, image: UploadFile = File(...), mask:  UploadFile | None = File(default=None)):
@@ -163,6 +274,13 @@ async def create_image_variation(input_r: CreateImageVariationRequest, image: Up
     req_pipe = app.state.REQUEST_PIPE
     pass
 
+@app.get("/images/{filename}", tags=["Download Images"])
+async def serve_image(filename: str):
+    utils_app = app.state.utils_app
+    file_path = os.path.join(utils_app.image_dir, filename)
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(file_path, media_type="image/png")
 
 app.add_middleware(
     CORSMiddleware,
