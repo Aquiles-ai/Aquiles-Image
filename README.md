@@ -32,7 +32,7 @@
 | Use Case | Description |
 |----------|-------------|
 | 🚀 **AI Startups** | Building image generation features |
-| 👨‍💻 **Developers** | Prototyping with Stable Diffusion |
+| 👨‍💻 **Developers** | Prototyping with Image Generation Models |
 | 🏢 **Enterprises** | Scalable image AI infrastructure |
 | 🔬 **Researchers** | Experimenting with multiple models |
 
