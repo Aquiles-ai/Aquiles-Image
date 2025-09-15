@@ -17,26 +17,29 @@
 
 ## 🔥 What's New in Aquiles-Image
 
+<div align="center">
 
 | Feature | Description |
 |---------|-------------|
 | ⚡ **3x Faster** | Advanced inference optimizations |
 | 🎨 **More Models** | Support for FLUX, SD3-3.5, QWEN-IMAGE and more |
 | 🔧 **Better DevX** | Improved CLI and monitoring capabilities |
-| 🔌 **OpenAI Compatible** | Drop-in replacement for OpenAI's image APIs |
+| 🔌 **OpenAI Compatible** | Drop-in replacement for OpenAI's image APIs  |
 
+</div>
 
 ## 🎯 Perfect For
 
+<div align="center">
 
 | Use Case | Description |
 |----------|-------------|
 | 🚀 **AI Startups** | Building image generation features |
 | 👨‍💻 **Developers** | Prototyping with Image Generation Models |
 | 🏢 **Enterprises** | Scalable image AI infrastructure |
-| 🔬 **Researchers** | Experimenting with multiple models |
+| 🔬 **Researchers** | Experimenting with multiple models  |
 
-
+</div>
 
 <div align="center">
 
