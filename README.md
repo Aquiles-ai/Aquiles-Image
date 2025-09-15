@@ -48,3 +48,39 @@
 **[⭐ Star this project](https://github.com/Aquiles-ai/Aquiles-Image) • [📖 Documentation](#) • [💬 Community](#)**
 
 </div>
+
+## 🚀 Launch your Aquiles-Image server
+
+```bash
+aquiles-image serve --host "0.0.0.0" --port 5500 --model "stabilityai/stable-diffusion-3.5-medium"
+```
+
+> Note on model compatibility
+> ⚠️ Keep in mind that many of these models require a lot of VRAM to run, choose the model that fits your GPU and has about 10GB left to avoid errors when decoding or saving.
+> The supported models for the imaging endpoint are: `stabilityai/stable-diffusion-3-medium`, `stabilityai/stable-diffusion-3.5-large`, `stabilityai/stable-diffusion-3.5-large-turbo`, `stabilityai/stable-diffusion-3.5-medium`, `black-forest-labs/FLUX.1-dev`, `black-forest-labs/FLUX.1-schnell`, `black-forest-labs/FLUX.1-Krea-dev, Qwen/Qwen-Image`
+> For Edit or Variance endpoints (Not yet available): `black-forest-labs/FLUX.1-Kontext-dev`, `Qwen/Qwen-Image-Edit`
+
+## 🎉 Generate your first image with Aquiles-Image
+
+```py
+from openai import OpenAI
+import requests
+
+client = OpenAI(base_url="http://127.0.0.1:5500", api_key="__UNKNOWN__")
+
+result = client.images.generate(
+    model="stabilityai/stable-diffusion-3.5-medium",
+    prompt="a white siamese cat",
+    size="1024x1024"
+)
+
+print(f"URL of the generated image: {result.data[0].url}\n")
+
+image_url = result.data[0].url
+response = requests.get(image_url)
+
+with open("image.png", "wb") as f:
+    f.write(response.content)
+
+print(f"Image downloaded successfully\n")
+```
