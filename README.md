@@ -17,7 +17,6 @@
 
 ## 🔥 What's New in Aquiles-Image
 
-<div align="center">
 
 | Feature | Description |
 |---------|-------------|
@@ -26,11 +25,9 @@
 | 🔧 **Better DevX** | Improved CLI and monitoring capabilities |
 | 🔌 **OpenAI Compatible** | Drop-in replacement for OpenAI's image APIs |
 
-</div>
 
 ## 🎯 Perfect For
 
-<div align="center">
 
 | Use Case | Description |
 |----------|-------------|
@@ -39,7 +36,6 @@
 | 🏢 **Enterprises** | Scalable image AI infrastructure |
 | 🔬 **Researchers** | Experimenting with multiple models |
 
-</div>
 
 
 <div align="center">
