@@ -3,7 +3,7 @@ import copy
 import threading
 import torch
 from diffusers.utils import logging
-from aquilesimage.runtime import BaseAsyncScheduler, async_retrieve_timesteps
+from .scheduler import BaseAsyncScheduler, async_retrieve_timesteps
 
 
 logger = logging.get_logger(__name__)

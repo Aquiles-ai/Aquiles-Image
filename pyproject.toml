@@ -38,7 +38,11 @@ dependencies = [
     "ftfy",
     "accelerate",
     "xformers",
-    "protobuf"
+    "protobuf",
+    "diffusers",
+    "platformdirs",
+    "aiofiles",
+    "python-multipart"
 ]
 
 [project.optional-dependencies]

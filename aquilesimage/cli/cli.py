@@ -24,13 +24,34 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
          max_concurrent_infer: Optional[int], block_request: Optional[bool], force: bool):
     """Start the Aquiles-Image server."""
     try:
-        import uvicorn
-        from aquilesimage.main import app
-        from aquilesimage.configs import load_config_cli, configs_image_serve
+        from aquilesimage.configs import (
+            load_config_cli, 
+            configs_image_serve, 
+            config_file_exists,
+            create_basic_config_if_not_exists
+        )
         from aquilesimage.models import ConfigsServe
     except ImportError as e:
-        click.echo(f"Error importing required modules: {e}", err=True)
+        click.echo(f"Error importing configuration modules: {e}", err=True)
         sys.exit(1)
+
+    config_exists = config_file_exists()
+    
+    if not config_exists:
+        if model:
+            click.echo(f"No configuration found. Creating basic configuration with model: {model}")
+            try:
+                created = create_basic_config_if_not_exists(model)
+            except Exception as e:
+                click.echo(f"Error creating basic configuration: {e}", err=True)
+                sys.exit(1)
+        else:
+            try:
+                created = create_basic_config_if_not_exists()
+                if created:
+            except Exception as e:
+                click.echo(f"Error creating default configuration: {e}", err=True)
+                sys.exit(1)
 
     try:
         conf = load_config_cli()
@@ -54,29 +75,47 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
 
     if config_needs_update:
         try:
-            api_keys = [api_key] if api_key else []
+            existing_api_keys = conf.get("allows_api_keys", [""])
             
-            gen_conf = ConfigsServe(
+            if api_key:
+                existing_api_keys = [api_key] if api_key not in existing_api_keys else existing_api_keys
+            
+            updated_conf = ConfigsServe(
                 model=final_model,
-                allows_api_keys=api_keys,
-                max_concurrent_infer=max_concurrent_infer,
-                block_request=block_request
+                allows_api_keys=existing_api_keys,
+                max_concurrent_infer=max_concurrent_infer if max_concurrent_infer is not None else conf.get("max_concurrent_infer"),
+                block_request=block_request if block_request is not None else conf.get("block_request")
             )
 
-            configs_image_serve(gen_conf, force)
-            click.echo("Configuration updated successfully.")
+            configs_image_serve(updated_conf, force=True)
+            click.echo("✓ Configuration updated successfully.")
             
         except Exception as e:
-            click.echo(f"Error saving configuration: {e}", err=True)
+            click.echo(f"Error updating configuration: {e}", err=True)
             sys.exit(1)
 
-    click.echo(f"Starting server with:")
-    click.echo(f"  Host: {host}")
-    click.echo(f"  Port: {port}")
-    click.echo(f"  Model: {final_model}")
+    try:
+        import uvicorn
+        from aquilesimage.main import app  
+    except ImportError as e:
+        click.echo(f"Error importing server modules: {e}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error loading application: {e}", err=True)
+        sys.exit(1)
+
+
+    click.echo(f"\n🚀 Starting Aquiles-Image server:")
+    click.echo(f"   Host: {host}")
+    click.echo(f"   Port: {port}")
+    click.echo(f"   Model: {final_model}")
+    click.echo(f"   Config: {len(conf)} settings loaded")
+    click.echo(f"\n🌐 Server will be available at: http://{host}:{port}")
     
     try:
         uvicorn.run(app, host=host, port=port)
+    except KeyboardInterrupt:
+        click.echo("\n⏹️  Server stopped by user.")
     except Exception as e:
         click.echo(f"Error starting server: {e}", err=True)
         sys.exit(1)

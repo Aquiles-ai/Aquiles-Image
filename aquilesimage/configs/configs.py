@@ -13,11 +13,15 @@ from typing import Optional
 _load_lock = asyncio.Lock()
 data_dir = user_data_dir("aquiles", "Aquiles-Image")
 os.makedirs(data_dir, exist_ok=True)
-AQUILES_CONFIG = os.path.join(data_dir, "aquiles_cofig.json")
+AQUILES_CONFIG = os.path.join(data_dir, "aquiles_config.json")
 _cache_lock = threading.Lock()
 _cached_config: Optional[Dict[str, Any]] = None
 _cache_timestamp: float = 0
 _cache_mtime: float = 0
+
+
+def config_file_exists() -> bool:
+    return Path(AQUILES_CONFIG).exists()
 
 
 def load_config_cli(use_cache: bool = True, cache_ttl: float = 30.0) -> Dict[str, Any]:
@@ -88,8 +92,17 @@ def configs_image_serve(cfg: ConfigsServe, force: bool = False) -> None:
     config_path = Path(AQUILES_CONFIG)
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
+
     if config_path.exists() and not force:
-        return
+        try:
+            existing_conf = load_config_cli()
+            for key, value in conf.items():
+                if value is not None:
+                    existing_conf[key] = value
+            conf = existing_conf
+        except Exception:
+            pass
+    
     try:
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(conf, f, ensure_ascii=False, indent=2)
@@ -97,4 +110,17 @@ def configs_image_serve(cfg: ConfigsServe, force: bool = False) -> None:
         clear_config_cache()
           
     except (OSError, UnicodeEncodeError) as e:
-        pass
+        raise Exception(f"Error saving configuration: {e}")
+
+
+def create_basic_config_if_not_exists(model: str |  None = None) -> bool:
+    if config_file_exists():
+        return False
+    
+    try:
+        default_model = model or "stabilityai/stable-diffusion-3.5-medium"
+        basic_config = ConfigsServe(model=default_model)
+        configs_image_serve(basic_config, force=True)
+        return True
+    except Exception as e:
+        raise Exception(f"Error creating basic configuration: {e}")

@@ -156,7 +156,7 @@ async def create_image(input_r: CreateImageRequest):
     prompt = input_r.prompt
     model = input_r.model
 
-    if model not in ImageModel or model not in app.state.model:
+    if model not in [e.value for e in ImageModel] or model not in app.state.model:
         HTTPException(500, f"Model not available")
 
     n = input_r.n

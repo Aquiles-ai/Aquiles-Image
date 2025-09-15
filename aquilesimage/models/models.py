@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Literal, Union
 from enum import Enum
+from pydantic import field_validator
 
 """
 All these models are made based on the OpenAI openapi file to make the image generation server compatible with the OpenAI client
@@ -102,6 +103,16 @@ class ImagesResponse(BaseModel):
     size: Optional[Literal["1024x1024", "1024x1536", "1536x1024"]] = Field(None, description="The size of the image generated. Either `1024x1024`, `1024x1536`, or `1536x1024`.")
     quality: Optional[Literal["low", "medium", "high"]] = Field(None, description="The quality of the image generated. Either `low`, `medium`, or `high`.")
     usage: Optional[ImageGenUsage] = Field(None, description="For `gpt-image-1` only, the token usage information for the image generation.")
+
+    @field_validator('background', mode='before')
+    @classmethod
+    def validate_background(cls, v):
+        return 'transparent' if v == 'auto' else v
+
+    @field_validator('quality', mode='before')
+    @classmethod
+    def validate_quality(cls, v):
+        return 'medium' if v == 'auto' else v
 
 
 class ImageGenPartialImageEvent(BaseModel):
@@ -206,6 +217,6 @@ class CreateImageVariationRequest(BaseModel):
 
 class ConfigsServe(BaseModel):
     model: Union[ImageModel, str] = Field(default="stabilityai/stable-diffusion-3.5-medium", description="The model to use for image generation.")
-    allows_api_keys: List[str] = Field( default_factory=lambda: [""], description="API KEYS allowed to make requests")
-    max_concurrent_infer: int = Field(default=10, description="Maximum number of inferences running at the same time")
-    block_request: bool = Field(default=False, description="Block requests during the maximum concurrent inferences")
+    allows_api_keys: List[str] | None = Field( default_factory=lambda: [""], description="API KEYS allowed to make requests")
+    max_concurrent_infer: int | None = Field(default=10, description="Maximum number of inferences running at the same time")
+    block_request: bool | None = Field(default=False, description="Block requests during the maximum concurrent inferences")
