@@ -28,27 +28,6 @@
 
 </div>
 
-## 🎯 Perfect For
-
-<div align="center">
-
-| Use Case | Description |
-|----------|-------------|
-| 🚀 **AI Startups** | Building image generation features |
-| 👨‍💻 **Developers** | Prototyping with Image Generation Models |
-| 🏢 **Enterprises** | Scalable image AI infrastructure |
-| 🔬 **Researchers** | Experimenting with multiple models  |
-
-</div>
-
-<div align="center">
-
-*Built with ❤️ for the AI community*
-
-**[⭐ Star this project](https://github.com/Aquiles-ai/Aquiles-Image) • [📖 Documentation](#) • [💬 Community](#)**
-
-</div>
-
 ## 🚀 Launch your Aquiles-Image server
 
 ```bash
@@ -87,3 +66,24 @@ with open("image.png", "wb") as f:
 
 print(f"Image downloaded successfully\n")
 ```
+
+## 🎯 Perfect For
+
+<div align="center">
+
+| Use Case | Description |
+|----------|-------------|
+| 🚀 **AI Startups** | Building image generation features |
+| 👨‍💻 **Developers** | Prototyping with Image Generation Models |
+| 🏢 **Enterprises** | Scalable image AI infrastructure |
+| 🔬 **Researchers** | Experimenting with multiple models  |
+
+</div>
+
+<div align="center">
+
+*Built with ❤️ for the AI community*
+
+**[⭐ Star this project](https://github.com/Aquiles-ai/Aquiles-Image) • [📖 Documentation](#) • [💬 Community](#)**
+
+</div>
