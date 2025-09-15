@@ -1,4 +1,5 @@
 from fastapi.security import HTTPBearer
+from fastapi import Security, HTTPException
 import os
 import torch
 import uuid
@@ -6,6 +7,8 @@ import gc
 import tempfile
 import logging
 import sys
+from aquilesimage.configs import load_config_app
+from typing import Optional
 
 class ColoredFormatter(logging.Formatter):
     COLORS = {
@@ -57,6 +60,30 @@ logger_utils = setup_colored_logger("Aquiles-Image-Utils", logging.WARNING)
 
 security = HTTPBearer()
 
+async def verify_api_key(
+    api_key: Optional[str] = Security(security)
+):
+    configs = await load_config_app()
+
+    valid_keys = [k for k in configs["allows_api_keys"] if k and k.strip()]
+    
+    if not valid_keys:
+        return None
+
+    if configs["allows_api_keys"]:
+        if not api_key:
+            raise HTTPException(
+                status_code=403,
+                detail="API key missing",
+            )
+        if api_key not in configs["allows_api_keys"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Invalid API key",
+            )
+
+        return api_key
+
 class Utils:
     def __init__(self, host: str = '0.0.0.0', port: int = 8500):
         self.service_url = f"http://{host}:{port}"
@@ -82,7 +109,7 @@ class Utils:
 
         filename = "img" + str(uuid.uuid4()).split("-")[0] + ".png"
         image_path = os.path.join(self.image_dir, filename)
-        logger_utils.info(f"Saving image to {image_path}")
+        logger_utils.warning(f"Saving image to {image_path}")
 
         image.save(image_path, format="PNG", optimize=True)
 

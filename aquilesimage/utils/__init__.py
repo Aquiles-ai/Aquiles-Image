@@ -1,1 +1,1 @@
-from .utils import Utils, setup_colored_logger
+from .utils import Utils, setup_colored_logger, verify_api_key

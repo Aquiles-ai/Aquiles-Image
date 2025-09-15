@@ -26,7 +26,7 @@ class PipelineSD3:
     def start(self):
         if torch.cuda.is_available():
             model_path = self.model_path or "stabilityai/stable-diffusion-3.5-large"
-            logger_p.info("Loading CUDA")
+            logger_p.debug("Loading CUDA")
             self.device = "cuda"
             self.pipeline = StableDiffusion3Pipeline.from_pretrained(
                 model_path,
@@ -34,7 +34,7 @@ class PipelineSD3:
             ).to(device=self.device)
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "stabilityai/stable-diffusion-3.5-medium"
-            logger_p.info("Loading MPS for Mac M Series")
+            logger_p.debug("Loading MPS for Mac M Series")
             self.device = "mps"
             self.pipeline = StableDiffusion3Pipeline.from_pretrained(
                 model_path,
@@ -53,7 +53,7 @@ class TextToImagePipelineFlux:
     def start(self):
         if torch.cuda.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
-            logger_p.info("Loading CUDA")
+            logger_p.debug("Loading CUDA")
             self.device = "cuda" 
             self.pipeline = FluxPipeline.from_pretrained(
                 model_path,
@@ -65,7 +65,7 @@ class TextToImagePipelineFlux:
                 pass
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
-            logger_p.info("Loading MPS for Mac M Series")
+            logger_p.debug("Loading MPS for Mac M Series")
             self.device = "mps"
             self.pipeline = FluxPipeline.from_pretrained(
                 model_path,
@@ -84,7 +84,7 @@ class PipelineFlux:
     def start(self):
         if torch.cuda.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
-            logger_p.info("Loading CUDA")
+            logger_p.debug("Loading CUDA")
             self.device = "cuda" 
             self.pipeline = FluxPipeline.from_pretrained(
                 model_path,
@@ -96,7 +96,7 @@ class PipelineFlux:
                 pass
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
-            logger_p.info("Loading MPS for Mac M Series")
+            logger_p.debug("Loading MPS for Mac M Series")
             self.device = "mps"
             self.pipeline = FluxPipeline.from_pretrained(
                 model_path,
@@ -115,7 +115,7 @@ class PipelineFluxKontext:
     def start(self):
         if torch.cuda.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-Kontext-dev"
-            logger_p.info("Loading CUDA")
+            logger_p.debug("Loading CUDA")
             self.device = "cuda" 
             self.pipeline = FluxKontextPipeline.from_pretrained(
                 model_path,
@@ -127,7 +127,7 @@ class PipelineFluxKontext:
                 pass
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-Kontext-dev"
-            logger_p.info("Loading MPS for Mac M Series")
+            logger_p.debug("Loading MPS for Mac M Series")
             self.device = "mps"
             self.pipeline = FluxKontextPipeline.from_pretrained(
                 model_path,
@@ -146,7 +146,7 @@ class PipelineQwenImage:
     def start(self):
         if torch.cuda.is_available():
             model_path = self.model_path or "Qwen/Qwen-Image"
-            logger_p.info("Loading CUDA")
+            logger_p.debug("Loading CUDA")
             self.device = "cuda" 
             self.pipeline = QwenImagePipeline.from_pretrained(
                 model_path,
@@ -158,7 +158,7 @@ class PipelineQwenImage:
                 pass
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "Qwen/Qwen-Image"
-            logger_p.info("Loading MPS for Mac M Series")
+            logger_p.debug("Loading MPS for Mac M Series")
             self.device = "mps"
             self.pipeline = QwenImagePipeline.from_pretrained(
                 model_path,
@@ -177,7 +177,7 @@ class PipelineQwenImageEdit:
     def start(self):
         if torch.cuda.is_available():
             model_path = self.model_path or "Qwen/Qwen-Image"
-            logger_p.info("Loading CUDA")
+            logger_p.debug("Loading CUDA")
             self.device = "cuda" 
             self.pipeline = QwenImageEditPipeline.from_pretrained(
                 model_path,
@@ -189,7 +189,7 @@ class PipelineQwenImageEdit:
                 pass
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "Qwen/Qwen-Image"
-            logger_p.info("Loading MPS for Mac M Series")
+            logger_p.debug("Loading MPS for Mac M Series")
             self.device = "mps"
             self.pipeline = QwenImageEditPipeline.from_pretrained(
                 model_path,

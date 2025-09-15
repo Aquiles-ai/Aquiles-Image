@@ -8,12 +8,12 @@ POST /images/edits (edit)
 POST /images/generations (generate)
 """
 
-from fastapi import FastAPI, UploadFile, File, Request, HTTPException 
+from fastapi import FastAPI, UploadFile, File, Request, HTTPException, Depends
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
 from aquilesimage.models import CreateImageRequest, ImagesResponse, CreateImageEditRequest, CreateImageVariationRequest, Image, ImageModel
-from aquilesimage.utils import Utils, setup_colored_logger
+from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key
 from aquilesimage.runtime import RequestScopedPipeline
 from aquilesimage.pipelines import ModelPipelineInit
 from aquilesimage.configs import load_config_app, load_config_cli
@@ -144,7 +144,7 @@ async def count_requests_middleware(request: Request, call_next):
     response = await call_next(request)
     return response
 
-@app.post("/images/generations", response_model=ImagesResponse, tags=["Generation"])
+@app.post("/images/generations", response_model=ImagesResponse, tags=["Generation"], dependencies=[Depends(verify_api_key)])
 async def create_image(input_r: CreateImageRequest):
     
     utils_app = app.state.utils_app
@@ -256,7 +256,7 @@ async def create_image(input_r: CreateImageRequest):
         gc.collect()
 
 
-@app.post("/images/edits", response_model=ImagesResponse, tags=["Edit"])  
+@app.post("/images/edits", response_model=ImagesResponse, tags=["Edit"], dependencies=[Depends(verify_api_key)])  
 async def create_image_edit(input_r: CreateImageEditRequest, image: UploadFile = File(...), mask:  UploadFile | None = File(default=None)):
     def make_generator():
         g = torch.Generator(device=initializer.device)
@@ -265,7 +265,7 @@ async def create_image_edit(input_r: CreateImageEditRequest, image: UploadFile =
     req_pipe = app.state.REQUEST_PIPE
     pass
 
-@app.post("/images/variations", response_model=ImagesResponse, tags=["Variations"])
+@app.post("/images/variations", response_model=ImagesResponse, tags=["Variations"], dependencies=[Depends(verify_api_key)])
 async def create_image_variation(input_r: CreateImageVariationRequest, image: UploadFile = File(...)):
     def make_generator():
         g = torch.Generator(device=initializer.device)
