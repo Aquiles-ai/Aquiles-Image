@@ -25,6 +25,9 @@ import torch
 import random
 import os
 import gc
+import time
+import base64
+import io
 
 logger = setup_colored_logger("Aquiles-Image", logging.INFO)
 
@@ -143,9 +146,6 @@ async def count_requests_middleware(request: Request, call_next):
 
 @app.post("/images/generations", response_model=ImagesResponse, tags=["Generation"])
 async def create_image(input_r: CreateImageRequest):
-    import time
-    import base64
-    import io
     
     utils_app = app.state.utils_app
 
