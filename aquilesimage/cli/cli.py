@@ -48,7 +48,6 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
         else:
             try:
                 created = create_basic_config_if_not_exists()
-                if created:
             except Exception as e:
                 click.echo(f"Error creating default configuration: {e}", err=True)
                 sys.exit(1)

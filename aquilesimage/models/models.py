@@ -100,7 +100,7 @@ class ImagesResponse(BaseModel):
     data: List[Image] = Field(..., description="The list of generated images.")
     background: Optional[Literal["transparent", "opaque"]] = Field(None, description="The background parameter used for the image generation. Either `transparent` or `opaque`.")
     output_format: Optional[Literal["png", "webp", "jpeg"]] = Field(None, description="The output format of the image generation. Either `png`, `webp`, or `jpeg`.")
-    size: Optional[Literal["1024x1024", "1024x1536", "1536x1024"]] = Field(None, description="The size of the image generated. Either `1024x1024`, `1024x1536`, or `1536x1024`.")
+    size: Optional[Literal["1024x1024", "1536x1024", "1024x1536", "256x256", "512x512", "1792x1024", "1024x1792"]] = Field(None, description="The size of the image generated. Either `1024x1024`, `1024x1536`, or `1536x1024`.")
     quality: Optional[Literal["low", "medium", "high"]] = Field(None, description="The quality of the image generated. Either `low`, `medium`, or `high`.")
     usage: Optional[ImageGenUsage] = Field(None, description="For `gpt-image-1` only, the token usage information for the image generation.")
 
