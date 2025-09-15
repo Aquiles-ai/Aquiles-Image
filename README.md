@@ -28,6 +28,24 @@
 
 </div>
 
+## 📋 Prerequisites
+- Python 3.8+
+- CUDA-compatible GPU with 24GB+ VRAM
+- 10GB+ free disk space
+
+## ⚙️ Installation
+
+### From Pypi
+```bash
+pip install aquiles-image
+```
+### From source
+```bash
+git clone https://github.com/Aquiles-ai/Aquiles-Image.git
+cd Aquiles-Image
+pip install -e .
+```
+
 ## 🚀 Launch your Aquiles-Image server
 
 ```bash
