@@ -22,7 +22,7 @@
 | Feature | Description |
 |---------|-------------|
 | ⚡ **3x Faster** | Advanced inference optimizations |
-| 🎨 **More Models** | Support for FLUX, SD3-3.5, QWEN-IMAGE and more |
+| 🎨 **More Models** | Support for FLUX, SD3-3.5, Qwen-Image and more |
 | 🔧 **Better DevX** | Improved CLI and monitoring capabilities |
 | 🔌 **OpenAI Compatible** | Drop-in replacement for OpenAI's image APIs  |
 
