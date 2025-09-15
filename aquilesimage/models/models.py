@@ -202,3 +202,10 @@ class CreateImageVariationRequest(BaseModel):
     response_format: Optional[Literal["url", "b64_json"]] = Field("url", description="The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.")
     size: Optional[Literal["256x256", "512x512", "1024x1024"]] = Field("1024x1024", description="The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024`.")
     user: Optional[str] = Field(None, description="A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse.")
+
+
+class ConfigsServe(BaseModel):
+    model: Union[ImageModel, str] = Field(default="stabilityai/stable-diffusion-3.5-medium", description="The model to use for image generation.")
+    allows_api_keys: List[str] = Field( default_factory=lambda: [""], description="API KEYS allowed to make requests")
+    max_concurrent_infer: int = Field(default=10, description="Maximum number of inferences running at the same time")
+    block_request: bool = Field(default=False, description="Block requests during the maximum concurrent inferences")

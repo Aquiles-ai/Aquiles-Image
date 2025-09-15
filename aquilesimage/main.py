@@ -13,15 +13,57 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
 from aquilesimage.models import CreateImageRequest, ImagesResponse, CreateImageEditRequest, CreateImageVariationRequest
 from aquilesimage.utils import Utils, setup_colored_logger
+from aquilesimage.runtime import RequestScopedPipeline
+from aquilesimage.pipelines import ModelPipelineInit
+from aquilesimage.configs import load_config_app, load_config_cli
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+import threading
+import torch
+import random
 
 logger = setup_colored_logger("Aquiles-Image", logging.INFO)
 
 logger.info("Loading the model...")
 
 model_pipeline = None
+request_pipe = None
+pipeline_lock = threading.Lock()
+initializer = None
+config = None
+
+def load_models():
+    global model_pipeline, request_pipe, initializer, config
+
+    logger.info("Loading configuration...")
+    
+    config = load_config_cli() 
+    model_name = config.get("model")
+
+    if not model_name:
+        raise ValueError("No model specified in configuration. Please configure a model first.")
+    
+    logger.info(f"Loading model: {model_name}")
+    
+    try:
+        initializer = ModelPipelineInit(model=model_name)
+        model_pipeline = initializer.initialize_pipeline()
+        model_pipeline.start()
+        
+        request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
+        
+        logger.info(f"Model '{model_name}' loaded successfully")
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize model pipeline: {e}")
+        raise
+
+try:
+    load_models()
+except Exception as e:
+    logger.error(f"Failed to initialize models: {e}")
+    raise
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,6 +71,12 @@ async def lifespan(app: FastAPI):
     app.state.active_inferences = 0
     app.state.metrics_lock = asyncio.Lock()
     app.state.metrics_task = None
+    app.state.config = await load_config_app()
+
+    app.state.MODEL_INITIALIZER = initializer
+    app.state.MODEL_PIPELINE = model_pipeline
+    app.state.REQUEST_PIPE = request_pipe
+    app.state.PIPELINE_LOCK = pipeline_lock
 
     # dumb config
     app.state.utils_app = Utils(
@@ -68,6 +116,15 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"Error during pipeline shutdown: {e}")
 
+        if model_pipeline:
+            try:
+                stop_fn = getattr(model_pipeline, "stop", None) or getattr(model_pipeline, "close", None)
+                if callable(stop_fn):
+                    await run_in_threadpool(stop_fn)
+                    logger.info("Model pipeline stopped successfully")
+            except Exception as e:
+                logger.warning(f"Error during pipeline shutdown: {e}")
+
         logger.info("Lifespan shutdown complete")
 
 app = FastAPI(title="Aquiles-Image", lifespan=lifespan)
@@ -81,14 +138,29 @@ async def count_requests_middleware(request: Request, call_next):
 
 @app.post("/images/generations", response_model=ImagesResponse, tags=["Generation"])
 async def create_image(input_r: CreateImageRequest):
+    def make_generator():
+        g = torch.Generator(device=initializer.device)
+        return g.manual_seed(random.randint(0, 10_000_000))
+
+    req_pipe = app.state.REQUEST_PIPE
     pass
 
 @app.post("/images/edits", response_model=ImagesResponse, tags=["Edit"])  
 async def create_image_edit(input_r: CreateImageEditRequest, image: UploadFile = File(...), mask:  UploadFile | None = File(default=None)):
+    def make_generator():
+        g = torch.Generator(device=initializer.device)
+        return g.manual_seed(random.randint(0, 10_000_000))
+
+    req_pipe = app.state.REQUEST_PIPE
     pass
 
 @app.post("/images/variations", response_model=ImagesResponse, tags=["Variations"])
 async def create_image_variation(input_r: CreateImageVariationRequest, image: UploadFile = File(...)):
+    def make_generator():
+        g = torch.Generator(device=initializer.device)
+        return g.manual_seed(random.randint(0, 10_000_000))
+
+    req_pipe = app.state.REQUEST_PIPE
     pass
 
 

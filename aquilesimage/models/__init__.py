@@ -2,4 +2,4 @@ from .models import (ImageModel, ResponseFormat, OutputFormat, BackgroundType, Q
                     ImageSize, InputFidelity, ModerationLevel, ImageGenInputUsageDetails, ImageGenUsage,
                     Image, ImagesResponse, ImageGenPartialImageEvent, ImagesUsage, ImageGenCompletedEvent, 
                     ImageEditPartialImageEvent, ImageEditCompletedEvent, ImageGenStreamEvent, ImageEditStreamEvent,
-                    CreateImageRequest, CreateImageEditRequest, CreateImageVariationRequest)
+                    CreateImageRequest, CreateImageEditRequest, CreateImageVariationRequest, ConfigsServe)
