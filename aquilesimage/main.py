@@ -263,7 +263,118 @@ async def create_image_edit(input_r: CreateImageEditRequest, image: UploadFile =
         return g.manual_seed(random.randint(0, 10_000_000))
 
     req_pipe = app.state.REQUEST_PIPE
-    pass
+
+    utils_app = app.state.utils_app
+
+    prompt = input_r.prompt
+    model = input_r.model
+
+    if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.QWEN_IMAGE_EDIT] or model not in app.state.model:
+        HTTPException(500, f"Model not available")
+
+    n = input_r.n
+    size = input_r.size
+    response_format = input_r.response_format or "url"
+    quality = input_r.quality or "auto"
+    background = input_r.background or "auto"
+    output_format = input_r.output_format or "png"
+
+    if size == "1024x1024":
+        h, w = 1024, 1024
+    elif size == "1536x1024":
+        h, w = 1536, 1024
+    elif size == "1024x1536":
+        h, w = 1024, 1536
+    elif size == "256x256":
+        h, w = 256, 256
+    elif size == "512x512":
+        h, w = 512, 512
+    elif size == "1792x1024":
+        h, w = 1792, 1024
+    elif size == "1024x1792":
+        h, w = 1024, 1792
+    else:
+        h, w = 1024, 1024
+        size = "1024x1024"
+
+    gd = None
+    input_fidelity = input_r.input_fidelity
+    if input_fidelity == "high":
+        gd = 5.0
+    elif input_fidelity == "low":
+        gd = 2.0
+
+    def infer():
+        gen = make_generator()
+        return req_pipe.generate(
+            image=image,
+            prompt=prompt,
+            generator=gen,
+            guidance_scale=gd,
+            num_inference_steps=30,
+            height=h,
+            width=w,
+            num_images_per_prompt=n,
+            device=initializer.device,
+            output_type="pil",
+        )
+
+    try:
+        async with app.state.metrics_lock:
+            app.state.active_inferences += 1
+
+        output = await run_in_threadpool(infer)
+
+        async with app.state.metrics_lock:
+            app.state.active_inferences = max(0, app.state.active_inferences - 1)
+        
+        images_data = []
+        
+        for img in output.images:
+            image_obj = {}
+            
+            if response_format == "b64_json":
+                buffer = io.BytesIO()
+                img.save(buffer, format=output_format.upper())
+                img_str = base64.b64encode(buffer.getvalue()).decode()
+                image_obj["b64_json"] = img_str
+            else:
+                url = utils_app.save_image(img)
+                image_obj["url"] = url
+            
+            images_data.append(Image(**image_obj))
+
+        response_data = {
+            "created": int(time.time()),
+            "data": images_data,
+        }
+        
+        if size:
+            response_data["size"] = size
+        if quality:
+            response_data["quality"] = quality
+        if background:
+            response_data["background"] = background
+        if output_format:
+            response_data["output_format"] = output_format
+            
+
+        return ImagesResponse(**response_data)
+        
+    except Exception as e:
+        async with app.state.metrics_lock:
+            app.state.active_inferences = max(0, app.state.active_inferences - 1)
+        logger.error(f"Error during inference: {e}")
+        raise HTTPException(500, f"Error in processing: {e}")
+
+    finally:
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats()
+            torch.cuda.ipc_collect()
+        gc.collect()
+    
 
 @app.post("/images/variations", response_model=ImagesResponse, tags=["Variations"], dependencies=[Depends(verify_api_key)])
 async def create_image_variation(input_r: CreateImageVariationRequest, image: UploadFile = File(...)):

@@ -194,9 +194,9 @@ class CreateImageEditRequest(BaseModel):
     prompt: str = Field(..., max_length=1000, description="A text description of the desired image(s).")
     # mask: Optional[bytes] - It would be handled with UploadFile on the endpoint
     background: Optional[Literal["transparent", "opaque", "auto"]] = Field("auto", description="Allows to set transparency for the background of the generated image(s).")
-    model: Optional[Union[str, Literal["dall-e-2", "gpt-image-1"]]] = Field(None, description="The model to use for image generation.")
+    model: Optional[Union[str, ImageModel]] = Field(None, description="The model to use for image generation.")
     n: Optional[int] = Field(1, ge=1, le=10, description="The number of images to generate. Must be between 1 and 10.")
-    size: Optional[Literal["256x256", "512x512", "1024x1024", "1536x1024", "1024x1536", "auto"]] = Field("1024x1024", description="The size of the generated images. Must be one of `1024x1024`, `1536x1024` (landscape), `1024x1536` (portrait), or `auto` (default value)")
+    size: Optional[Literal["256x256", "512x512", "1024x1024", "1536x1024", "1024x1536", "1792x1024", "1024x1792", "auto"]] = Field("1024x1024", description="The size of the generated images. Must be one of `1024x1024`, `1536x1024` (landscape), `1024x1536` (portrait), or `auto` (default value)")
     response_format: Optional[Literal["url", "b64_json"]] = Field("url", description="The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated. ")
     output_format: Optional[Literal["png", "jpeg", "webp"]] = Field("png", description="The format in which the generated images are returned.")
     output_compression: Optional[int] = Field(100, description="The compression level (0-100%) for the generated images. ")

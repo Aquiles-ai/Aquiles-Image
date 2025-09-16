@@ -1,5 +1,6 @@
 from diffusers.pipelines.stable_diffusion_3.pipeline_stable_diffusion_3 import StableDiffusion3Pipeline
 from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
+from diffusers.pipelines.flux.pipeline_flux_kontext_inpaint import FluxKontextInpaintPipeline
 from diffusers.pipelines.flux.pipeline_flux_kontext import FluxKontextPipeline
 from diffusers.pipelines.qwenimage.pipeline_qwenimage import QwenImagePipeline
 from diffusers.pipelines.qwenimage.pipeline_qwenimage_edit import QwenImageEditPipeline
@@ -135,6 +136,38 @@ class PipelineFluxKontext:
             ).to(device=self.device)
         else:
             raise Exception("No CUDA or MPS device available")
+
+class PipelineFluxKontextMask:
+    def __init__(self, model_path: str | None = None, low_vram: bool = False):
+        self.model_path = model_path or os.getenv("MODEL_PATH")
+        self.pipeline: FluxKontextPipeline | None = None
+        self.device: str | None = None
+        self.low_vram = low_vram
+
+    def start(self):
+        if torch.cuda.is_available():
+            model_path = self.model_path or "black-forest-labs/FLUX.1-Kontext-dev"
+            logger_p.debug("Loading CUDA")
+            self.device = "cuda" 
+            self.pipeline = FluxKontextPipeline.from_pretrained(
+                model_path,
+                torch_dtype=torch.bfloat16,
+            ).to(device=self.device)
+            if self.low_vram:
+                self.pipeline.enable_model_cpu_offload()
+            else:
+                pass
+        elif torch.backends.mps.is_available():
+            model_path = self.model_path or "black-forest-labs/FLUX.1-Kontext-dev"
+            logger_p.debug("Loading MPS for Mac M Series")
+            self.device = "mps"
+            self.pipeline = FluxKontextPipeline.from_pretrained(
+                model_path,
+                torch_dtype=torch.bfloat16,
+            ).to(device=self.device)
+        else:
+            raise Exception("No CUDA or MPS device available")
+
 
 class PipelineQwenImage:
     def __init__(self, model_path: str | None = None, low_vram: bool = False):
