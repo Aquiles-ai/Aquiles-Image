@@ -22,10 +22,23 @@ class BaseAsyncScheduler:
                 super().__setattr__(name, value)
 
     def clone_for_request(self, num_inference_steps: int, device: Union[str, torch.device, None] = None, **kwargs):
-        local = copy.deepcopy(self.scheduler)
-        local.set_timesteps(num_inference_steps=num_inference_steps, device=device, **kwargs)
-        cloned = self.__class__(local)
-        return cloned
+        try:
+            local = copy.copy(self.scheduler)
+            local.set_timesteps(num_inference_steps=num_inference_steps, device=device, **kwargs)
+            cloned = self.__class__(local)
+            return cloned
+        except Exception as e1:
+            try:
+                scheduler_class = self.scheduler.__class__
+                if hasattr(self.scheduler, 'config'):
+                    local = scheduler_class.from_config(self.scheduler.config)
+                else:
+                    local = self.scheduler
+                local.set_timesteps(num_inference_steps=num_inference_steps, device=device, **kwargs)
+                cloned = self.__class__(local)
+                return cloned
+            except Exception as e2:
+                return self
 
     def __repr__(self):
         return f"BaseAsyncScheduler({repr(self.scheduler)})"
@@ -51,32 +64,8 @@ def async_retrieve_timesteps(
 
     If the caller passes `return_scheduler=True` in kwargs, the function will **not** mutate the passed
     scheduler. Instead it will use a cloned scheduler if available (via `scheduler.clone_for_request`)
-    or a deepcopy fallback, call `set_timesteps` on that cloned scheduler, and return:
+    or a fallback, call `set_timesteps` on that cloned scheduler, and return:
         (timesteps_tensor, num_inference_steps, scheduler_in_use)
-
-    Args:
-        scheduler (`SchedulerMixin`):
-            The scheduler to get timesteps from.
-        num_inference_steps (`int`):
-            The number of diffusion steps used when generating samples with a pre-trained model. If used, `timesteps`
-            must be `None`.
-        device (`str` or `torch.device`, *optional*):
-            The device to which the timesteps should be moved to. If `None`, the timesteps are not moved.
-        timesteps (`List[int]`, *optional*):
-            Custom timesteps used to override the timestep spacing strategy of the scheduler. If `timesteps` is passed,
-            `num_inference_steps` and `sigmas` must be `None`.
-        sigmas (`List[float]`, *optional*):
-            Custom sigmas used to override the timestep spacing strategy of the scheduler. If `sigmas` is passed,
-            `num_inference_steps` and `timesteps` must be `None`.
-
-    Optional kwargs:
-        return_scheduler (bool, default False): if True, return (timesteps, num_inference_steps, scheduler_in_use)
-            where `scheduler_in_use` is a scheduler instance that already has timesteps set.
-            This mode will prefer `scheduler.clone_for_request(...)` if available, to avoid mutating the original scheduler.
-
-    Returns:
-        `(timesteps_tensor, num_inference_steps)` by default (backwards compatible), or
-        `(timesteps_tensor, num_inference_steps, scheduler_in_use)` if `return_scheduler=True`.
     """
     # pop our optional control kwarg (keeps compatibility)
     return_scheduler = bool(kwargs.pop("return_scheduler", False))
@@ -93,10 +82,15 @@ def async_retrieve_timesteps(
                 # clone_for_request may accept num_inference_steps or other kwargs; be permissive
                 scheduler_in_use = scheduler.clone_for_request(num_inference_steps=num_inference_steps or 0, device=device)
             except Exception:
-                scheduler_in_use = copy.deepcopy(scheduler)
+                try:
+                    scheduler_in_use = copy.copy(scheduler)
+                except Exception:
+                    scheduler_in_use = scheduler
         else:
-            # fallback deepcopy (scheduler tends to be smallish - acceptable)
-            scheduler_in_use = copy.deepcopy(scheduler)
+            try:
+                scheduler_in_use = copy.copy(scheduler)
+            except Exception:
+                scheduler_in_use = scheduler
 
     # helper to test if set_timesteps supports a particular kwarg
     def _accepts(param_name: str) -> bool:

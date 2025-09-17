@@ -5,7 +5,6 @@ import torch
 from diffusers.utils import logging
 from .scheduler import BaseAsyncScheduler, async_retrieve_timesteps
 
-
 logger = logging.get_logger(__name__)
 
 def safe_tokenize(tokenizer, *args, lock, **kwargs):
@@ -16,7 +15,6 @@ class ThreadSafeTokenizerWrapper:
     def __init__(self, tokenizer, lock):
         self._tokenizer = tokenizer
         self._lock = lock
-        
 
         self._thread_safe_methods = {
             '__call__', 'encode', 'decode', 'tokenize', 
@@ -102,12 +100,20 @@ class RequestScopedPipeline:
                 **clone_kwargs
             )
         except Exception as e:
-            logger.debug(f"clone_for_request failed: {e}; falling back to deepcopy()")
+            logger.debug(f"clone_for_request failed: {e}; trying shallow copy fallback")
             try:
-                return copy.deepcopy(wrapped_scheduler)
-            except Exception as e:
-                logger.warning(f"Deepcopy of scheduler failed: {e}. Returning original scheduler (*risky*).")
-                return wrapped_scheduler  
+                if hasattr(wrapped_scheduler, 'scheduler'):
+                    try:
+                        copied_scheduler = copy.copy(wrapped_scheduler.scheduler)
+                        return BaseAsyncScheduler(copied_scheduler)
+                    except Exception:
+                        return wrapped_scheduler
+                else:
+                    copied_scheduler = copy.copy(wrapped_scheduler)
+                    return BaseAsyncScheduler(copied_scheduler)
+            except Exception as e2:
+                logger.warning(f"Shallow copy of scheduler also failed: {e2}. Using original scheduler (*thread-unsafe but functional*).")
+                return wrapped_scheduler 
 
     def _autodetect_mutables(self, max_attrs: int = 40):
         if not self._auto_detect_mutables:
