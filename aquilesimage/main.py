@@ -8,11 +8,11 @@ POST /images/edits (edit)
 POST /images/generations (generate)
 """
 
-from fastapi import FastAPI, UploadFile, File, Request, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, File, Request, HTTPException, Depends, Form
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
-from aquilesimage.models import CreateImageRequest, ImagesResponse, CreateImageEditRequest, CreateImageVariationRequest, Image, ImageModel
+from aquilesimage.models import CreateImageRequest, ImagesResponse, CreateImageVariationRequest, Image, ImageModel
 from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key
 from aquilesimage.runtime import RequestScopedPipeline
 from aquilesimage.pipelines import ModelPipelineInit
@@ -28,6 +28,7 @@ import gc
 import time
 import base64
 import io
+from typing import Optional
 
 logger = setup_colored_logger("Aquiles-Image", logging.INFO)
 
@@ -257,27 +258,47 @@ async def create_image(input_r: CreateImageRequest):
 
 
 @app.post("/images/edits", response_model=ImagesResponse, tags=["Edit"], dependencies=[Depends(verify_api_key)])  
-async def create_image_edit(input_r: CreateImageEditRequest, image: UploadFile = File(...), mask:  UploadFile | None = File(default=None)):
+async def create_image_edit(
+    image: UploadFile = File(..., description="The image to edit"),
+    mask: Optional[UploadFile] = File(None, description="An additional image to be used as a mask"),
+    prompt: str = Form(..., max_length=1000, description="A text description of the desired image(s)."),
+    background: Optional[str] = Form(None, description="Allows to set transparency for the background"),
+    model: Optional[str] = Form(None, description="The model to use for image generation"),
+    n: Optional[int] = Form(1, ge=1, le=10, description="The number of images to generate"),
+    size: Optional[str] = Form("1024x1024", description="The size of the generated images"),
+    response_format: Optional[str] = Form("url", description="The format in which the generated images are returned"),
+    output_format: Optional[str] = Form("png", description="The format in which the generated images are returned"),
+    output_compression: Optional[int] = Form(None, description="The compression level for the generated images"),
+    user: Optional[str] = Form(None, description="A unique identifier representing your end-user"),
+    input_fidelity: Optional[str] = Form(None, description="Control how much effort the model will exert"),
+    stream: Optional[bool] = Form(False, description="Edit the image in streaming mode"),
+    partial_images: Optional[int] = Form(None, ge=0, le=3, description="The number of partial images to generate"),
+    quality: Optional[str] = Form("auto", description="The quality of the image that will be generated")
+):
     def make_generator():
         g = torch.Generator(device=initializer.device)
         return g.manual_seed(random.randint(0, 10_000_000))
 
     req_pipe = app.state.REQUEST_PIPE
-
     utils_app = app.state.utils_app
 
-    prompt = input_r.prompt
-    model = input_r.model
-
     if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.QWEN_IMAGE_EDIT] or model not in app.state.model:
-        HTTPException(500, f"Model not available")
+        raise HTTPException(500, f"Model not available")
 
-    n = input_r.n
-    size = input_r.size
-    response_format = input_r.response_format or "url"
-    quality = input_r.quality or "auto"
-    background = input_r.background or "auto"
-    output_format = input_r.output_format or "png"
+    try:
+        image_content = await image.read()
+
+        from PIL import Image as PILImage
+        image_pil = PILImage.open(io.BytesIO(image_content))
+
+        if image_pil.mode != 'RGB':
+            image_pil = image_pil.convert('RGB')
+
+        width, height = image_pil.size
+        logger.info(f"Original image: {width}x{height}, mode: {image_pil.mode}")
+        
+    except Exception as e:
+        raise HTTPException(400, f"Invalid image file: {str(e)}")
 
     if size == "1024x1024":
         h, w = 1024, 1024
@@ -297,27 +318,56 @@ async def create_image_edit(input_r: CreateImageEditRequest, image: UploadFile =
         h, w = 1024, 1024
         size = "1024x1024"
 
-    gd = None
-    input_fidelity = input_r.input_fidelity
+    image_to_use = image_pil  
+    
+    if model == ImageModel.FLUX_1_KONTEXT_DEV:
+        logger.info(f"Flux Kontext: Using original image without resizing: {image_pil.size}")
+        image_to_use = image_pil
+        
+    elif model == ImageModel.QWEN_IMAGE_EDIT:
+        if image_pil.size != (w, h):
+            logger.info(f"QwenImageEdit: Resizing image from {image_pil.size} to {(w, h)}")
+            image_to_use = image_pil.resize((w, h), PILImage.Resampling.LANCZOS)
+        else:
+            logger.info(f"QwenImageEdit: Image is now the correct size: {(w, h)}")
+            image_to_use = image_pil
+
     if input_fidelity == "high":
         gd = 5.0
     elif input_fidelity == "low":
         gd = 2.0
+    else:
+        if model == ImageModel.FLUX_1_KONTEXT_DEV:
+            gd = 2.5 
+        else:
+            gd = 7.5  
 
     def infer():
         gen = make_generator()
-        return req_pipe.generate(
-            image=image,
-            prompt=prompt,
-            generator=gen,
-            guidance_scale=gd,
-            num_inference_steps=30,
-            height=h,
-            width=w,
-            num_images_per_prompt=n,
-            device=initializer.device,
-            output_type="pil",
-        )
+        
+        if model == ImageModel.FLUX_1_KONTEXT_DEV:
+            logger.info(f"FluxKontext inference - guidance_scale: {gd}")
+            return req_pipe.generate(
+                image=image_to_use,
+                prompt=prompt,
+                guidance_scale=gd,
+                generator=gen, 
+                num_images_per_prompt=n or 1,  
+                output_type="pil",  
+            )
+        else:
+            logger.info(f"QwenImageEdit inference - guidance_scale: {gd}, size: {h}x{w}")
+            return req_pipe.generate(
+                image=image_to_use,
+                prompt=prompt,
+                generator=gen,
+                guidance_scale=gd,
+                num_inference_steps=30,
+                height=h,
+                width=w,
+                num_images_per_prompt=n or 1,
+                output_type="pil",
+            )
 
     try:
         async with app.state.metrics_lock:
@@ -349,7 +399,7 @@ async def create_image_edit(input_r: CreateImageEditRequest, image: UploadFile =
             "data": images_data,
         }
         
-        if size:
+        if model != ImageModel.FLUX_1_KONTEXT_DEV and size:
             response_data["size"] = size
         if quality:
             response_data["quality"] = quality
@@ -357,7 +407,6 @@ async def create_image_edit(input_r: CreateImageEditRequest, image: UploadFile =
             response_data["background"] = background
         if output_format:
             response_data["output_format"] = output_format
-            
 
         return ImagesResponse(**response_data)
         
@@ -374,7 +423,6 @@ async def create_image_edit(input_r: CreateImageEditRequest, image: UploadFile =
             torch.cuda.reset_peak_memory_stats()
             torch.cuda.ipc_collect()
         gc.collect()
-    
 
 @app.post("/images/variations", response_model=ImagesResponse, tags=["Variations"], dependencies=[Depends(verify_api_key)])
 async def create_image_variation(input_r: CreateImageVariationRequest, image: UploadFile = File(...)):

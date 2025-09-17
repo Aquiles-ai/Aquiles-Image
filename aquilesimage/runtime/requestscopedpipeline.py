@@ -12,6 +12,41 @@ def safe_tokenize(tokenizer, *args, lock, **kwargs):
     with lock:
         return tokenizer(*args, **kwargs)
 
+class ThreadSafeTokenizerWrapper:
+    def __init__(self, tokenizer, lock):
+        self._tokenizer = tokenizer
+        self._lock = lock
+        
+
+        self._thread_safe_methods = {
+            '__call__', 'encode', 'decode', 'tokenize', 
+            'encode_plus', 'batch_encode_plus', 'batch_decode'
+        }
+    
+    def __getattr__(self, name):
+        attr = getattr(self._tokenizer, name)
+        
+        if name in self._thread_safe_methods and callable(attr):
+            def wrapped_method(*args, **kwargs):
+                with self._lock:
+                    return attr(*args, **kwargs)
+            return wrapped_method
+        
+        return attr
+
+    def __call__(self, *args, **kwargs):
+        with self._lock:
+            return self._tokenizer(*args, **kwargs)
+    
+    def __setattr__(self, name, value):
+        if name.startswith('_'):
+            super().__setattr__(name, value)
+        else:
+            setattr(self._tokenizer, name, value)
+    
+    def __dir__(self):
+        return dir(self._tokenizer)
+
 class RequestScopedPipeline:
     DEFAULT_MUTABLE_ATTRS = [
         "_all_hooks",
@@ -226,20 +261,17 @@ class RequestScopedPipeline:
 
         self._clone_mutable_attrs(self._base, local_pipe)
 
-        # 4) wrap tokenizers on the local pipe with the lock wrapper
-        tokenizer_wrappers = {}  # name -> original_tokenizer
+        # 4) wrap tokenizers on the local pipe with the thread-safe wrapper
+        original_tokenizers = {}  # name -> original_tokenizer (para restaurar después)
         try:
             # a) wrap direct tokenizer attributes (tokenizer, tokenizer_2, ...)
             for name in dir(local_pipe):
                 if "tokenizer" in name and not name.startswith("_"):
                     tok = getattr(local_pipe, name, None)
                     if tok is not None and self._is_tokenizer_component(tok):
-                        tokenizer_wrappers[name] = tok
-                        setattr(
-                            local_pipe,
-                            name,
-                            lambda *args, tok=tok, **kwargs: safe_tokenize(tok, *args, lock=self._tokenizer_lock, **kwargs)
-                        )
+                        original_tokenizers[name] = tok
+                        wrapped_tokenizer = ThreadSafeTokenizerWrapper(tok, self._tokenizer_lock)
+                        setattr(local_pipe, name, wrapped_tokenizer)
 
             # b) wrap tokenizers in components dict
             if hasattr(local_pipe, "components") and isinstance(local_pipe.components, dict):
@@ -248,10 +280,9 @@ class RequestScopedPipeline:
                         continue
                     
                     if self._is_tokenizer_component(val):
-                        tokenizer_wrappers[f"components[{key}]"] = val
-                        local_pipe.components[key] = lambda *args, tokenizer=val, **kwargs: safe_tokenize(
-                            tokenizer, *args, lock=self._tokenizer_lock, **kwargs
-                        )
+                        original_tokenizers[f"components[{key}]"] = val
+                        wrapped_tokenizer = ThreadSafeTokenizerWrapper(val, self._tokenizer_lock)
+                        local_pipe.components[key] = wrapped_tokenizer
 
         except Exception as e:
             logger.debug(f"Tokenizer wrapping step encountered an error: {e}")
@@ -278,12 +309,13 @@ class RequestScopedPipeline:
             return result
 
         finally:
+            # Restaurar los tokenizers originales (opcional, para limpieza)
             try:
-                for name, tok in tokenizer_wrappers.items():
+                for name, tok in original_tokenizers.items():
                     if name.startswith("components["):
                         key = name[len("components["):-1]
                         local_pipe.components[key] = tok
                     else:
                         setattr(local_pipe, name, tok)
             except Exception as e:
-                logger.debug(f"Error restoring wrapped tokenizers: {e}")
+                logger.debug(f"Error restoring original tokenizers: {e}")
