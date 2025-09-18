@@ -20,8 +20,9 @@ def greet(name):
 @click.option("--max-concurrent-infer", type=int, help="Maximum concurrent inferences")
 @click.option("--block-request/--no-block-request", default=None, help="Block requests during maximum concurrent inferences")
 @click.option("--force", is_flag=True, help="Force overwrite existing configuration")
+@click.option("--use-kernels", is_flag=True, help="Force overwrite existing configuration")
 def serve(host: str, port: int, model: Optional[str], api_key: Optional[str], 
-         max_concurrent_infer: Optional[int], block_request: Optional[bool], force: bool):
+         max_concurrent_infer: Optional[int], block_request: Optional[bool], force: bool, use_kernels: bool):
     """Start the Aquiles-Image server."""
     try:
         from aquilesimage.configs import (
@@ -69,7 +70,8 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
         model is not None,
         api_key is not None,
         max_concurrent_infer is not None,
-        block_request is not None
+        block_request is not None,
+        use_kernels if use_kernels == True else False
     ])
 
     if config_needs_update:
@@ -83,7 +85,8 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
                 model=final_model,
                 allows_api_keys=existing_api_keys,
                 max_concurrent_infer=max_concurrent_infer if max_concurrent_infer is not None else conf.get("max_concurrent_infer"),
-                block_request=block_request if block_request is not None else conf.get("block_request")
+                block_request=block_request if block_request is not None else conf.get("block_request"),
+                use_kernels=use_kernels if use_kernels == True else False
             )
 
             configs_image_serve(updated_conf, force=True)

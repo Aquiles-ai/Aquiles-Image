@@ -1,5 +1,6 @@
 from diffusers.pipelines.stable_diffusion_3.pipeline_stable_diffusion_3 import StableDiffusion3Pipeline
 from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
+from aquilesimage.kernels.Flux import FluxPipelineKernels
 from diffusers.pipelines.flux.pipeline_flux_kontext_inpaint import FluxKontextInpaintPipeline
 from diffusers.pipelines.flux.pipeline_flux_kontext import FluxKontextPipeline
 from diffusers.pipelines.qwenimage.pipeline_qwenimage import QwenImagePipeline
@@ -9,6 +10,7 @@ import os
 import logging
 from aquilesimage.models import ImageModel
 from aquilesimage.utils import setup_colored_logger
+from typing import Union
 
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
@@ -44,57 +46,32 @@ class PipelineSD3:
         else:
             raise Exception("No CUDA or MPS device available")
 
-class TextToImagePipelineFlux:
-    def __init__(self, model_path: str | None = None, low_vram: bool = False):
-        self.model_path = model_path or os.getenv("MODEL_PATH")
-        self.pipeline: FluxPipeline | None = None
-        self.device: str | None = None
-        self.low_vram = low_vram
-
-    def start(self):
-        if torch.cuda.is_available():
-            model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
-            logger_p.debug("Loading CUDA")
-            self.device = "cuda" 
-            self.pipeline = FluxPipeline.from_pretrained(
-                model_path,
-                torch_dtype=torch.bfloat16,
-            ).to(device=self.device)
-            if self.low_vram:
-                self.pipeline.enable_model_cpu_offload()
-            else:
-                pass
-        elif torch.backends.mps.is_available():
-            model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
-            logger_p.debug("Loading MPS for Mac M Series")
-            self.device = "mps"
-            self.pipeline = FluxPipeline.from_pretrained(
-                model_path,
-                torch_dtype=torch.bfloat16,
-            ).to(device=self.device)
-        else:
-            raise Exception("No CUDA or MPS device available")
-
 class PipelineFlux:
-    def __init__(self, model_path: str | None = None, low_vram: bool = False):
+    def __init__(self, model_path: str | None = None, low_vram: bool = False, use_kernels: bool = False):
         self.model_path = model_path or os.getenv("MODEL_PATH")
-        self.pipeline: FluxPipeline | None = None
+        self.pipeline:Union[FluxPipeline, FluxPipelineKernels, None] = None
         self.device: str | None = None
         self.low_vram = low_vram
+        self.use_kernels = use_kernels
 
     def start(self):
         if torch.cuda.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
             logger_p.debug("Loading CUDA")
-            self.device = "cuda" 
-            self.pipeline = FluxPipeline.from_pretrained(
-                model_path,
-                torch_dtype=torch.bfloat16,
-            ).to(device=self.device)
+            self.device = "cuda"
+            if self.use_kernels :
+                self.pipeline = FluxPipelineKernels.from_pretrained(
+                    model_path,
+                    torch_dtype=torch.bfloat16,
+                    enable_text_encoding_cache=True,
+                ).to(device=self.device)
+            else:
+                self.pipeline = FluxPipeline.from_pretrained(
+                    model_path,
+                    torch_dtype=torch.bfloat16,
+                ).to(device=self.device)
             if self.low_vram:
                 self.pipeline.enable_model_cpu_offload()
-            else:
-                pass
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
             logger_p.debug("Loading MPS for Mac M Series")
@@ -233,11 +210,12 @@ class PipelineQwenImageEdit:
 
 
 class ModelPipelineInit:
-    def __init__(self, model: str):
+    def __init__(self, model: str, use_kernels: bool = False):
         self.model = model
         self.pipeline = None
         self.device = "cuda" if torch.cuda.is_available() else "mps"
         self.model_type = None
+        self.use_kernels = use_kernels
 
         self.models = ImageModel
 
@@ -266,6 +244,9 @@ class ModelPipelineInit:
             self.models.QWEN_IMAGE_EDIT
         ]
 
+        if self.use_kernels and self.model not in self.flux:
+            raise ValueError("There are no compatible kernels yet")
+
     def initialize_pipeline(self):
         if not self.model:
             raise ValueError("Model name not provided")
@@ -274,7 +255,7 @@ class ModelPipelineInit:
         if self.model in self.stablediff3:
             self.pipeline = PipelineSD3(self.model)
         elif self.model in self.flux:
-            self.pipeline = PipelineFlux(self.model)
+            self.pipeline = PipelineFlux(self.model, use_kernels=self.use_kernels)
         elif self.model in self.qwen:
             self.pipeline = PipelineQwenImage(self.model)
         # Edition Models

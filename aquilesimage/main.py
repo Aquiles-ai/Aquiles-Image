@@ -47,6 +47,7 @@ def load_models():
     
     config = load_config_cli() 
     model_name = config.get("model")
+    use_kernels = config.get("use_kernels")
 
     if not model_name:
         raise ValueError("No model specified in configuration. Please configure a model first.")
@@ -54,7 +55,10 @@ def load_models():
     logger.info(f"Loading model: {model_name}")
     
     try:
-        initializer = ModelPipelineInit(model=model_name)
+        if use_kernels:
+            initializer = ModelPipelineInit(model=model_name, use_kernels=use_kernels)
+        else:
+            initializer = ModelPipelineInit(model=model_name)
         model_pipeline = initializer.initialize_pipeline()
         model_pipeline.start()
         

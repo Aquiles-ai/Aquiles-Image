@@ -48,7 +48,7 @@ class ThreadSafeTokenizerWrapper:
 class RequestScopedPipeline:
     DEFAULT_MUTABLE_ATTRS = [
         "_all_hooks",
-        "_offload_device",
+        "_offload_device", 
         "_progress_bar_config",
         "_progress_bar",
         "_rng_state",
@@ -63,25 +63,90 @@ class RequestScopedPipeline:
         auto_detect_mutables: bool = True,
         tensor_numel_threshold: int = 1_000_000,
         tokenizer_lock: Optional[threading.Lock] = None,
-        wrap_scheduler: bool = True
+        wrap_scheduler: bool = True,
+        use_kernels: bool = False
     ):
         self._base = pipeline
+        self._use_kernels = use_kernels
+        
+        self._has_kernels = self._detect_kernel_pipeline(pipeline)
+        
         self.unet = getattr(pipeline, "unet", None)
-        self.vae = getattr(pipeline, "vae", None)
+        self.vae = getattr(pipeline, "vae", None) 
         self.text_encoder = getattr(pipeline, "text_encoder", None)
         self.components = getattr(pipeline, "components", None)
-
+        
+        self.transformer = getattr(pipeline, "transformer", None)
+        
         if wrap_scheduler and hasattr(pipeline, 'scheduler') and pipeline.scheduler is not None:
             if not isinstance(pipeline.scheduler, BaseAsyncScheduler):
                 pipeline.scheduler = BaseAsyncScheduler(pipeline.scheduler)
 
         self._mutable_attrs = list(mutable_attrs) if mutable_attrs is not None else list(self.DEFAULT_MUTABLE_ATTRS)
+        
+        if self._has_kernels:
+            kernel_specific_attrs = [
+                "_active_requests",
+                "_current_timestep", 
+                "_interrupt",
+                "stats",
+                "_guidance_scale",
+                "_joint_attention_kwargs",
+                "_num_timesteps"
+            ]
+            self._mutable_attrs.extend(kernel_specific_attrs)
+        
         self._tokenizer_lock = tokenizer_lock if tokenizer_lock is not None else threading.Lock()
-
+        
         self._auto_detect_mutables = bool(auto_detect_mutables)
         self._tensor_numel_threshold = int(tensor_numel_threshold)
-
         self._auto_detected_attrs: List[str] = []
+
+    def _detect_kernel_pipeline(self, pipeline) -> bool:
+        kernel_indicators = [
+            'text_encoding_cache',
+            'memory_manager', 
+            'enable_optimizations',
+            '_create_request_context',
+            'get_optimization_stats'
+        ]
+        
+        return any(hasattr(pipeline, attr) for attr in kernel_indicators)
+
+    def _handle_kernel_specific_cloning(self, base, local):
+        if not self._has_kernels:
+            return
+            
+        try:
+
+            if hasattr(base, 'text_encoding_cache') and base.text_encoding_cache is not None:
+                setattr(local, 'text_encoding_cache', base.text_encoding_cache)
+            
+            if hasattr(base, 'memory_manager') and base.memory_manager is not None:
+                setattr(local, 'memory_manager', base.memory_manager)
+            
+            if hasattr(base, 'stats'):
+                setattr(local, 'stats', copy.deepcopy(base.stats))
+                
+            if hasattr(base, '_active_requests'):
+                setattr(local, '_active_requests', {})
+            
+            if (hasattr(base, 'scheduler') and 
+                hasattr(base.scheduler, 'create_request_scheduler') and
+                callable(getattr(base.scheduler, 'create_request_scheduler', None))):
+                try:
+                    local_scheduler = base.scheduler.create_request_scheduler()
+                    setattr(local, 'scheduler', local_scheduler)
+                except Exception as e:
+                    logger.debug(f"Failed to create request scheduler: {e}. Using standard scheduler handling.")
+            
+            if hasattr(base, 'image_processor'):
+                processor = base.image_processor
+                if hasattr(processor, 'async_postprocessor') or hasattr(processor, 'memory_batcher'):
+                    setattr(local, 'image_processor', processor)
+                
+        except Exception as e:
+            logger.debug(f"Error in kernel-specific cloning: {e}")
 
     def _make_local_scheduler(self, num_inference_steps: int, device: Optional[str] = None, **clone_kwargs):
         base_sched = getattr(self._base, "scheduler", None)
@@ -124,13 +189,22 @@ class RequestScopedPipeline:
 
         candidates: List[str] = []
         seen = set()
+        
+        kernel_safe_attrs = {
+            'text_encoding_cache',  
+            'memory_manager',       
+        } if self._has_kernels else set()
+        
         for name in dir(self._base):
             if name.startswith("__"):
                 continue
             if name in self._mutable_attrs:
                 continue
+            if name in kernel_safe_attrs:
+                continue
             if name in ("to", "save_pretrained", "from_pretrained"):
                 continue
+                
             try:
                 val = getattr(self._base, name)
             except Exception:
@@ -138,11 +212,9 @@ class RequestScopedPipeline:
 
             import types
 
-            # skip callables and modules
             if callable(val) or isinstance(val, (types.ModuleType, types.FunctionType, types.MethodType)):
                 continue
 
-            # containers -> candidate
             if isinstance(val, (dict, list, set, tuple, bytearray)):
                 candidates.append(name)
                 seen.add(name)
@@ -241,6 +313,17 @@ class RequestScopedPipeline:
         
         return has_tokenizer_methods and (has_tokenizer_in_name or has_tokenizer_attrs)
 
+    def _should_wrap_tokenizers(self) -> bool:
+        if self._has_kernels:
+            if hasattr(self._base, 'text_encoding_cache'):
+                cache_stats = self._base.text_encoding_cache.get_stats()
+                if cache_stats.get('hit_rate', 0) > 0.8:  # 
+                    return True
+            
+            return True
+        
+        return True
+
     def generate(self, *args, num_inference_steps: int = 50, device: Optional[str] = None, **kwargs):
         local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device)
 
@@ -266,42 +349,56 @@ class RequestScopedPipeline:
                 logger.warning("Could not set scheduler on local pipe; proceeding without replacing scheduler.")
 
         self._clone_mutable_attrs(self._base, local_pipe)
+        
+        self._handle_kernel_specific_cloning(self._base, local_pipe)
 
-        # 4) wrap tokenizers on the local pipe with the thread-safe wrapper
-        original_tokenizers = {}  # name -> original_tokenizer (para restaurar después)
-        try:
-            # a) wrap direct tokenizer attributes (tokenizer, tokenizer_2, ...)
-            for name in dir(local_pipe):
-                if "tokenizer" in name and not name.startswith("_"):
-                    tok = getattr(local_pipe, name, None)
-                    if tok is not None and self._is_tokenizer_component(tok):
-                        original_tokenizers[name] = tok
-                        wrapped_tokenizer = ThreadSafeTokenizerWrapper(tok, self._tokenizer_lock)
-                        setattr(local_pipe, name, wrapped_tokenizer)
+        original_tokenizers = {}
+        
+        if self._should_wrap_tokenizers():
+            try:
+                for name in dir(local_pipe):
+                    if "tokenizer" in name and not name.startswith("_"):
+                        tok = getattr(local_pipe, name, None)
+                        if tok is not None and self._is_tokenizer_component(tok):
+                            if not isinstance(tok, ThreadSafeTokenizerWrapper):
+                                original_tokenizers[name] = tok
+                                wrapped_tokenizer = ThreadSafeTokenizerWrapper(tok, self._tokenizer_lock)
+                                setattr(local_pipe, name, wrapped_tokenizer)
 
-            # b) wrap tokenizers in components dict
-            if hasattr(local_pipe, "components") and isinstance(local_pipe.components, dict):
-                for key, val in local_pipe.components.items():
-                    if val is None:
-                        continue
-                    
-                    if self._is_tokenizer_component(val):
-                        original_tokenizers[f"components[{key}]"] = val
-                        wrapped_tokenizer = ThreadSafeTokenizerWrapper(val, self._tokenizer_lock)
-                        local_pipe.components[key] = wrapped_tokenizer
+                if hasattr(local_pipe, "components") and isinstance(local_pipe.components, dict):
+                    for key, val in local_pipe.components.items():
+                        if val is None:
+                            continue
+                        
+                        if self._is_tokenizer_component(val):
+                            if not isinstance(val, ThreadSafeTokenizerWrapper):
+                                original_tokenizers[f"components[{key}]"] = val
+                                wrapped_tokenizer = ThreadSafeTokenizerWrapper(val, self._tokenizer_lock)
+                                local_pipe.components[key] = wrapped_tokenizer
 
-        except Exception as e:
-            logger.debug(f"Tokenizer wrapping step encountered an error: {e}")
+            except Exception as e:
+                logger.debug(f"Tokenizer wrapping step encountered an error: {e}")
 
         result = None
         cm = getattr(local_pipe, "model_cpu_offload_context", None)
+        
         try:
+            kernel_kwargs = {}
+            if self._has_kernels:
+                if 'request_id' not in kwargs:
+                    import time
+                    kernel_kwargs['request_id'] = f"req_{int(time.time() * 1000)}_{threading.get_ident()}"
+                
+                if 'enable_optimizations' not in kwargs:
+                    kernel_kwargs['enable_optimizations'] = True
+                    
+                kwargs.update(kernel_kwargs)
+            
             if callable(cm):
                 try:
                     with cm():
                         result = local_pipe(*args, num_inference_steps=num_inference_steps, **kwargs)
                 except TypeError:
-                    # cm might be a context manager instance rather than callable
                     try:
                         with cm:
                             result = local_pipe(*args, num_inference_steps=num_inference_steps, **kwargs)
@@ -309,19 +406,35 @@ class RequestScopedPipeline:
                         logger.debug(f"model_cpu_offload_context usage failed: {e}. Proceeding without it.")
                         result = local_pipe(*args, num_inference_steps=num_inference_steps, **kwargs)
             else:
-                # no offload context available — call directly
                 result = local_pipe(*args, num_inference_steps=num_inference_steps, **kwargs)
 
             return result
 
         finally:
-            # Restaurar los tokenizers originales (opcional, para limpieza)
             try:
                 for name, tok in original_tokenizers.items():
                     if name.startswith("components["):
                         key = name[len("components["):-1]
-                        local_pipe.components[key] = tok
+                        if hasattr(local_pipe, 'components') and isinstance(local_pipe.components, dict):
+                            local_pipe.components[key] = tok
                     else:
                         setattr(local_pipe, name, tok)
             except Exception as e:
                 logger.debug(f"Error restoring original tokenizers: {e}")
+
+    def get_optimization_stats(self):
+        if self._has_kernels and hasattr(self._base, 'get_optimization_stats'):
+            return self._base.get_optimization_stats()
+        return {}
+
+    def clear_caches(self):
+        if self._has_kernels and hasattr(self._base, 'clear_caches'):
+            self._base.clear_caches()
+
+    @property 
+    def has_kernels(self) -> bool:
+        return self._has_kernels
+
+    @property
+    def supports_concurrent_inference(self) -> bool:
+        return self._has_kernels
