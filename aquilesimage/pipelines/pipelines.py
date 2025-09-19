@@ -1,7 +1,5 @@
 from diffusers.pipelines.stable_diffusion_3.pipeline_stable_diffusion_3 import StableDiffusion3Pipeline
 from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
-from aquilesimage.kernels.Flux import FluxPipelineKernels
-from diffusers.pipelines.flux.pipeline_flux_kontext_inpaint import FluxKontextInpaintPipeline
 from diffusers.pipelines.flux.pipeline_flux_kontext import FluxKontextPipeline
 from diffusers.pipelines.qwenimage.pipeline_qwenimage import QwenImagePipeline
 from diffusers.pipelines.qwenimage.pipeline_qwenimage_edit import QwenImageEditPipeline
@@ -10,7 +8,6 @@ import os
 import logging
 from aquilesimage.models import ImageModel
 from aquilesimage.utils import setup_colored_logger
-from typing import Union
 
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
@@ -18,7 +15,6 @@ logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 """
 Maybe this will mutate with the changes implemented in diffusers
 """
-
 
 class PipelineSD3:
     def __init__(self, model_path: str | None = None):
@@ -49,45 +45,68 @@ class PipelineSD3:
 class PipelineFlux:
     def __init__(self, model_path: str | None = None, low_vram: bool = False, use_kernels: bool = False):
         self.model_path = model_path or os.getenv("MODEL_PATH")
-        self.pipeline:Union[FluxPipeline, FluxPipelineKernels, None] = None
+        self.pipeline = None
         self.device: str | None = None
         self.low_vram = low_vram
         self.use_kernels = use_kernels
+        
+        self.FluxPipelineKernels = None
+        if use_kernels:
+            try:
+                from aquilesimage.kernels.Flux import FluxPipelineKernels
+                self.FluxPipelineKernels = FluxPipelineKernels
+            except ImportError as e:
+                print(f"Failed to import FluxPipelineKernels: {e}")
+                self.use_kernels = False
+            except Exception as e:
+                print(f"Error initializing kernels: {e}")
+                raise
 
     def start(self):
         if torch.cuda.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
             logger_p.debug("Loading CUDA")
             self.device = "cuda"
-            if self.use_kernels :
-                self.pipeline = FluxPipelineKernels.from_pretrained(
-                    model_path,
-                    torch_dtype=torch.float16,
-                    enable_text_encoding_cache=False,
-                    enable_optimizations = True,
-                    text_cache_size = 500,
-                    enable_memory_management = True,
-                    target_memory_usage = 0.9,
-                    enable_async_postprocess = True,
-                    max_concurrent_postprocess = 3
-                ).to(device=self.device)
+            
+            if self.use_kernels and self.FluxPipelineKernels:
+                try:
+                    self.pipeline = self.FluxPipelineKernels.from_pretrained(
+                        model_path,
+                        torch_dtype=torch.float16,
+                        enable_text_encoding_cache=False,
+                        enable_optimizations=True,
+                        text_cache_size=500,
+                        enable_memory_management=True,
+                        target_memory_usage=0.9,
+                        enable_async_postprocess=True,
+                        max_concurrent_postprocess=3
+                    ).to(device=self.device)
+                except Exception as e:
+                    print(f"Error initializing pipeline with kernels: {e}")
+                    self._load_standard_pipeline(model_path)
             else:
-                self.pipeline = FluxPipeline.from_pretrained(
-                    model_path,
-                    torch_dtype=torch.bfloat16,
-                ).to(device=self.device)
+                self._load_standard_pipeline(model_path)
+            
             if self.low_vram:
                 self.pipeline.enable_model_cpu_offload()
+                
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
             logger_p.debug("Loading MPS for Mac M Series")
             self.device = "mps"
-            self.pipeline = FluxPipeline.from_pretrained(
-                model_path,
-                torch_dtype=torch.bfloat16,
-            ).to(device=self.device)
+            
+            if self.use_kernels:
+                print("Warning: Kernels are not supported in MPS, using standard pipeline")
+            
+            self._load_standard_pipeline(model_path)
         else:
-            raise Exception("No CUDA or MPS device available")
+            raise Exception("No hay dispositivo CUDA o MPS disponible")
+
+    def _load_standard_pipeline(self, model_path: str):
+        self.pipeline = FluxPipeline.from_pretrained(
+            model_path,
+            torch_dtype=torch.bfloat16,
+        ).to(device=self.device)
 
 class PipelineFluxKontext:
     def __init__(self, model_path: str | None = None, low_vram: bool = False):
