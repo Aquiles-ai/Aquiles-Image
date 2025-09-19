@@ -32,7 +32,7 @@ logger = logging.get_logger(__name__)
 
 
 
-@dataclass
+@dataclass(frozen=True)
 class EmbeddingCacheKey:
     ids_hash: str
     timestep: Optional[float]

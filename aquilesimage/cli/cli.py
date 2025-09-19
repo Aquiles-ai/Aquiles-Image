@@ -37,6 +37,9 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
         sys.exit(1)
 
     config_exists = config_file_exists()
+
+    ctx = click.get_current_context()
+    use_kernels_provided = '--use-kernels' in ctx._parameter_source or use_kernels
     
     if not config_exists:
         if model:
@@ -71,7 +74,7 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
         api_key is not None,
         max_concurrent_infer is not None,
         block_request is not None,
-        use_kernels if use_kernels == True else False
+        use_kernels_provided
     ])
 
     if config_needs_update:
@@ -86,7 +89,7 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
                 allows_api_keys=existing_api_keys,
                 max_concurrent_infer=max_concurrent_infer if max_concurrent_infer is not None else conf.get("max_concurrent_infer"),
                 block_request=block_request if block_request is not None else conf.get("block_request"),
-                use_kernels=use_kernels if use_kernels == True else False
+                use_kernels=use_kernels
             )
 
             configs_image_serve(updated_conf, force=True)

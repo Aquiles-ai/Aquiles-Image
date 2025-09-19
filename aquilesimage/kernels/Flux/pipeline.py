@@ -31,7 +31,7 @@ from diffusers.utils.import_utils import is_torch_xla_available
 from diffusers.utils.doc_utils import replace_example_docstring
 from diffusers.utils.torch_utils import randn_tensor
 from diffusers.pipelines.pipeline_utils import DiffusionPipeline
-from aquilesimage.kernels.Flux.pipeline_output import FluxPipelineOutput
+from diffusers.pipelines.flux.pipeline_output import FluxPipelineOutput
 
 if is_torch_xla_available():
     import torch_xla.core.xla_model as xm
@@ -50,6 +50,8 @@ EXAMPLE_DOC_STRING = """
         >>> pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
         >>> pipe.to("cuda")
         >>> prompt = "A cat holding a sign that says hello world"
+        >>> # Depending on the variant being used, the pipeline call will slightly vary.
+        >>> # Refer to the pipeline documentation for more details.
         >>> image = pipe(prompt, num_inference_steps=4, guidance_scale=0.0).images[0]
         >>> image.save("flux.png")
         ```
@@ -198,7 +200,7 @@ class TextEncodingCache:
             self.miss_count = 0
 
 
-class FluxPipeline(
+class FluxPipelineKernels(
     DiffusionPipeline,
     FluxLoraLoaderMixin,
     FromSingleFileMixin,
@@ -317,11 +319,12 @@ class FluxPipeline(
 
     def _create_request_context(self, **kwargs) -> RequestContext:
         """Create context for current request"""
-        return RequestContext(
-            enable_optimizations=self.enable_optimizations,
-            async_postprocess=self.enable_async_postprocess,
-            **kwargs
-        )
+        defaults = {
+            'enable_optimizations': self.enable_optimizations,
+            'async_postprocess': self.enable_async_postprocess,
+        }
+        defaults.update(kwargs)  
+        return RequestContext(**defaults)
 
     def _register_request(self, context: RequestContext):
         """Register active request for tracking"""
@@ -383,6 +386,20 @@ class FluxPipeline(
         self.text_encoding_cache.put(
             combined_prompts, max_sequence_length, num_images_per_prompt, cpu_encodings
         )
+
+    @classmethod
+    def from_pretrained(cls, pretrained_model_name_or_path, **kwargs):
+    
+        transformer_path = pretrained_model_name_or_path
+    
+        kwargs['transformer'] = FluxTransformer2DModel.from_pretrained(
+            transformer_path, 
+            subfolder="transformer",
+            torch_dtype=kwargs.get('torch_dtype', None),
+            **{k: v for k, v in kwargs.items() if k.startswith('transformer_')}
+        )
+    
+        return super().from_pretrained(pretrained_model_name_or_path, **kwargs)
 
     def _get_t5_prompt_embeds(
         self,
@@ -895,72 +912,102 @@ class FluxPipeline(
         callback_on_complete: Optional[Callable] = None,
     ):
         r"""
+        Function invoked when calling the pipeline for generation.
 
         Args:
             prompt (`str` or `List[str]`, *optional*):
-                The prompt or prompts to guide the image generation.
+                The prompt or prompts to guide the image generation. If not defined, one has to pass `prompt_embeds`.
+                instead.
             prompt_2 (`str` or `List[str]`, *optional*):
-                The prompt or prompts to be sent to `tokenizer_2` and `text_encoder_2`.
+                The prompt or prompts to be sent to `tokenizer_2` and `text_encoder_2`. If not defined, `prompt` is
+                will be used instead.
             negative_prompt (`str` or `List[str]`, *optional*):
-                The prompt or prompts not to guide the image generation.
+                The prompt or prompts not to guide the image generation. If not defined, one has to pass
+                `negative_prompt_embeds` instead. Ignored when not using guidance (i.e., ignored if `true_cfg_scale` is
+                not greater than `1`).
             negative_prompt_2 (`str` or `List[str]`, *optional*):
-                The prompt or prompts not to guide the image generation to be sent to `tokenizer_2` and `text_encoder_2`.
+                The prompt or prompts not to guide the image generation to be sent to `tokenizer_2` and
+                `text_encoder_2`. If not defined, `negative_prompt` is used in all the text-encoders.
             true_cfg_scale (`float`, *optional*, defaults to 1.0):
-                True classifier-free guidance scale.
-            height (`int`, *optional*):
-                The height in pixels of the generated image.
-            width (`int`, *optional*):
-                The width in pixels of the generated image.
-            num_inference_steps (`int`, *optional*, defaults to 28):
-                The number of denoising steps.
+                True classifier-free guidance (guidance scale) is enabled when `true_cfg_scale` > 1 and
+                `negative_prompt` is provided.
+            height (`int`, *optional*, defaults to self.unet.config.sample_size * self.vae_scale_factor):
+                The height in pixels of the generated image. This is set to 1024 by default for the best results.
+            width (`int`, *optional*, defaults to self.unet.config.sample_size * self.vae_scale_factor):
+                The width in pixels of the generated image. This is set to 1024 by default for the best results.
+            num_inference_steps (`int`, *optional*, defaults to 50):
+                The number of denoising steps. More denoising steps usually lead to a higher quality image at the
+                expense of slower inference.
             sigmas (`List[float]`, *optional*):
-                Custom sigmas to use for the denoising process.
+                Custom sigmas to use for the denoising process with schedulers which support a `sigmas` argument in
+                their `set_timesteps` method. If not defined, the default behavior when `num_inference_steps` is passed
+                will be used.
             guidance_scale (`float`, *optional*, defaults to 3.5):
-                Embedded guidance scale.
+                Embedded guiddance scale is enabled by setting `guidance_scale` > 1. Higher `guidance_scale` encourages
+                a model to generate images more aligned with `prompt` at the expense of lower image quality.
+
+                Guidance-distilled models approximates true classifer-free guidance for `guidance_scale` > 1. Refer to
+                the [paper](https://huggingface.co/papers/2210.03142) to learn more.
             num_images_per_prompt (`int`, *optional*, defaults to 1):
                 The number of images to generate per prompt.
             generator (`torch.Generator` or `List[torch.Generator]`, *optional*):
-                One or a list of torch generator(s) to make generation deterministic.
+                One or a list of [torch generator(s)](https://pytorch.org/docs/stable/generated/torch.Generator.html)
+                to make generation deterministic.
             latents (`torch.FloatTensor`, *optional*):
-                Pre-generated noisy latents.
+                Pre-generated noisy latents, sampled from a Gaussian distribution, to be used as inputs for image
+                generation. Can be used to tweak the same generation with different prompts. If not provided, a latents
+                tensor will be generated by sampling using the supplied random `generator`.
             prompt_embeds (`torch.FloatTensor`, *optional*):
-                Pre-generated text embeddings.
+                Pre-generated text embeddings. Can be used to easily tweak text inputs, *e.g.* prompt weighting. If not
+                provided, text embeddings will be generated from `prompt` input argument.
             pooled_prompt_embeds (`torch.FloatTensor`, *optional*):
-                Pre-generated pooled text embeddings.
-            ip_adapter_image (`PipelineImageInput`, *optional*):
-                Optional image input to work with IP Adapters.
+                Pre-generated pooled text embeddings. Can be used to easily tweak text inputs, *e.g.* prompt weighting.
+                If not provided, pooled text embeddings will be generated from `prompt` input argument.
+            ip_adapter_image: (`PipelineImageInput`, *optional*): Optional image input to work with IP Adapters.
             ip_adapter_image_embeds (`List[torch.Tensor]`, *optional*):
-                Pre-generated image embeddings for IP-Adapter.
-            negative_ip_adapter_image (`PipelineImageInput`, *optional*):
-                Optional negative image input to work with IP Adapters.
+                Pre-generated image embeddings for IP-Adapter. It should be a list of length same as number of
+                IP-adapters. Each element should be a tensor of shape `(batch_size, num_images, emb_dim)`. If not
+                provided, embeddings are computed from the `ip_adapter_image` input argument.
+            negative_ip_adapter_image:
+                (`PipelineImageInput`, *optional*): Optional image input to work with IP Adapters.
             negative_ip_adapter_image_embeds (`List[torch.Tensor]`, *optional*):
-                Pre-generated negative image embeddings for IP-Adapter.
+                Pre-generated image embeddings for IP-Adapter. It should be a list of length same as number of
+                IP-adapters. Each element should be a tensor of shape `(batch_size, num_images, emb_dim)`. If not
+                provided, embeddings are computed from the `ip_adapter_image` input argument.
             negative_prompt_embeds (`torch.FloatTensor`, *optional*):
-                Pre-generated negative text embeddings.
+                Pre-generated negative text embeddings. Can be used to easily tweak text inputs, *e.g.* prompt
+                weighting. If not provided, negative_prompt_embeds will be generated from `negative_prompt` input
+                argument.
             negative_pooled_prompt_embeds (`torch.FloatTensor`, *optional*):
-                Pre-generated negative pooled text embeddings.
+                Pre-generated negative pooled text embeddings. Can be used to easily tweak text inputs, *e.g.* prompt
+                weighting. If not provided, pooled negative_prompt_embeds will be generated from `negative_prompt`
+                input argument.
             output_type (`str`, *optional*, defaults to `"pil"`):
-                The output format of the generate image.
+                The output format of the generate image. Choose between
+                [PIL](https://pillow.readthedocs.io/en/stable/): `PIL.Image.Image` or `np.array`.
             return_dict (`bool`, *optional*, defaults to `True`):
-                Whether or not to return a FluxPipelineOutput instead of a plain tuple.
+                Whether or not to return a [`~pipelines.flux.FluxPipelineOutput`] instead of a plain tuple.
             joint_attention_kwargs (`dict`, *optional*):
-                A kwargs dictionary that is passed to the AttentionProcessor.
+                A kwargs dictionary that if specified is passed along to the `AttentionProcessor` as defined under
+                `self.processor` in
+                [diffusers.models.attention_processor](https://github.com/huggingface/diffusers/blob/main/src/diffusers/models/attention_processor.py).
             callback_on_step_end (`Callable`, *optional*):
-                A function that calls at the end of each denoising steps.
+                A function that calls at the end of each denoising steps during the inference. The function is called
+                with the following arguments: `callback_on_step_end(self: DiffusionPipeline, step: int, timestep: int,
+                callback_kwargs: Dict)`. `callback_kwargs` will include a list of all tensors as specified by
+                `callback_on_step_end_tensor_inputs`.
             callback_on_step_end_tensor_inputs (`List`, *optional*):
-                The list of tensor inputs for the `callback_on_step_end` function.
-            max_sequence_length (`int`, defaults to 512):
-                Maximum sequence length to use with the `prompt`.
-            request_id (`str`, *optional*):
-                Optional request identifier for tracking.
-            enable_optimizations (`bool`, *optional*):
-                Whether to enable optimizations for this request.
-            callback_on_complete (`Callable`, *optional*):
-                Callback to call when inference is complete.
+                The list of tensor inputs for the `callback_on_step_end` function. The tensors specified in the list
+                will be passed as `callback_kwargs` argument. You will only be able to include variables listed in the
+                `._callback_tensor_inputs` attribute of your pipeline class.
+            max_sequence_length (`int` defaults to 512): Maximum sequence length to use with the `prompt`.
+
+        Examples:
 
         Returns:
-            [`~pipelines.flux.FluxPipelineOutput`] or `tuple`:
-                [`~pipelines.flux.FluxPipelineOutput`] if `return_dict` is True, otherwise a `tuple`.
+            [`~pipelines.flux.FluxPipelineOutput`] or `tuple`: [`~pipelines.flux.FluxPipelineOutput`] if `return_dict`
+            is True, otherwise a `tuple`. When returning a tuple, the first element is a list with the generated
+            images.
         """
         
         context = self._create_request_context(

@@ -62,8 +62,14 @@ class PipelineFlux:
             if self.use_kernels :
                 self.pipeline = FluxPipelineKernels.from_pretrained(
                     model_path,
-                    torch_dtype=torch.bfloat16,
-                    enable_text_encoding_cache=True,
+                    torch_dtype=torch.float16,
+                    enable_text_encoding_cache=False,
+                    enable_optimizations = True,
+                    text_cache_size = 500,
+                    enable_memory_management = True,
+                    target_memory_usage = 0.9,
+                    enable_async_postprocess = True,
+                    max_concurrent_postprocess = 3
                 ).to(device=self.device)
             else:
                 self.pipeline = FluxPipeline.from_pretrained(

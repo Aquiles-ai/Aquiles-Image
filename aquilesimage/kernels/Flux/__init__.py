@@ -1,1 +1,1 @@
-from .pipeline import FluxPipeline as FluxPipelineKernels
+from .pipeline import FluxPipelineKernels

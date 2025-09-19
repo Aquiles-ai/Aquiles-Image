@@ -316,9 +316,10 @@ class RequestScopedPipeline:
     def _should_wrap_tokenizers(self) -> bool:
         if self._has_kernels:
             if hasattr(self._base, 'text_encoding_cache'):
-                cache_stats = self._base.text_encoding_cache.get_stats()
-                if cache_stats.get('hit_rate', 0) > 0.8:  # 
-                    return True
+                pass
+                #cache_stats = self._base.text_encoding_cache.get_stats()
+                #if cache_stats.get('hit_rate', 0) > 0.8:  # 
+                #    return True
             
             return True
         
