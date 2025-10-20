@@ -37,13 +37,13 @@
 
 ### From Pypi
 ```bash
-pip install aquiles-image
+uv pip install aquiles-image
 ```
 ### From source
 ```bash
 git clone https://github.com/Aquiles-ai/Aquiles-Image.git
 cd Aquiles-Image
-pip install -e .
+uv pip install .
 ```
 
 ## 🚀 Launch your Aquiles-Image server

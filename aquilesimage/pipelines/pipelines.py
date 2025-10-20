@@ -45,7 +45,7 @@ class PipelineSD3:
 class PipelineFlux:
     def __init__(self, model_path: str | None = None, low_vram: bool = False):
         self.model_path = model_path or os.getenv("MODEL_PATH")
-        self.pipeline = FluxPipeline | None = None
+        self.pipeline: FluxPipeline | None = None
         self.device: str | None = None
         self.low_vram = low_vram
 
@@ -201,12 +201,11 @@ class PipelineQwenImageEdit:
 
 
 class ModelPipelineInit:
-    def __init__(self, model: str, use_kernels: bool = False):
+    def __init__(self, model: str):
         self.model = model
         self.pipeline = None
         self.device = "cuda" if torch.cuda.is_available() else "mps"
         self.model_type = None
-        self.use_kernels = use_kernels
 
         self.models = ImageModel
 
@@ -235,8 +234,6 @@ class ModelPipelineInit:
             self.models.QWEN_IMAGE_EDIT
         ]
 
-        if self.use_kernels and self.model not in self.flux:
-            raise ValueError("There are no compatible kernels yet")
 
     def initialize_pipeline(self):
         if not self.model:
@@ -246,7 +243,7 @@ class ModelPipelineInit:
         if self.model in self.stablediff3:
             self.pipeline = PipelineSD3(self.model)
         elif self.model in self.flux:
-            self.pipeline = PipelineFlux(self.model, use_kernels=self.use_kernels)
+            self.pipeline = PipelineFlux(self.model)
         elif self.model in self.qwen:
             self.pipeline = PipelineQwenImage(self.model)
         # Edition Models
