@@ -7,10 +7,6 @@ from .scheduler import BaseAsyncScheduler, async_retrieve_timesteps
 
 logger = logging.get_logger(__name__)
 
-def safe_tokenize(tokenizer, *args, lock, **kwargs):
-    with lock:
-        return tokenizer(*args, **kwargs)
-
 class ThreadSafeTokenizerWrapper:
     def __init__(self, tokenizer, lock):
         self._tokenizer = tokenizer
@@ -45,6 +41,48 @@ class ThreadSafeTokenizerWrapper:
     def __dir__(self):
         return dir(self._tokenizer)
 
+
+class ThreadSafeVAEWrapper:
+    def __init__(self, vae, lock):
+        self._vae = vae
+        self._lock = lock
+
+    def __getattr__(self, name):
+        attr = getattr(self._vae, name)
+        # métodos que queremos proteger
+        if name in {"decode", "encode", "forward"} and callable(attr):
+            def wrapped(*args, **kwargs):
+                with self._lock:
+                    return attr(*args, **kwargs)
+            return wrapped
+        return attr
+
+    def __setattr__(self, name, value):
+        if name.startswith("_"):
+            super().__setattr__(name, value)
+        else:
+            setattr(self._vae, name, value)
+
+class ThreadSafeImageProcessorWrapper:
+    def __init__(self, proc, lock):
+        self._proc = proc
+        self._lock = lock
+
+    def __getattr__(self, name):
+        attr = getattr(self._proc, name)
+        if name in {"postprocess", "preprocess"} and callable(attr):
+            def wrapped(*args, **kwargs):
+                with self._lock:
+                    return attr(*args, **kwargs)
+            return wrapped
+        return attr
+
+    def __setattr__(self, name, value):
+        if name.startswith("_"):
+            super().__setattr__(name, value)
+        else:
+            setattr(self._proc, name, value)
+
 class RequestScopedPipeline:
     DEFAULT_MUTABLE_ATTRS = [
         "_all_hooks",
@@ -64,12 +102,9 @@ class RequestScopedPipeline:
         tensor_numel_threshold: int = 1_000_000,
         tokenizer_lock: Optional[threading.Lock] = None,
         wrap_scheduler: bool = True,
-        use_kernels: bool = False
     ):
         self._base = pipeline
-        self._use_kernels = use_kernels
         
-        self._has_kernels = self._detect_kernel_pipeline(pipeline)
         
         self.unet = getattr(pipeline, "unet", None)
         self.vae = getattr(pipeline, "vae", None) 
@@ -84,19 +119,11 @@ class RequestScopedPipeline:
 
         self._mutable_attrs = list(mutable_attrs) if mutable_attrs is not None else list(self.DEFAULT_MUTABLE_ATTRS)
         
-        if self._has_kernels:
-            kernel_specific_attrs = [
-                "_active_requests",
-                "_current_timestep", 
-                "_interrupt",
-                "stats",
-                "_guidance_scale",
-                "_joint_attention_kwargs",
-                "_num_timesteps"
-            ]
-            self._mutable_attrs.extend(kernel_specific_attrs)
         
         self._tokenizer_lock = tokenizer_lock if tokenizer_lock is not None else threading.Lock()
+
+        self._vae_lock = threading.Lock()
+        self._image_lock = threading.Lock()
         
         self._auto_detect_mutables = bool(auto_detect_mutables)
         self._tensor_numel_threshold = int(tensor_numel_threshold)
@@ -113,40 +140,6 @@ class RequestScopedPipeline:
         
         return any(hasattr(pipeline, attr) for attr in kernel_indicators)
 
-    def _handle_kernel_specific_cloning(self, base, local):
-        if not self._has_kernels:
-            return
-            
-        try:
-
-            if hasattr(base, 'text_encoding_cache') and base.text_encoding_cache is not None:
-                setattr(local, 'text_encoding_cache', base.text_encoding_cache)
-            
-            if hasattr(base, 'memory_manager') and base.memory_manager is not None:
-                setattr(local, 'memory_manager', base.memory_manager)
-            
-            if hasattr(base, 'stats'):
-                setattr(local, 'stats', copy.deepcopy(base.stats))
-                
-            if hasattr(base, '_active_requests'):
-                setattr(local, '_active_requests', {})
-            
-            if (hasattr(base, 'scheduler') and 
-                hasattr(base.scheduler, 'create_request_scheduler') and
-                callable(getattr(base.scheduler, 'create_request_scheduler', None))):
-                try:
-                    local_scheduler = base.scheduler.create_request_scheduler()
-                    setattr(local, 'scheduler', local_scheduler)
-                except Exception as e:
-                    logger.debug(f"Failed to create request scheduler: {e}. Using standard scheduler handling.")
-            
-            if hasattr(base, 'image_processor'):
-                processor = base.image_processor
-                if hasattr(processor, 'async_postprocessor') or hasattr(processor, 'memory_batcher'):
-                    setattr(local, 'image_processor', processor)
-                
-        except Exception as e:
-            logger.debug(f"Error in kernel-specific cloning: {e}")
 
     def _make_local_scheduler(self, num_inference_steps: int, device: Optional[str] = None, **clone_kwargs):
         base_sched = getattr(self._base, "scheduler", None)
@@ -190,17 +183,11 @@ class RequestScopedPipeline:
         candidates: List[str] = []
         seen = set()
         
-        kernel_safe_attrs = {
-            'text_encoding_cache',  
-            'memory_manager',       
-        } if self._has_kernels else set()
         
         for name in dir(self._base):
             if name.startswith("__"):
                 continue
             if name in self._mutable_attrs:
-                continue
-            if name in kernel_safe_attrs:
                 continue
             if name in ("to", "save_pretrained", "from_pretrained"):
                 continue
@@ -314,15 +301,6 @@ class RequestScopedPipeline:
         return has_tokenizer_methods and (has_tokenizer_in_name or has_tokenizer_attrs)
 
     def _should_wrap_tokenizers(self) -> bool:
-        if self._has_kernels:
-            if hasattr(self._base, 'text_encoding_cache'):
-                pass
-                #cache_stats = self._base.text_encoding_cache.get_stats()
-                #if cache_stats.get('hit_rate', 0) > 0.8:  # 
-                #    return True
-            
-            return True
-        
         return True
 
     def generate(self, *args, num_inference_steps: int = 50, device: Optional[str] = None, **kwargs):
@@ -333,6 +311,15 @@ class RequestScopedPipeline:
         except Exception as e:
             logger.warning(f"copy.copy(self._base) failed: {e}. Falling back to deepcopy (may increase memory).")
             local_pipe = copy.deepcopy(self._base)
+
+        try:
+            if hasattr(local_pipe, "vae") and local_pipe.vae is not None and not isinstance(local_pipe.vae, ThreadSafeVAEWrapper):
+                local_pipe.vae = ThreadSafeVAEWrapper(local_pipe.vae, self._vae_lock)
+
+            if hasattr(local_pipe, "image_processor") and local_pipe.image_processor is not None and not isinstance(local_pipe.image_processor, ThreadSafeImageProcessorWrapper):
+                local_pipe.image_processor = ThreadSafeImageProcessorWrapper(local_pipe.image_processor, self._image_lock)
+        except Exception as e:
+            logger.debug(f"Could not wrap vae/image_processor: {e}")
 
         if local_scheduler is not None:
             try:
@@ -351,7 +338,6 @@ class RequestScopedPipeline:
 
         self._clone_mutable_attrs(self._base, local_pipe)
         
-        self._handle_kernel_specific_cloning(self._base, local_pipe)
 
         original_tokenizers = {}
         
@@ -384,16 +370,6 @@ class RequestScopedPipeline:
         cm = getattr(local_pipe, "model_cpu_offload_context", None)
         
         try:
-            kernel_kwargs = {}
-            if self._has_kernels:
-                if 'request_id' not in kwargs:
-                    import time
-                    kernel_kwargs['request_id'] = f"req_{int(time.time() * 1000)}_{threading.get_ident()}"
-                
-                if 'enable_optimizations' not in kwargs:
-                    kernel_kwargs['enable_optimizations'] = True
-                    
-                kwargs.update(kernel_kwargs)
             
             if callable(cm):
                 try:
@@ -422,20 +398,3 @@ class RequestScopedPipeline:
                         setattr(local_pipe, name, tok)
             except Exception as e:
                 logger.debug(f"Error restoring original tokenizers: {e}")
-
-    def get_optimization_stats(self):
-        if self._has_kernels and hasattr(self._base, 'get_optimization_stats'):
-            return self._base.get_optimization_stats()
-        return {}
-
-    def clear_caches(self):
-        if self._has_kernels and hasattr(self._base, 'clear_caches'):
-            self._base.clear_caches()
-
-    @property 
-    def has_kernels(self) -> bool:
-        return self._has_kernels
-
-    @property
-    def supports_concurrent_inference(self) -> bool:
-        return self._has_kernels
