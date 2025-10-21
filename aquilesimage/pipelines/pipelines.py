@@ -24,6 +24,7 @@ class PipelineSD3:
 
     def start(self):
         if torch.cuda.is_available():
+            torch.backends.cudnn.benchmark = True
             model_path = self.model_path or "stabilityai/stable-diffusion-3.5-large"
             logger_p.debug("Loading CUDA")
             self.device = "cuda"
@@ -31,13 +32,19 @@ class PipelineSD3:
                 model_path,
                 torch_dtype=torch.float16,
             ).to(device=self.device)
+
+            try:
+                self.pipeline.enable_xformers_memory_efficient_attention()
+                print("xformers enabled")
+            except Exception as e:
+                print("xformers not available:", e)
+
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "stabilityai/stable-diffusion-3.5-medium"
             logger_p.debug("Loading MPS for Mac M Series")
             self.device = "mps"
             self.pipeline = StableDiffusion3Pipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.bfloat16,
             ).to(device=self.device)
         else:
             raise Exception("No CUDA or MPS device available")
@@ -57,7 +64,7 @@ class PipelineFlux:
 
             self.pipeline = FluxPipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
                 ).to(device=self.device)
 
             if self.low_vram:
@@ -88,7 +95,7 @@ class PipelineFluxKontext:
             self.device = "cuda" 
             self.pipeline = FluxKontextPipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
             ).to(device=self.device)
             if self.low_vram:
                 self.pipeline.enable_model_cpu_offload()
@@ -100,7 +107,7 @@ class PipelineFluxKontext:
             self.device = "mps"
             self.pipeline = FluxKontextPipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
             ).to(device=self.device)
         else:
             raise Exception("No CUDA or MPS device available")
@@ -119,7 +126,7 @@ class PipelineFluxKontextMask:
             self.device = "cuda" 
             self.pipeline = FluxKontextPipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
             ).to(device=self.device)
             if self.low_vram:
                 self.pipeline.enable_model_cpu_offload()
@@ -131,7 +138,7 @@ class PipelineFluxKontextMask:
             self.device = "mps"
             self.pipeline = FluxKontextPipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
             ).to(device=self.device)
         else:
             raise Exception("No CUDA or MPS device available")
@@ -151,7 +158,7 @@ class PipelineQwenImage:
             self.device = "cuda" 
             self.pipeline = QwenImagePipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
             ).to(device=self.device)
             if self.low_vram:
                 self.pipeline.enable_model_cpu_offload()
@@ -163,7 +170,7 @@ class PipelineQwenImage:
             self.device = "mps"
             self.pipeline = QwenImagePipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
             ).to(device=self.device)
         else:
             raise Exception("No CUDA or MPS device available")
@@ -182,7 +189,7 @@ class PipelineQwenImageEdit:
             self.device = "cuda" 
             self.pipeline = QwenImageEditPipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
             ).to(device=self.device)
             if self.low_vram:
                 self.pipeline.enable_model_cpu_offload()
@@ -194,7 +201,7 @@ class PipelineQwenImageEdit:
             self.device = "mps"
             self.pipeline = QwenImageEditPipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
             ).to(device=self.device)
         else:
             raise Exception("No CUDA or MPS device available")
