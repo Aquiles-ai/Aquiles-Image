@@ -282,7 +282,7 @@ async def create_image_edit(
 ):
     if app.state.active_inferences >= max_concurrent_infer:
         raise HTTPException(429)
-        
+
     def make_generator():
         g = torch.Generator(device=initializer.device)
         return g.manual_seed(random.randint(0, 10_000_000))
@@ -432,14 +432,6 @@ async def create_image_edit(
             torch.cuda.ipc_collect()
         gc.collect()
 
-@app.post("/images/variations", response_model=ImagesResponse, tags=["Variations"], dependencies=[Depends(verify_api_key)])
-async def create_image_variation(input_r: CreateImageVariationRequest, image: UploadFile = File(...)):
-    def make_generator():
-        g = torch.Generator(device=initializer.device)
-        return g.manual_seed(random.randint(0, 10_000_000))
-
-    req_pipe = app.state.REQUEST_PIPE
-    pass
 
 @app.get("/images/{filename}", tags=["Download Images"])
 async def serve_image(filename: str):
