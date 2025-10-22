@@ -39,14 +39,17 @@ request_pipe = None
 pipeline_lock = threading.Lock()
 initializer = None
 config = None
+max_concurrent_infer: int | None = None
 
 def load_models():
-    global model_pipeline, request_pipe, initializer, config
+    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer
 
     logger.info("Loading configuration...")
     
     config = load_config_cli() 
     model_name = config.get("model")
+
+    max_concurrent_infer = int(config.get("max_concurrent_infer"))
 
     if not model_name:
         raise ValueError("No model specified in configuration. Please configure a model first.")
@@ -143,6 +146,8 @@ async def count_requests_middleware(request: Request, call_next):
     async with app.state.metrics_lock:
         app.state.total_requests += 1
     response = await call_next(request)
+    if app.state.active_inferences >= max_concurrent_infer:
+        raise HTTPException(429)
     return response
 
 @app.post("/images/generations", response_model=ImagesResponse, tags=["Generation"], dependencies=[Depends(verify_api_key)])
