@@ -206,15 +206,6 @@ class CreateImageEditRequest(BaseModel):
     partial_images: Optional[int] = Field(0, ge=0, le=3, description="The number of partial images to generate. This parameter is used for streaming responses that return partial images. Value must be between 0 and 3.")
     quality: Optional[Literal["standard", "low", "medium", "high", "auto"]] = Field("auto", description="The quality of the image that will be generated.")
 
-
-class CreateImageVariationRequest(BaseModel):
-    model: Optional[Union[str, ImageModel]] = Field(None, description="The model to use for image generation.")
-    n: Optional[int] = Field(1, ge=1, le=10, description="The number of images to generate. Must be between 1 and 10.")
-    response_format: Optional[Literal["url", "b64_json"]] = Field("url", description="The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.")
-    size: Optional[Literal["256x256", "512x512", "1024x1024"]] = Field("1024x1024", description="The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024`.")
-    user: Optional[str] = Field(None, description="A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse.")
-
-
 class ConfigsServe(BaseModel):
     model: Union[ImageModel, str] = Field(default="stabilityai/stable-diffusion-3.5-medium", description="The model to use for image generation.")
     allows_api_keys: List[str] | None = Field( default_factory=lambda: [""], description="API KEYS allowed to make requests")
