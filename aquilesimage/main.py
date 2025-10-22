@@ -146,12 +146,12 @@ async def count_requests_middleware(request: Request, call_next):
     async with app.state.metrics_lock:
         app.state.total_requests += 1
     response = await call_next(request)
-    if app.state.active_inferences >= max_concurrent_infer:
-        raise HTTPException(429)
     return response
 
 @app.post("/images/generations", response_model=ImagesResponse, tags=["Generation"], dependencies=[Depends(verify_api_key)])
 async def create_image(input_r: CreateImageRequest):
+    if app.state.active_inferences >= max_concurrent_infer:
+        raise HTTPException(429)
     
     utils_app = app.state.utils_app
 
@@ -280,6 +280,9 @@ async def create_image_edit(
     partial_images: Optional[int] = Form(None, ge=0, le=3, description="The number of partial images to generate"),
     quality: Optional[str] = Form("auto", description="The quality of the image that will be generated")
 ):
+    if app.state.active_inferences >= max_concurrent_infer:
+        raise HTTPException(429)
+        
     def make_generator():
         g = torch.Generator(device=initializer.device)
         return g.manual_seed(random.randint(0, 10_000_000))
