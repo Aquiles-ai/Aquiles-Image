@@ -2,6 +2,9 @@ from typing import Any, Optional, Union, List
 import torch
 import copy
 import inspect
+from diffusers.utils import logging
+
+logger = logging.get_logger(__name__)
 
 class BaseAsyncScheduler:
     def __init__(self, scheduler: Any):
@@ -28,6 +31,7 @@ class BaseAsyncScheduler:
             cloned = self.__class__(local)
             return cloned
         except Exception as e1:
+            logger.info(f"Error cloning scheduler 'e1': {e1}")
             try:
                 scheduler_class = self.scheduler.__class__
                 if hasattr(self.scheduler, 'config'):
@@ -38,6 +42,7 @@ class BaseAsyncScheduler:
                 cloned = self.__class__(local)
                 return cloned
             except Exception as e2:
+                logger.info(f"Error in the fallback when cloning the scheduler 'e2': {e2}")
                 return self
 
     def __repr__(self):
@@ -81,16 +86,20 @@ def async_retrieve_timesteps(
             try:
                 # clone_for_request may accept num_inference_steps or other kwargs; be permissive
                 scheduler_in_use = scheduler.clone_for_request(num_inference_steps=num_inference_steps or 0, device=device)
-            except Exception:
+            except Exception as e1:
+                logger.info(f"Error cloning the scheduler with clone_for_request on 'async_retrieve_timesteps': {e1}")
                 try:
                     scheduler_in_use = copy.copy(scheduler)
-                except Exception:
+                except Exception as e2:
                     scheduler_in_use = scheduler
+                    logger.info(f"Error cloning the scheduler in the fallback of clone_for_request in 'async_retrieve_timesteps': {e2}")
         else:
             try:
                 scheduler_in_use = copy.copy(scheduler)
-            except Exception:
+            except Exception as e3:
+                logger.info(f"Error cloning the scheduler in 'async_retrieve_timesteps': {e3}")
                 scheduler_in_use = scheduler
+
 
     # helper to test if set_timesteps supports a particular kwarg
     def _accepts(param_name: str) -> bool:
