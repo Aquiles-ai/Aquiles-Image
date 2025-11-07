@@ -23,8 +23,25 @@ class PipelineSD3:
         self.device: str | None = None
 
     def start(self):
+        torch.set_float32_matmul_precision("high")
+
+        if hasattr(torch._inductor, 'config'):
+            if hasattr(torch._inductor.config, 'conv_1x1_as_mm'):
+                torch._inductor.config.conv_1x1_as_mm = True
+            if hasattr(torch._inductor.config, 'coordinate_descent_tuning'):
+                torch._inductor.config.coordinate_descent_tuning = True
+            if hasattr(torch._inductor.config, 'epilogue_fusion'):
+                torch._inductor.config.epilogue_fusion = False
+            if hasattr(torch._inductor.config, 'coordinate_descent_check_all_directions'):
+                torch._inductor.config.coordinate_descent_check_all_directions = True
+
         if torch.cuda.is_available():
             torch.backends.cudnn.benchmark = True
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.deterministic = False
+            torch.backends.cudnn.allow_tf32 = True
+
+        if torch.cuda.is_available():
             model_path = self.model_path or "stabilityai/stable-diffusion-3.5-large"
             logger_p.debug("Loading CUDA")
             self.device = "cuda"
@@ -32,6 +49,13 @@ class PipelineSD3:
                 model_path,
                 torch_dtype=torch.float16,
             ).to(device=self.device)
+
+            torch.cuda.empty_cache()
+
+            if hasattr(self.pipeline, 'transformer') and self.pipeline.transformer is not None:
+                self.pipeline.transformer = self.pipeline.transformer.to(
+                    memory_format=torch.channels_last
+                )
 
             try:
                 self.pipeline.enable_xformers_memory_efficient_attention()

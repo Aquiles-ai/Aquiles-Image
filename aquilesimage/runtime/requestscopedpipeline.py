@@ -27,10 +27,18 @@ class RequestScopedPipeline:
         tensor_numel_threshold: int = 1_000_000,
         tokenizer_lock: Optional[threading.Lock] = None,
         wrap_scheduler: bool = True,
+        use_flux: bool = False,
+        use_konktext: bool = False,
     ):
         self._base = pipeline
+        self.use_konktext = use_konktext
         
-        
+        self.use_flux = use_flux
+        if self.use_flux and hasattr(pipeline, 'scheduler') and pipeline.scheduler is not None:
+            if hasattr(pipeline.scheduler, 'config'):
+                if hasattr(pipeline.scheduler.config, 'use_dynamic_shifting'):
+                    pipeline.scheduler.config.use_dynamic_shifting = False
+
         self.unet = getattr(pipeline, "unet", None)
         self.vae = getattr(pipeline, "vae", None) 
         self.text_encoder = getattr(pipeline, "text_encoder", None)
@@ -93,6 +101,9 @@ class RequestScopedPipeline:
                         return wrapped_scheduler
                 else:
                     copied_scheduler = copy.copy(wrapped_scheduler)
+                    if self.use_flux and hasattr(copied_scheduler, 'config'):
+                        if hasattr(copied_scheduler.config, 'use_dynamic_shifting'):
+                            copied_scheduler.config.use_dynamic_shifting = False
                     return BaseAsyncScheduler(copied_scheduler)
             except Exception as e2:
                 logger.warning(f"Shallow copy of scheduler also failed: {e2}. Using original scheduler (*thread-unsafe but functional*).")
@@ -229,6 +240,8 @@ class RequestScopedPipeline:
         return True
 
     def generate(self, *args, num_inference_steps: int = 50, device: Optional[str] = None, **kwargs):
+        if self.use_flux:
+            local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device, use_dynamic_shifting=False)
         local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device)
 
         try:

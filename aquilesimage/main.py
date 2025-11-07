@@ -12,7 +12,7 @@ from fastapi import FastAPI, UploadFile, File, Request, HTTPException, Depends, 
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
-from aquilesimage.models import CreateImageRequest, ImagesResponse, CreateImageVariationRequest, Image, ImageModel
+from aquilesimage.models import CreateImageRequest, ImagesResponse, Image, ImageModel
 from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key
 from aquilesimage.runtime import RequestScopedPipeline
 from aquilesimage.pipelines import ModelPipelineInit
@@ -49,6 +49,8 @@ def load_models():
     config = load_config_cli() 
     model_name = config.get("model")
 
+    flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL]
+
     max_concurrent_infer = int(config.get("max_concurrent_infer"))
 
     if not model_name:
@@ -61,6 +63,8 @@ def load_models():
         model_pipeline = initializer.initialize_pipeline()
         model_pipeline.start()
         
+        if model_name in flux_models:
+            request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
         request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
         
         logger.info(f"Model '{model_name}' loaded successfully")
