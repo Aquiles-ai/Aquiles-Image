@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aquiles-image"
-version = "0.1.5"
+version = "0.1.8"
 description = "Aquiles-Image."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -42,7 +42,8 @@ dependencies = [
     "diffusers",
     "platformdirs",
     "aiofiles",
-    "python-multipart"
+    "python-multipart",
+    "openai"
 ]
 
 [project.optional-dependencies]
