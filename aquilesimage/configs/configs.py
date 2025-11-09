@@ -113,13 +113,16 @@ def configs_image_serve(cfg: ConfigsServe, force: bool = False) -> None:
         raise Exception(f"Error saving configuration: {e}")
 
 
-def create_basic_config_if_not_exists(model: str |  None = None) -> bool:
+def create_basic_config_if_not_exists(model: str |  None = None, load_model: bool | None = None) -> bool:
     if config_file_exists():
         return False
     
     try:
         default_model = model or "stabilityai/stable-diffusion-3.5-medium"
-        basic_config = ConfigsServe(model=default_model)
+        if load_model:
+            basic_config = ConfigsServe(model=default_model, load_model=load_model)
+        else:
+            basic_config = ConfigsServe(model=default_model)
         configs_image_serve(basic_config, force=True)
         return True
     except Exception as e:

@@ -20,9 +20,9 @@ def greet(name):
 @click.option("--max-concurrent-infer", type=int, help="Maximum concurrent inferences")
 @click.option("--block-request/--no-block-request", default=None, help="Block requests during maximum concurrent inferences")
 @click.option("--force", is_flag=True, help="Force overwrite existing configuration")
-@click.option("--use-kernels", is_flag=True, help="Force overwrite existing configuration")
+@click.option("--no-load-model", is_flag=True, help="Not loading the model simply allows for faster development without having to load the model constantly.")
 def serve(host: str, port: int, model: Optional[str], api_key: Optional[str], 
-         max_concurrent_infer: Optional[int], block_request: Optional[bool], force: bool, use_kernels: bool):
+         max_concurrent_infer: Optional[int], block_request: Optional[bool], force: bool, no_load_model: bool):
     """Start the Aquiles-Image server."""
     try:
         from aquilesimage.configs import (
@@ -33,40 +33,40 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
         )
         from aquilesimage.models import ConfigsServe
     except ImportError as e:
-        click.echo(f"Error importing configuration modules: {e}", err=True)
+        click.echo(f"X Error importing configuration modules: {e}", err=True)
         sys.exit(1)
 
     config_exists = config_file_exists()
-
-    ctx = click.get_current_context()
-    use_kernels_provided = '--use-kernels' in ctx._parameter_source or use_kernels
     
     if not config_exists:
         if model:
             click.echo(f"No configuration found. Creating basic configuration with model: {model}")
             try:
-                created = create_basic_config_if_not_exists(model)
+                if no_load_model:
+                    created = create_basic_config_if_not_exists(model, False)
+                else:
+                    created = create_basic_config_if_not_exists(model)
             except Exception as e:
-                click.echo(f"Error creating basic configuration: {e}", err=True)
+                click.echo(f"X Error creating basic configuration: {e}", err=True)
                 sys.exit(1)
         else:
             try:
                 created = create_basic_config_if_not_exists()
             except Exception as e:
-                click.echo(f"Error creating default configuration: {e}", err=True)
+                click.echo(f"X Error creating default configuration: {e}", err=True)
                 sys.exit(1)
 
     try:
         conf = load_config_cli()
     except Exception as e:
-        click.echo(f"Error loading configuration: {e}", err=True)
+        click.echo(f"X Error loading configuration: {e}", err=True)
         sys.exit(1)
 
     model_from_config = conf.get("model")
     final_model = model or model_from_config
 
     if not final_model:
-        click.echo("Error: No model specified. Use --model parameter or configure one first.", err=True)
+        click.echo("X Error: No model specified. Use --model parameter or configure one first.", err=True)
         sys.exit(1)
 
     config_needs_update = any([
@@ -74,7 +74,7 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
         api_key is not None,
         max_concurrent_infer is not None,
         block_request is not None,
-        use_kernels_provided
+        no_load_model
     ])
 
     if config_needs_update:
@@ -89,40 +89,42 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
                 allows_api_keys=existing_api_keys,
                 max_concurrent_infer=max_concurrent_infer if max_concurrent_infer is not None else conf.get("max_concurrent_infer"),
                 block_request=block_request if block_request is not None else conf.get("block_request"),
-                use_kernels=use_kernels
+                load_model=False if no_load_model else conf.get("load_model", True)
             )
 
             configs_image_serve(updated_conf, force=True)
-            click.echo("✓ Configuration updated successfully.")
+            click.echo("Configuration updated successfully.")
             
         except Exception as e:
-            click.echo(f"Error updating configuration: {e}", err=True)
+            click.echo(f"X Error updating configuration: {e}", err=True)
             sys.exit(1)
 
     try:
         import uvicorn
         from aquilesimage.main import app  
     except ImportError as e:
-        click.echo(f"Error importing server modules: {e}", err=True)
+        click.echo(f"X Error importing server modules: {e}", err=True)
         sys.exit(1)
     except Exception as e:
-        click.echo(f"Error loading application: {e}", err=True)
+        click.echo(f"X Error loading application: {e}", err=True)
         sys.exit(1)
 
 
-    click.echo(f"\n🚀 Starting Aquiles-Image server:")
+    click.echo(f"\nStarting Aquiles-Image server:")
     click.echo(f"   Host: {host}")
     click.echo(f"   Port: {port}")
     click.echo(f"   Model: {final_model}")
     click.echo(f"   Config: {len(conf)} settings loaded")
-    click.echo(f"\n🌐 Server will be available at: http://{host}:{port}")
+    click.echo(f"\nServer will be available at: http://{host}:{port}")
+    if no_load_model:
+        click.echo(f"\nAquiles-Image server in dev mode without loading the model")
     
     try:
         uvicorn.run(app, host=host, port=port)
     except KeyboardInterrupt:
-        click.echo("\n⏹️  Server stopped by user.")
+        click.echo("\nServer stopped by user.")
     except Exception as e:
-        click.echo(f"Error starting server: {e}", err=True)
+        click.echo(f"X Error starting server: {e}", err=True)
         sys.exit(1)
 
 @cli.command("configs")

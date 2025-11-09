@@ -211,3 +211,4 @@ class ConfigsServe(BaseModel):
     allows_api_keys: List[str] | None = Field( default_factory=lambda: [""], description="API KEYS allowed to make requests")
     max_concurrent_infer: int | None = Field(default=10, description="Maximum number of inferences running at the same time")
     block_request: bool | None = Field(default=False, description="Block requests during the maximum concurrent inferences")
+    load_model: bool | None = Field(default=True, description="Loading the model or not simply allows for faster development without having to load the model constantly.")

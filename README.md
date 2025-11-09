@@ -2,7 +2,7 @@
 
 # Aquiles-Image
 
-<img src="aquilesimage/static/aquilesim.png" alt="Aquiles-Image Logo" width="280"/>
+<img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1762730457/aquilesim_m8zibm.png" alt="Aquiles-Image Logo" width="280"/>
 
 ### **Easy, fast and cheap Diffusion Models that work for everyone.**
 
@@ -71,6 +71,11 @@ aquiles-image serve --host "0.0.0.0" --port 5500 --model "stabilityai/stable-dif
 > The supported models for the imaging endpoint are: `stabilityai/stable-diffusion-3-medium`, `stabilityai/stable-diffusion-3.5-large`, `stabilityai/stable-diffusion-3.5-large-turbo`, `stabilityai/stable-diffusion-3.5-medium`, `black-forest-labs/FLUX.1-dev`, `black-forest-labs/FLUX.1-schnell`, `black-forest-labs/FLUX.1-Krea-dev`, `Qwen/Qwen-Image`
 
 > For Edit endpoints (Available, but with some errors that do not guarantee full endpoint functionality): `black-forest-labs/FLUX.1-Kontext-dev`, `Qwen/Qwen-Image-Edit`
+
+## 🚀 Start your Aquiles-Image server in dev mode without loading models
+```bash
+aquiles-image serve --host "0.0.0.0" --port 5500 --no-load-model
+```
 
 ## 🎉 Generate your first image with Aquiles-Image
 

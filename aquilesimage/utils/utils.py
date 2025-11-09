@@ -9,6 +9,11 @@ import logging
 import sys
 from aquilesimage.configs import load_config_app
 from typing import Optional
+import requests
+from PIL import Image as PILImage
+import io
+import base64
+import time
 
 class ColoredFormatter(logging.Formatter):
     COLORS = {
@@ -119,3 +124,95 @@ class Utils:
             torch.cuda.empty_cache()
 
         return os.path.join(self.service_url, "images", filename)
+
+def load_dev_mode_image(DEV_MODE_IMAGE_PATH, DEV_MODE_IMAGE_URL) -> Optional[PILImage.Image]:
+    logger = setup_colored_logger("Utils-Dev", logging.INFO)
+    try:
+        if DEV_MODE_IMAGE_PATH and os.path.exists(DEV_MODE_IMAGE_PATH):
+            logger.info(f"Loading dev mode image from local path: {DEV_MODE_IMAGE_PATH}")
+            img = PILImage.open(DEV_MODE_IMAGE_PATH)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            return img
+        
+        logger.info(f"Downloading dev mode image from URL: {DEV_MODE_IMAGE_URL}")
+        response = requests.get(DEV_MODE_IMAGE_URL, timeout=10)
+        response.raise_for_status()
+        
+        img = PILImage.open(io.BytesIO(response.content))
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        return img
+    
+    except Exception as e:
+        logger.warning(f"Failed to load dev mode image: {e}")
+        logger.info("Creating placeholder image for dev mode")
+        img = PILImage.new('RGB', (1024, 1024), color=(73, 109, 137))
+        return img
+
+def create_dev_mode_response(
+    DEV_MODE_IMAGE_PATH, 
+    DEV_MODE_IMAGE_URL,
+    n: int,
+    response_format: str,
+    output_format: str,
+    size: Optional[str] = None,
+    quality: Optional[str] = None,
+    background: Optional[str] = None,
+    utils_app = None,
+) -> dict:
+    dev_image = load_dev_mode_image(DEV_MODE_IMAGE_PATH, DEV_MODE_IMAGE_URL)
+    
+    if size:
+        if size == "1024x1024":
+            target_size = (1024, 1024)
+        elif size == "1536x1024":
+            target_size = (1536, 1024)
+        elif size == "1024x1536":
+            target_size = (1024, 1536)
+        elif size == "256x256":
+            target_size = (256, 256)
+        elif size == "512x512":
+            target_size = (512, 512)
+        elif size == "1792x1024":
+            target_size = (1792, 1024)
+        elif size == "1024x1792":
+            target_size = (1024, 1792)
+        else:
+            target_size = (1024, 1024)
+        
+        if dev_image.size != target_size:
+            dev_image = dev_image.resize(target_size, PILImage.Resampling.LANCZOS)
+    
+    images_data = []
+    
+    for _ in range(n):
+        image_obj = {}
+        
+        if response_format == "b64_json":
+            buffer = io.BytesIO()
+            dev_image.save(buffer, format=output_format.upper())
+            img_str = base64.b64encode(buffer.getvalue()).decode()
+            image_obj["b64_json"] = img_str
+        else:
+            url = utils_app.save_image(dev_image)
+            image_obj["url"] = url
+        
+        images_data.append(image_obj)
+    
+    response_data = {
+        "created": int(time.time()),
+        "data": images_data,
+    }
+    
+    if size:
+        response_data["size"] = size
+    if quality:
+        response_data["quality"] = quality
+    if background:
+        response_data["background"] = background
+    if output_format:
+        response_data["output_format"] = output_format
+    
+    return response_data

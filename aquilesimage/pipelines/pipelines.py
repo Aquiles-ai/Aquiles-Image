@@ -18,6 +18,7 @@ Maybe this will mutate with the changes implemented in diffusers
 
 class PipelineSD3:
     def __init__(self, model_path: str | None = None):
+        from diffusers.pipelines.stable_diffusion_3.pipeline_stable_diffusion_3 import StableDiffusion3Pipeline
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: StableDiffusion3Pipeline | None = None
         self.device: str | None = None
@@ -75,6 +76,7 @@ class PipelineSD3:
 
 class PipelineFlux:
     def __init__(self, model_path: str | None = None, low_vram: bool = False):
+        from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: FluxPipeline | None = None
         self.device: str | None = None
@@ -107,6 +109,7 @@ class PipelineFlux:
 
 class PipelineFluxKontext:
     def __init__(self, model_path: str | None = None, low_vram: bool = False):
+        from diffusers.pipelines.flux.pipeline_flux_kontext import FluxKontextPipeline
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: FluxKontextPipeline | None = None
         self.device: str | None = None
@@ -201,6 +204,7 @@ class PipelineQwenImage:
 
 class PipelineQwenImageEdit:
     def __init__(self, model_path: str | None = None, low_vram: bool = False):
+
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: QwenImageEditPipeline | None = None
         self.device: str | None = None

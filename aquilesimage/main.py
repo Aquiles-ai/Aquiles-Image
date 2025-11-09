@@ -13,9 +13,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
 from aquilesimage.models import CreateImageRequest, ImagesResponse, Image, ImageModel
-from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key
-from aquilesimage.runtime import RequestScopedPipeline
-from aquilesimage.pipelines import ModelPipelineInit
+from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key, create_dev_mode_response
 from aquilesimage.configs import load_config_app, load_config_cli
 import asyncio
 import logging
@@ -30,6 +28,9 @@ import base64
 import io
 from typing import Optional
 
+DEV_MODE_IMAGE_URL = os.getenv("DEV_IMAGE_URL", "https://picsum.photos/1024/1024")
+DEV_MODE_IMAGE_PATH = os.getenv("DEV_IMAGE_PATH", None)
+
 logger = setup_colored_logger("Aquiles-Image", logging.INFO)
 
 logger.info("Loading the model...")
@@ -40,14 +41,16 @@ pipeline_lock = threading.Lock()
 initializer = None
 config = None
 max_concurrent_infer: int | None = None
+load_model: bool | None = None
 
 def load_models():
-    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer
+    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model
 
     logger.info("Loading configuration...")
     
     config = load_config_cli() 
     model_name = config.get("model")
+    load_model = config.get("load_model")
 
     flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL]
 
@@ -57,21 +60,27 @@ def load_models():
         raise ValueError("No model specified in configuration. Please configure a model first.")
     
     logger.info(f"Loading model: {model_name}")
-    
-    try:
-        initializer = ModelPipelineInit(model=model_name)
-        model_pipeline = initializer.initialize_pipeline()
-        model_pipeline.start()
+
+    if load_model is False:
+        logger.info(f"Dev mode without model loading")
+        pass
+    else:  
+        try:
+            from aquilesimage.runtime import RequestScopedPipeline
+            from aquilesimage.pipelines import ModelPipelineInit
+            initializer = ModelPipelineInit(model=model_name)
+            model_pipeline = initializer.initialize_pipeline()
+            model_pipeline.start()
         
-        if model_name in flux_models:
-            request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
-        request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
+            if model_name in flux_models:
+                request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
+            request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
         
-        logger.info(f"Model '{model_name}' loaded successfully")
+            logger.info(f"Model '{model_name}' loaded successfully")
         
-    except Exception as e:
-        logger.error(f"Failed to initialize model pipeline: {e}")
-        raise
+        except Exception as e:
+            logger.error(f"Failed to initialize model pipeline: {e}")
+            raise
 
 try:
     load_models()
@@ -93,6 +102,8 @@ async def lifespan(app: FastAPI):
     app.state.PIPELINE_LOCK = pipeline_lock
 
     app.state.model = app.state.config.get("model")
+
+    app.state.load_model = load_model
 
     # dumb config
     app.state.utils_app = Utils(
@@ -154,6 +165,31 @@ async def count_requests_middleware(request: Request, call_next):
 
 @app.post("/images/generations", response_model=ImagesResponse, tags=["Generation"], dependencies=[Depends(verify_api_key)])
 async def create_image(input_r: CreateImageRequest):
+    if app.state.load_model is False:
+        logger.info("[DEV MODE] Generating mock response")
+        utils_app = app.state.utils_app
+        
+        try:
+            response_data = create_dev_mode_response(
+                DEV_MODE_IMAGE_PATH, 
+                DEV_MODE_IMAGE_URL,
+                n=input_r.n,
+                response_format=input_r.response_format or "url",
+                output_format=input_r.output_format or "png",
+                size=input_r.size,
+                quality=input_r.quality or "auto",
+                background=input_r.background or "auto",
+                utils_app=utils_app
+            )
+            images_obj = [Image(**img) for img in response_data["data"]]
+            response_data["data"] = images_obj
+            
+            return ImagesResponse(**response_data)
+        
+        except Exception as e:
+            logger.error(f"X Error in dev mode: {e}")
+            raise HTTPException(500, f"Error in dev mode: {e}")
+
     if app.state.active_inferences >= max_concurrent_infer:
         raise HTTPException(429)
     
@@ -284,6 +320,32 @@ async def create_image_edit(
     partial_images: Optional[int] = Form(None, ge=0, le=3, description="The number of partial images to generate"),
     quality: Optional[str] = Form("auto", description="The quality of the image that will be generated")
 ):
+
+    if app.state.load_model is False:
+        logger.info("[DEV MODE] Generating mock edit response")
+        utils_app = app.state.utils_app
+        
+        try:
+            response_data = create_dev_mode_response(
+                n=n or 1,
+                response_format=response_format or "url",
+                output_format=output_format or "png",
+                size=size,
+                quality=quality or "auto",
+                background=background or "auto",
+                utils_app=utils_app
+            )
+            
+            images_obj = [Image(**img) for img in response_data["data"]]
+            response_data["data"] = images_obj
+            
+            return ImagesResponse(**response_data)
+        
+        except Exception as e:
+            logger.error(f"X Error in dev mode: {e}")
+            raise HTTPException(500, f"Error in dev mode: {e}")
+
+
     if app.state.active_inferences >= max_concurrent_infer:
         raise HTTPException(429)
 
