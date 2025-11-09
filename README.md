@@ -2,7 +2,7 @@
 
 # Aquiles-Image
 
-<img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1762730457/aquilesim_m8zibm.png" alt="Aquiles-Image Logo" width="280"/>
+<img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1762730973/aquilesim_ow8kbf.png" alt="Aquiles-Image Logo" width="280"/>
 
 ### **Easy, fast and cheap Diffusion Models that work for everyone.**
 
@@ -72,10 +72,30 @@ aquiles-image serve --host "0.0.0.0" --port 5500 --model "stabilityai/stable-dif
 
 > For Edit endpoints (Available, but with some errors that do not guarantee full endpoint functionality): `black-forest-labs/FLUX.1-Kontext-dev`, `Qwen/Qwen-Image-Edit`
 
-## 🚀 Start your Aquiles-Image server in dev mode without loading models
+## 💻 Start your Aquiles-Image server in dev mode without loading models
+
+Dev mode allows you to start the server without loading any AI models, ideal for rapid development, integration testing, or endpoint validation without requiring GPU or heavy computational resources.
+
 ```bash
 aquiles-image serve --host "0.0.0.0" --port 5500 --no-load-model
 ```
+
+### What does dev mode do?
+
+- **No model loading**: Server starts instantly without downloading or loading AI models
+- **Functional endpoints**: All endpoints respond normally with test images
+- **Realistic responses**: Returns valid images that simulate model responses
+- **Same format**: Responses maintain the exact API format (URLs, base64, metadata)
+
+### Use cases
+
+- API integration development  
+- Endpoint testing without GPU  
+- Workflow validation  
+- CI/CD environment testing  
+- Development on machines without GPU resources  
+
+> **Note**: Dev mode is for development only. For production, use the normal server with loaded models.
 
 ## 🎉 Generate your first image with Aquiles-Image
 
