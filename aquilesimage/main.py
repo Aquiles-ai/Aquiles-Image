@@ -2,8 +2,6 @@
 The goal is to create image generation, editing, and variance endpoints compatible with the OpenAI client.
 
 APIs:
-
-POST /images/variations (create_variation)
 POST /images/edits (edit)
 POST /images/generations (generate)
 """
@@ -42,9 +40,10 @@ initializer = None
 config = None
 max_concurrent_infer: int | None = None
 load_model: bool | None = None
+steps: int | None = None
 
 def load_models():
-    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model
+    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps
 
     logger.info("Loading configuration...")
     
@@ -55,6 +54,11 @@ def load_models():
     flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL]
 
     max_concurrent_infer = int(config.get("max_concurrent_infer"))
+
+    steps = config.get("steps_n")
+
+    if steps is not None:
+        steps = int(steps)
 
     if not model_name:
         raise ValueError("No model specified in configuration. Please configure a model first.")
@@ -237,7 +241,7 @@ async def create_image(input_r: CreateImageRequest):
         return req_pipe.generate(
             prompt=prompt,
             generator=gen,
-            num_inference_steps=30,
+            num_inference_steps=steps if steps is not None else 30,
             height=h,
             width=w,
             num_images_per_prompt=n,
@@ -424,6 +428,7 @@ async def create_image_edit(
             return req_pipe.generate(
                 image=image_to_use,
                 prompt=prompt,
+                num_inference_steps=steps if steps is not None else 30,
                 guidance_scale=gd,
                 generator=gen, 
                 num_images_per_prompt=n or 1,  
@@ -436,7 +441,7 @@ async def create_image_edit(
                 prompt=prompt,
                 generator=gen,
                 guidance_scale=gd,
-                num_inference_steps=30,
+                num_inference_steps=steps if steps is not None else 30,
                 height=h,
                 width=w,
                 num_images_per_prompt=n or 1,

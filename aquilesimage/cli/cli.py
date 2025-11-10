@@ -21,8 +21,9 @@ def greet(name):
 @click.option("--block-request/--no-block-request", default=None, help="Block requests during maximum concurrent inferences")
 @click.option("--force", is_flag=True, help="Force overwrite existing configuration")
 @click.option("--no-load-model", is_flag=True, help="Not loading the model simply allows for faster development without having to load the model constantly.")
+@click.option("--set-steps", type=int, default=None, help="Set the steps that the model will use")
 def serve(host: str, port: int, model: Optional[str], api_key: Optional[str], 
-         max_concurrent_infer: Optional[int], block_request: Optional[bool], force: bool, no_load_model: bool):
+         max_concurrent_infer: Optional[int], block_request: Optional[bool], force: bool, no_load_model: bool, set_steps: Optional[int]):
     """Start the Aquiles-Image server."""
     try:
         from aquilesimage.configs import (
@@ -74,7 +75,8 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
         api_key is not None,
         max_concurrent_infer is not None,
         block_request is not None,
-        no_load_model
+        no_load_model,
+        set_steps is not None
     ])
 
     if config_needs_update:
@@ -89,7 +91,8 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
                 allows_api_keys=existing_api_keys,
                 max_concurrent_infer=max_concurrent_infer if max_concurrent_infer is not None else conf.get("max_concurrent_infer"),
                 block_request=block_request if block_request is not None else conf.get("block_request"),
-                load_model=False if no_load_model else conf.get("load_model", True)
+                load_model=False if no_load_model else conf.get("load_model", True),
+                steps_n=set_steps if set_steps is not None else conf.get("steps_n")
             )
 
             configs_image_serve(updated_conf, force=True)
