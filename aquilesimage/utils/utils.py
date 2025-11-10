@@ -1,4 +1,4 @@
-from fastapi.security import HTTPBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Security, HTTPException
 import os
 import torch
@@ -66,7 +66,7 @@ logger_utils = setup_colored_logger("Aquiles-Image-Utils", logging.WARNING)
 security = HTTPBearer()
 
 async def verify_api_key(
-    api_key: Optional[str] = Security(security)
+    credentials: HTTPAuthorizationCredentials = Security(security)
 ):
     configs = await load_config_app()
 
@@ -75,19 +75,21 @@ async def verify_api_key(
     if not valid_keys:
         return None
 
-    if configs["allows_api_keys"]:
-        if not api_key:
-            raise HTTPException(
-                status_code=403,
-                detail="API key missing",
-            )
-        if api_key not in configs["allows_api_keys"]:
-            raise HTTPException(
-                status_code=403,
-                detail="Invalid API key",
-            )
+    if not credentials:
+        raise HTTPException(
+            status_code=403,
+            detail="API key missing",
+        )
+    
+    api_key = credentials.credentials
+    
+    if api_key not in valid_keys:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid API key",
+        )
 
-        return api_key
+    return api_key
 
 class Utils:
     def __init__(self, host: str = '0.0.0.0', port: int = 8500):
