@@ -223,3 +223,4 @@ class Model(BaseModel):
 class ListModelsResponse(BaseModel):
     object: Literal["list"] = Field(default="list", description="Type of object")
     data: list[Model] = Field(..., description="List of available models")
+

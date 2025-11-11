@@ -532,6 +532,7 @@ async def get_models():
         data=models_data
     )
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
