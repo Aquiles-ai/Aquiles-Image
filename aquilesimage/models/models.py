@@ -213,3 +213,13 @@ class ConfigsServe(BaseModel):
     block_request: bool | None = Field(default=False, description="Block requests during the maximum concurrent inferences")
     load_model: bool | None = Field(default=True, description="Loading the model or not simply allows for faster development without having to load the model constantly.")
     steps_n: int | None = Field(default=None, description="Loading the model or not simply allows for faster development without having to load the model constantly.")
+
+class Model(BaseModel):
+    id: str = Field(..., description="Unique identifier of the model")
+    object: Literal["model"] = Field(default="model", description="Type of object")
+    created: int = Field(..., description="Unix creation timestamp")
+    owned_by: str = Field(..., description="Owner organization")
+
+class ListModelsResponse(BaseModel):
+    object: Literal["list"] = Field(default="list", description="Type of object")
+    data: list[Model] = Field(..., description="List of available models")

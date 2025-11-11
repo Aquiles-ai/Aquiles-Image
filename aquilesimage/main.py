@@ -10,7 +10,7 @@ from fastapi import FastAPI, UploadFile, File, Request, HTTPException, Depends, 
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
-from aquilesimage.models import CreateImageRequest, ImagesResponse, Image, ImageModel
+from aquilesimage.models import CreateImageRequest, ImagesResponse, Image, ImageModel, ListModelsResponse, Model
 from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key, create_dev_mode_response
 from aquilesimage.configs import load_config_app, load_config_cli
 import asyncio
@@ -25,6 +25,7 @@ import time
 import base64
 import io
 from typing import Optional
+from datetime import datetime
 
 DEV_MODE_IMAGE_URL = os.getenv("DEV_IMAGE_URL", "https://picsum.photos/1024/1024")
 DEV_MODE_IMAGE_PATH = os.getenv("DEV_IMAGE_PATH", None)
@@ -41,9 +42,10 @@ config = None
 max_concurrent_infer: int | None = None
 load_model: bool | None = None
 steps: int | None = None
+model_name: str | None = None
 
 def load_models():
-    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps
+    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name
 
     logger.info("Loading configuration...")
     
@@ -511,6 +513,24 @@ async def serve_image(filename: str):
     if not os.path.isfile(file_path):
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(file_path, media_type="image/png")
+
+
+@app.get("/models", response_model=ListModelsResponse, dependencies=[Depends(verify_api_key)], tags=["Models"])
+async def get_models():
+    models_data = [
+        Model(
+            id=f"{model.value} | [LOADED]" if model.value == model_name else f"{model.value}",
+            object="model",
+            created=int(datetime.now().timestamp()),
+            owned_by="custom"
+        )
+        for model in ImageModel
+    ]
+    
+    return ListModelsResponse(
+        object="list",
+        data=models_data
+    )
 
 app.add_middleware(
     CORSMiddleware,
