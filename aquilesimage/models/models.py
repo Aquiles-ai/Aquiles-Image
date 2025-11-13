@@ -5,6 +5,8 @@ from pydantic import field_validator
 
 """
 All these models are made based on the OpenAI openapi file to make the image generation server compatible with the OpenAI client
+
+OpenAPI Spec: https://app.stainless.com/api/spec/documented/openai/openapi.documented.yml
 """
 
 class ImageModel(str, Enum):
@@ -224,3 +226,72 @@ class ListModelsResponse(BaseModel):
     object: Literal["list"] = Field(default="list", description="Type of object")
     data: list[Model] = Field(..., description="List of available models")
 
+class OrderEnum(str, Enum):
+    asc = "asc"
+    desc = "desc"
+
+
+class VideoStatus(str, Enum):
+    queued = "queued"
+    processing = "processing"
+    completed = "completed"
+    failed = "failed"
+
+
+class VideoContentVariant(str, Enum):
+    video = "video"
+    preview = "preview"
+
+
+class VideoQuality(str, Enum):
+    standard = "standard"
+    hd = "hd"
+
+class ListVideosParams(BaseModel):
+    limit: int | None = Field(None, ge=0, le=100, description="Number of items to retrieve")
+    order: OrderEnum | None = Field(None, description="Order of results by timestamp")
+    after: str | None = Field(None, description="Identifier of the last item in the previous pagination request")
+
+
+class RetrieveVideoContentParams(BaseModel):
+    variant: Optional[VideoContentVariant] = Field(
+        VideoContentVariant.video,
+        description="Which downloadable asset to return. By default, the MP4 video."
+    )
+
+class CreateVideoBody(BaseModel):
+    model: str = Field(default="sora-2", description="Model to use to generate the video")
+    prompt: str = Field(..., description="Prompt of the video to be generated")
+    size: Literal['1024x1792', '1280x720', '1792x1024', '720x1280'] | None = Field(None, description="Video size, e.g., '1024x1808'")
+    seconds: str | None = Field(None, description="Video duration in seconds")
+    quality: VideoQuality | None = Field(VideoQuality.standard, description="Video quality")
+
+class VideoResource(BaseModel):
+    id: str = Field(..., description="Unique identifier for the video")
+    object: Literal["video"] = Field("video", description="Object type")
+    model: str = Field(..., description="Model used to generate the video")
+    status: VideoStatus = Field(..., description="Current status of the video job")
+    progress: int | None = Field(None, ge=0, le=100, description="Video generation progress (0-100)")
+    created_at: int = Field(..., description="Unix timestamp of creation")
+    size: Literal['1024x1792', '1280x720', '1792x1024', '720x1280'] | None = Field(None, description="Video dimensions")
+    seconds: str | None = Field(None, description="Video duration in seconds")
+    quality: VideoQuality | None = Field(None, description="Video quality")
+    error: dict | None = Field(None, description="Error information if the job failed")
+
+
+class VideoListResource(BaseModel):
+    data: List[VideoResource] = Field(..., description="List of videos")
+    object: Literal["list"] = Field("list", description="Object type")
+    has_more: bool | None = Field(None, description="Indicates if more results are available")
+    first_id: str | None = Field(None, description="ID of the first element in the list")
+    last_id: str | None = Field(None, description="ID of the last element in the list")
+
+
+class DeletedVideoResource(BaseModel):
+    id: str = Field(..., description="Identifier of the deleted video")
+    object: Literal["video.deleted"] = Field("video.deleted", description="Object type")
+    deleted: bool = Field(True, description="Indicates if the video was successfully deleted")
+
+
+class VideoPathParams(BaseModel):
+    video_id: str = Field(..., description="Video identifier")
