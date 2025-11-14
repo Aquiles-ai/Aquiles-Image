@@ -10,8 +10,8 @@ from fastapi import FastAPI, UploadFile, File, Request, HTTPException, Depends, 
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
-from aquilesimage.models import CreateImageRequest, ImagesResponse, Image, ImageModel, ListModelsResponse, Model
-from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key, create_dev_mode_response
+from aquilesimage.models import CreateImageRequest, ImagesResponse, Image, ImageModel, ListModelsResponse, Model, CreateVideoBody, VideoResource
+from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key, create_dev_mode_response, create_dev_mode_video_response
 from aquilesimage.configs import load_config_app, load_config_cli
 import asyncio
 import logging
@@ -532,6 +532,22 @@ async def get_models():
         data=models_data
     )
 
+@app.post("/videos", response_model=VideoResource, dependencies=[Depends(verify_api_key)])
+async def videos(input_r: CreateVideoBody):
+    if app.state.load_model is False:
+        logger.info("[DEV MODE] Generating mock videos response")
+        response = create_dev_mode_video_response(
+            model=input_r.model,
+            prompt=input_r.prompt,
+            size=input_r.size,
+            seconds=input_r.seconds,
+            quality=input_r.quality,
+            status="processing",
+            progress=50
+        )
+        
+        return response
+    pass
 
 app.add_middleware(
     CORSMiddleware,

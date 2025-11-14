@@ -27,6 +27,9 @@ class ImageModel(str, Enum):
     QWEN_IMAGE_EDIT = 'Qwen/Qwen-Image-Edit'
     QWEN_IMAGE = 'Qwen/Qwen-Image'
 
+class VideoModels(str, Enum):
+    """I plan to have all of these models optimized for the Aquiles-Image runtime"""
+    WAN2_2_5B = 'Wan-AI/Wan2.2-TI2V-5B-Diffusers'
 
 class ResponseFormat(str, Enum):
     URL = "url"
@@ -277,6 +280,7 @@ class VideoResource(BaseModel):
     seconds: str | None = Field(None, description="Video duration in seconds")
     quality: VideoQuality | None = Field(None, description="Video quality")
     error: dict | None = Field(None, description="Error information if the job failed")
+    prompt: str | None = Field(None, description="Original prompt used to generate the video")
 
 
 class VideoListResource(BaseModel):

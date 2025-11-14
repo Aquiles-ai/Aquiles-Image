@@ -218,3 +218,54 @@ def create_dev_mode_response(
         response_data["output_format"] = output_format
     
     return response_data
+
+
+def create_dev_mode_video_response(
+    model: str = "sora-2",
+    prompt: Optional[str] = None,
+    size: Optional[str] = None,
+    seconds: Optional[str] = None,
+    quality: Optional[str] = None,
+    status: str = "completed",
+    progress: int = 100,
+) -> dict:
+    """
+    Create a development mode response for video generation API
+    
+    Args:
+        model: Model name (default: "sora-2")
+        prompt: Video generation prompt
+        size: Video dimensions (e.g., "1024x1808")
+        seconds: Video duration in seconds
+        quality: Video quality ("standard" or "hd")
+        status: Video job status (default: "completed")
+        progress: Generation progress 0-100 (default: 100)
+    
+    Returns:
+        dict: VideoResource compatible response
+    """
+    
+    video_id = f"video_dev_{int(time.time())}"
+    
+    response_data = {
+        "id": video_id,
+        "object": "video",
+        "model": model,
+        "status": status,
+        "created_at": int(time.time()),
+    }
+    
+    if status != "completed":
+        response_data["progress"] = progress
+    
+    if size:
+        response_data["size"] = size
+    if seconds:
+        response_data["seconds"] = seconds
+    if quality:
+        response_data["quality"] = quality
+    if prompt:
+        response_data["prompt"] = prompt
+    
+    
+    return response_data
