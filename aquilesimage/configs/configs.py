@@ -13,7 +13,7 @@ from typing import Optional
 _load_lock = asyncio.Lock()
 data_dir = user_data_dir("aquiles", "Aquiles-Image")
 os.makedirs(data_dir, exist_ok=True)
-AQUILES_CONFIG = os.path.join(data_dir, "aquiles_config.json")
+AQUILES_CONFIG = os.path.join(data_dir, "aquiles_image_config.json")
 _cache_lock = threading.Lock()
 _cached_config: Optional[Dict[str, Any]] = None
 _cache_timestamp: float = 0
