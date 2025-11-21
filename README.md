@@ -2,7 +2,7 @@
 
 # Aquiles-Image
 
-<img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1762730973/aquilesim_ow8kbf.png" alt="Aquiles-Image Logo" width="280"/>
+<img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1763696638/aquiles_image_nv7yeh.png" alt="Aquiles-Image Logo" width="2560" height="1200"/>
 
 ### **Easy, fast and cheap Diffusion Models that work for everyone.**
 
