@@ -39,7 +39,7 @@ dependencies = [
     "accelerate",
     "xformers",
     "protobuf",
-    "diffusers",
+    "diffusers @ git+https://github.com/huggingface/diffusers.git",
     "platformdirs",
     "aiofiles",
     "python-multipart",

@@ -8,6 +8,22 @@ from .wrappers import ThreadSafeTokenizerWrapper, ThreadSafeVAEWrapper, ThreadSa
 
 logger = logging.get_logger(__name__)
 
+def _calculate_shift(
+    self,
+    image_seq_len: int,
+    base_seq_len: int = 256,
+    max_seq_len: int = 4096,
+    base_shift: float = 0.5,
+    max_shift: float = 1.15,
+) -> float:
+    m = (max_shift - base_shift) / (max_seq_len - base_seq_len)
+    b = base_shift - m * base_seq_len
+    mu = image_seq_len * m + b
+    return mu
+
+def _get_image_seq_len(self, height: int, width: int, patch_size: int = 16) -> int:
+    return (height // patch_size) * (width // patch_size)
+
 class RequestScopedPipeline:
     DEFAULT_MUTABLE_ATTRS = [
         "_all_hooks",
@@ -240,9 +256,25 @@ class RequestScopedPipeline:
         return True
 
     def generate(self, *args, num_inference_steps: int = 50, device: Optional[str] = None, **kwargs):
-        if self.use_flux:
+        height = kwargs.get('height', 1024)
+        width = kwargs.get('width', 1024)
+    
+        if self.is_kontext:
+            logger.debug(f"Kontext mode detected - calculating mu for resolution {height}x{width}")
+        
+            image_seq_len = self._get_image_seq_len(height, width)
+        
+            mu = self._calculate_shift(image_seq_len)
+        
+            logger.debug(f"Calculated mu={mu:.4f} for image_seq_len={image_seq_len}")
+        
+            kwargs['mu'] = mu
+        
+            local_scheduler = None
+        elif self.use_flux:
             local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device, use_dynamic_shifting=False)
-        local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device)
+        else:
+            local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device)
 
         try:
             local_pipe = copy.copy(self._base)
@@ -261,12 +293,14 @@ class RequestScopedPipeline:
 
         if local_scheduler is not None:
             try:
+                scheduler_kwargs = {k: v for k, v in kwargs.items() if k in ['timesteps', 'sigmas', 'mu']}
+            
                 timesteps, num_steps, configured_scheduler = async_retrieve_timesteps(
                     local_scheduler.scheduler,
                     num_inference_steps=num_inference_steps,
                     device=device,
                     return_scheduler=True,
-                    **{k: v for k, v in kwargs.items() if k in ['timesteps', 'sigmas']}
+                    **scheduler_kwargs
                 )
 
                 final_scheduler = BaseAsyncScheduler(configured_scheduler)
@@ -275,10 +309,9 @@ class RequestScopedPipeline:
                 logger.warning(f"Could not set scheduler on local pipe; proceeding without replacing scheduler. Error{e}")
 
         self._clone_mutable_attrs(self._base, local_pipe)
-        
 
         original_tokenizers = {}
-        
+    
         if self._should_wrap_tokenizers():
             try:
                 for name in dir(local_pipe):
@@ -294,7 +327,7 @@ class RequestScopedPipeline:
                     for key, val in local_pipe.components.items():
                         if val is None:
                             continue
-                        
+                    
                         if self._is_tokenizer_component(val):
                             if not isinstance(val, ThreadSafeTokenizerWrapper):
                                 original_tokenizers[f"components[{key}]"] = val
@@ -306,9 +339,11 @@ class RequestScopedPipeline:
 
         result = None
         cm = getattr(local_pipe, "model_cpu_offload_context", None)
-        
+    
         try:
-            
+            if self.is_kontext:
+                logger.debug(f"Calling Kontext pipeline with mu={kwargs.get('mu')}")
+        
             if callable(cm):
                 try:
                     with cm():

@@ -1,5 +1,10 @@
 from diffusers.pipelines.stable_diffusion_3.pipeline_stable_diffusion_3 import StableDiffusion3Pipeline
 from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
+try:
+    from diffusers.pipelines.flux2.pipeline_flux2 import Flux2Pipeline
+except Exception as e:
+    print("Error import Flux2Pipeline")
+    pass
 from diffusers.pipelines.flux.pipeline_flux_kontext import FluxKontextPipeline
 from diffusers.pipelines.qwenimage.pipeline_qwenimage import QwenImagePipeline
 from diffusers.pipelines.qwenimage.pipeline_qwenimage_edit import QwenImageEditPipeline
@@ -234,6 +239,18 @@ class PipelineQwenImageEdit:
         else:
             raise Exception("No CUDA or MPS device available")
 
+
+class PipelineFlux2:
+    def __init__(self, model_path: str | None = None, low_vram: bool = True):
+
+        self.model_path = model_path or os.getenv("MODEL_PATH")
+        try:
+            self.pipeline: Flux2Pipeline | None = None
+        except Exception as e:
+            print("Error import Flux2Pipeline")
+            pass
+        self.device: str | None = None
+        self.low_vram = low_vram
 
 class ModelPipelineInit:
     def __init__(self, model: str):

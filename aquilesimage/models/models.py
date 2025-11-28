@@ -27,6 +27,9 @@ class ImageModel(str, Enum):
     QWEN_IMAGE_EDIT = 'Qwen/Qwen-Image-Edit'
     QWEN_IMAGE = 'Qwen/Qwen-Image'
 
+    FLUX_2_4BNB = 'diffusers/FLUX.2-dev-bnb-4bit'
+    FLUX_2 = 'black-forest-labs/FLUX.2-dev'
+
 class VideoModels(str, Enum):
     """I plan to have all of these models optimized for the Aquiles-Image runtime"""
     WAN2_2_5B = 'Wan-AI/Wan2.2-TI2V-5B-Diffusers'
