@@ -1,3 +1,4 @@
 build
 aquiles_image.egg-info
 venv
+dist
