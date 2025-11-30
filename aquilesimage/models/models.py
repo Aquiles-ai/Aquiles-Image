@@ -22,10 +22,6 @@ class ImageModel(str, Enum):
     FLUX_1_SCHNELL = 'black-forest-labs/FLUX.1-schnell'
     FLUX_1_KONTEXT_DEV = 'black-forest-labs/FLUX.1-Kontext-dev'
     FLUX_1_KREA_DEV = 'black-forest-labs/FLUX.1-Krea-dev'
-    
-    # Qwen models
-    QWEN_IMAGE_EDIT = 'Qwen/Qwen-Image-Edit'
-    QWEN_IMAGE = 'Qwen/Qwen-Image'
 
     FLUX_2_4BNB = 'diffusers/FLUX.2-dev-bnb-4bit'
     FLUX_2 = 'black-forest-labs/FLUX.2-dev'

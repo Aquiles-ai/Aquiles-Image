@@ -2,12 +2,15 @@ from diffusers.pipelines.stable_diffusion_3.pipeline_stable_diffusion_3 import S
 from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
 try:
     from diffusers.pipelines.flux2.pipeline_flux2 import Flux2Pipeline
-except Exception as e:
+except ImportError as e:
     print("Error import Flux2Pipeline")
     pass
+try:
+    from diffusers.pipelines.z_image import ZImagePipeline
+except ImportError as e:
+    print("Error import ZImagePipeline")
+    pass
 from diffusers.pipelines.flux.pipeline_flux_kontext import FluxKontextPipeline
-from diffusers.pipelines.qwenimage.pipeline_qwenimage import QwenImagePipeline
-from diffusers.pipelines.qwenimage.pipeline_qwenimage_edit import QwenImageEditPipeline
 import torch
 import os
 import logging
@@ -175,71 +178,6 @@ class PipelineFluxKontextMask:
         else:
             raise Exception("No CUDA or MPS device available")
 
-
-class PipelineQwenImage:
-    def __init__(self, model_path: str | None = None, low_vram: bool = False):
-        self.model_path = model_path or os.getenv("MODEL_PATH")
-        self.pipeline: QwenImagePipeline | None = None
-        self.device: str | None = None
-        self.low_vram = low_vram
-
-    def start(self):
-        if torch.cuda.is_available():
-            model_path = self.model_path or "Qwen/Qwen-Image"
-            logger_p.debug("Loading CUDA")
-            self.device = "cuda" 
-            self.pipeline = QwenImagePipeline.from_pretrained(
-                model_path,
-                torch_dtype=torch.float16,
-            ).to(device=self.device)
-            if self.low_vram:
-                self.pipeline.enable_model_cpu_offload()
-            else:
-                pass
-        elif torch.backends.mps.is_available():
-            model_path = self.model_path or "Qwen/Qwen-Image"
-            logger_p.debug("Loading MPS for Mac M Series")
-            self.device = "mps"
-            self.pipeline = QwenImagePipeline.from_pretrained(
-                model_path,
-                torch_dtype=torch.float16,
-            ).to(device=self.device)
-        else:
-            raise Exception("No CUDA or MPS device available")
-
-class PipelineQwenImageEdit:
-    def __init__(self, model_path: str | None = None, low_vram: bool = False):
-
-        self.model_path = model_path or os.getenv("MODEL_PATH")
-        self.pipeline: QwenImageEditPipeline | None = None
-        self.device: str | None = None
-        self.low_vram = low_vram
-
-    def start(self):
-        if torch.cuda.is_available():
-            model_path = self.model_path or "Qwen/Qwen-Image"
-            logger_p.debug("Loading CUDA")
-            self.device = "cuda" 
-            self.pipeline = QwenImageEditPipeline.from_pretrained(
-                model_path,
-                torch_dtype=torch.float16,
-            ).to(device=self.device)
-            if self.low_vram:
-                self.pipeline.enable_model_cpu_offload()
-            else:
-                pass
-        elif torch.backends.mps.is_available():
-            model_path = self.model_path or "Qwen/Qwen-Image"
-            logger_p.debug("Loading MPS for Mac M Series")
-            self.device = "mps"
-            self.pipeline = QwenImageEditPipeline.from_pretrained(
-                model_path,
-                torch_dtype=torch.float16,
-            ).to(device=self.device)
-        else:
-            raise Exception("No CUDA or MPS device available")
-
-
 class PipelineFlux2:
     def __init__(self, model_path: str | None = None, low_vram: bool = True):
 
@@ -247,10 +185,26 @@ class PipelineFlux2:
         try:
             self.pipeline: Flux2Pipeline | None = None
         except Exception as e:
+            self.pipeline = None
             print("Error import Flux2Pipeline")
             pass
         self.device: str | None = None
         self.low_vram = low_vram
+
+class PipelineZImage:
+    def __init__(self, model_path: str | None = None, low_vram: bool = True):
+
+        self.model_path = model_path or os.getenv("MODEL_PATH")
+        try:
+            self.pipeline: ZImagePipeline | None = None
+        except Exception as e:
+            self.pipeline = None
+            print("Error import ZImagePipeline")
+            pass
+        self.device: str | None = None
+        self.low_vram = low_vram
+
+
 
 class ModelPipelineInit:
     def __init__(self, model: str):
@@ -278,14 +232,6 @@ class ModelPipelineInit:
             self.models.FLUX_1_KONTEXT_DEV
         ]
 
-        self.qwen = [
-            self.models.QWEN_IMAGE
-        ]
-
-        self.qwen_edit = [
-            self.models.QWEN_IMAGE_EDIT
-        ]
-
 
     def initialize_pipeline(self):
         if not self.model:
@@ -296,13 +242,9 @@ class ModelPipelineInit:
             self.pipeline = PipelineSD3(self.model)
         elif self.model in self.flux:
             self.pipeline = PipelineFlux(self.model)
-        elif self.model in self.qwen:
-            self.pipeline = PipelineQwenImage(self.model)
         # Edition Models
         elif self.model in self.flux_kontext:
             self.pipeline = PipelineFluxKontext(self.model)
-        elif self.model in self.qwen_edit:
-            self.pipeline = PipelineQwenImageEdit(self.model)
         else:
             raise ValueError(f"Unsupported model: {self.model}")
 

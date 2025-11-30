@@ -24,7 +24,7 @@
 | Feature | Description |
 |---------|-------------|
 | ⚡ **3x Faster** | Advanced inference optimizations |
-| 🎨 **More Models** | Support for FLUX, SD3-3.5, Qwen-Image and more |
+| 🎨 **More Models** | Support for FLUX, SD3-3.5, Flux2 and more |
 | 🔧 **Better DevX** | Improved CLI and monitoring capabilities |
 | 🔌 **OpenAI Compatible** | Drop-in replacement for OpenAI's image APIs  |
 
@@ -70,9 +70,9 @@ aquiles-image serve --host "0.0.0.0" --port 5500 --model "stabilityai/stable-dif
 
 > ⚠️ Keep in mind that many of these models require a lot of VRAM to run, choose the model that fits your GPU and has about 10GB left to avoid errors when decoding or saving.
 
-> The supported models for the imaging endpoint are: `stabilityai/stable-diffusion-3-medium`, `stabilityai/stable-diffusion-3.5-large`, `stabilityai/stable-diffusion-3.5-large-turbo`, `stabilityai/stable-diffusion-3.5-medium`, `black-forest-labs/FLUX.1-dev`, `black-forest-labs/FLUX.1-schnell`, `black-forest-labs/FLUX.1-Krea-dev`, `Qwen/Qwen-Image`
+> The supported models for the imaging endpoint are: `stabilityai/stable-diffusion-3-medium`, `stabilityai/stable-diffusion-3.5-large`, `stabilityai/stable-diffusion-3.5-large-turbo`, `stabilityai/stable-diffusion-3.5-medium`, `black-forest-labs/FLUX.1-dev`, `black-forest-labs/FLUX.1-schnell`, `black-forest-labs/FLUX.1-Krea-dev`
 
-> For Edit endpoints (Available, but with some errors that do not guarantee full endpoint functionality): `black-forest-labs/FLUX.1-Kontext-dev`, `Qwen/Qwen-Image-Edit`
+> For Edit endpoints (Available, but with some errors that do not guarantee full endpoint functionality): `black-forest-labs/FLUX.1-Kontext-dev`
 
 ## 💻 Start your Aquiles-Image server in dev mode without loading models
 

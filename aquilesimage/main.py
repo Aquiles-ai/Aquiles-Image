@@ -362,7 +362,7 @@ async def create_image_edit(
     req_pipe = app.state.REQUEST_PIPE
     utils_app = app.state.utils_app
 
-    if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.QWEN_IMAGE_EDIT] or model not in app.state.model:
+    if model not in [ImageModel.FLUX_1_KONTEXT_DEV] or model not in app.state.model:
         raise HTTPException(500, f"Model not available")
 
     try:
@@ -403,14 +403,6 @@ async def create_image_edit(
     if model == ImageModel.FLUX_1_KONTEXT_DEV:
         logger.info(f"Flux Kontext: Using original image without resizing: {image_pil.size}")
         image_to_use = image_pil
-        
-    elif model == ImageModel.QWEN_IMAGE_EDIT:
-        if image_pil.size != (w, h):
-            logger.info(f"QwenImageEdit: Resizing image from {image_pil.size} to {(w, h)}")
-            image_to_use = image_pil.resize((w, h), PILImage.Resampling.LANCZOS)
-        else:
-            logger.info(f"QwenImageEdit: Image is now the correct size: {(w, h)}")
-            image_to_use = image_pil
 
     if input_fidelity == "high":
         gd = 5.0
@@ -430,24 +422,13 @@ async def create_image_edit(
             return req_pipe.generate(
                 image=image_to_use,
                 prompt=prompt,
+                h=h,
+                w=w,
                 num_inference_steps=steps if steps is not None else 30,
                 guidance_scale=gd,
                 generator=gen, 
                 num_images_per_prompt=n or 1,  
                 output_type="pil",  
-            )
-        else:
-            logger.info(f"QwenImageEdit inference - guidance_scale: {gd}, size: {h}x{w}")
-            return req_pipe.generate(
-                image=image_to_use,
-                prompt=prompt,
-                generator=gen,
-                guidance_scale=gd,
-                num_inference_steps=steps if steps is not None else 30,
-                height=h,
-                width=w,
-                num_images_per_prompt=n or 1,
-                output_type="pil",
             )
 
     try:
