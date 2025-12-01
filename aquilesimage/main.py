@@ -53,7 +53,7 @@ def load_models():
     model_name = config.get("model")
     load_model = config.get("load_model")
 
-    flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL]
+    flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2]
 
     max_concurrent_infer = int(config.get("max_concurrent_infer"))
 
@@ -80,7 +80,10 @@ def load_models():
         
             if model_name in flux_models:
                 request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
-            request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
+            elif model_name == ImageModel.FLUX_1_KONTEXT_DEV:
+                    request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_kontext=True)
+            else:
+                request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
         
             logger.info(f"Model '{model_name}' loaded successfully")
         
@@ -421,9 +424,9 @@ async def create_image_edit(
             logger.info(f"FluxKontext inference - guidance_scale: {gd}")
             return req_pipe.generate(
                 image=image_to_use,
+                height=h,
+                width=w,
                 prompt=prompt,
-                h=h,
-                w=w,
                 num_inference_steps=steps if steps is not None else 30,
                 guidance_scale=gd,
                 generator=gen, 

@@ -3,13 +3,14 @@ import copy
 import threading
 import torch
 from diffusers.utils import logging
+from aquilesimage.utils import setup_colored_logger
+import logging
 from .scheduler import BaseAsyncScheduler, async_retrieve_timesteps
 from .wrappers import ThreadSafeTokenizerWrapper, ThreadSafeVAEWrapper, ThreadSafeImageProcessorWrapper
 
-logger = logging.get_logger(__name__)
+logger = setup_colored_logger("Aquiles-Image-Runtime-RequestScopedPipeline", logging.INFO)
 
 def _calculate_shift(
-    self,
     image_seq_len: int,
     base_seq_len: int = 256,
     max_seq_len: int = 4096,
@@ -21,7 +22,7 @@ def _calculate_shift(
     mu = image_seq_len * m + b
     return mu
 
-def _get_image_seq_len(self, height: int, width: int, patch_size: int = 16) -> int:
+def _get_image_seq_len(height: int, width: int, patch_size: int = 16) -> int:
     return (height // patch_size) * (width // patch_size)
 
 class RequestScopedPipeline:
@@ -44,10 +45,9 @@ class RequestScopedPipeline:
         tokenizer_lock: Optional[threading.Lock] = None,
         wrap_scheduler: bool = True,
         use_flux: bool = False,
-        use_konktext: bool = False,
+        use_kontext: bool = False,
     ):
         self._base = pipeline
-        self.use_konktext = use_konktext
         
         self.use_flux = use_flux
         if self.use_flux and hasattr(pipeline, 'scheduler') and pipeline.scheduler is not None:
@@ -61,6 +61,8 @@ class RequestScopedPipeline:
         self.components = getattr(pipeline, "components", None)
         
         self.transformer = getattr(pipeline, "transformer", None)
+
+        self.is_kontext = use_kontext
         
         if wrap_scheduler and hasattr(pipeline, 'scheduler') and pipeline.scheduler is not None:
             if not isinstance(pipeline.scheduler, BaseAsyncScheduler):
@@ -262,9 +264,9 @@ class RequestScopedPipeline:
         if self.is_kontext:
             logger.debug(f"Kontext mode detected - calculating mu for resolution {height}x{width}")
         
-            image_seq_len = self._get_image_seq_len(height, width)
+            image_seq_len = _get_image_seq_len(height, width)
         
-            mu = self._calculate_shift(image_seq_len)
+            mu = _calculate_shift(image_seq_len)
         
             logger.debug(f"Calculated mu={mu:.4f} for image_seq_len={image_seq_len}")
         

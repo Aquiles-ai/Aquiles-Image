@@ -1,4 +1,3 @@
-from ray.rllib.algorithms.appo.appo_torch_policy import torch
 from diffusers.pipelines.stable_diffusion_3.pipeline_stable_diffusion_3 import StableDiffusion3Pipeline
 from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
 try:
@@ -7,11 +6,11 @@ except ImportError as e:
     print("Error import Flux2Pipeline")
     pass
 try:
-    from diffusers.pipelines.z_image import ZImagePipeline
+    from diffusers.pipelines.z_image.pipeline_z_image import ZImagePipeline
 except ImportError as e:
     print("Error import ZImagePipeline")
     pass
-from diffusers import AutoModel
+from diffusers.models.auto_model import AutoModel
 from transformers import Mistral3ForConditionalGeneration
 from diffusers.pipelines.flux.pipeline_flux_kontext import FluxKontextPipeline
 import torch
