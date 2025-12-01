@@ -23,12 +23,21 @@ class ImageModel(str, Enum):
     FLUX_1_KONTEXT_DEV = 'black-forest-labs/FLUX.1-Kontext-dev'
     FLUX_1_KREA_DEV = 'black-forest-labs/FLUX.1-Krea-dev'
 
+    #FLUX2
     FLUX_2_4BNB = 'diffusers/FLUX.2-dev-bnb-4bit'
     FLUX_2 = 'black-forest-labs/FLUX.2-dev'
+    
+    #Z-Image-Turbo
+    ZIMAGETURBO = 'Tongyi-MAI/Z-Image-Turbo'
 
 class VideoModels(str, Enum):
     """I plan to have all of these models optimized for the Aquiles-Image runtime"""
-    WAN2_2_5B = 'Wan-AI/Wan2.2-TI2V-5B-Diffusers'
+    # Wan
+    WAN2_2_DISTILL = 'lightx2v/Wan2.2-Distill-Models'
+    WAN2_2_LI = 'lightx2v/Wan2.2-Lightning'
+    # HunyuanVideo-1.5
+    HY1_5_D = 'lightx2v/Hy1.5-Distill-Models'
+    HY1_5_Q = 'lightx2v/Hy1.5-Quantized-Models'
 
 class ResponseFormat(str, Enum):
     URL = "url"
