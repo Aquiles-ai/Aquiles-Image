@@ -28,7 +28,7 @@ class ImageModel(str, Enum):
     FLUX_2 = 'black-forest-labs/FLUX.2-dev'
     
     #Z-Image-Turbo
-    ZIMAGETURBO = 'Tongyi-MAI/Z-Image-Turbo'
+    Z_IMAGE_TURBO = 'Tongyi-MAI/Z-Image-Turbo'
 
 class VideoModels(str, Enum):
     """I plan to have all of these models optimized for the Aquiles-Image runtime"""

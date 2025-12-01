@@ -345,7 +345,7 @@ class ModelPipelineInit:
         ]
 
         self.z_image = [
-            self.models.ZIMAGETURBO
+            self.models.Z_IMAGE_TURBO
         ]
 
         self.flux2 = [
