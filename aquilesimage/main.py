@@ -382,9 +382,6 @@ async def create_image_edit(
     if app.state.active_inferences >= max_concurrent_infer:
         raise HTTPException(429)
 
-    if(model == app.state.model):
-        raise HTTPException(503, f"Model not loaded")
-
     def make_generator():
         g = torch.Generator(device=initializer.device)
         return g.manual_seed(random.randint(0, 10_000_000))
@@ -451,8 +448,8 @@ async def create_image_edit(
             logger.info(f"FluxKontext inference - guidance_scale: {gd}")
             return req_pipe.generate(
                 image=image_to_use,
-                height=h,
-                width=w,
+                height=height,
+                width=width,
                 prompt=prompt,
                 num_inference_steps=steps if steps is not None else 30,
                 guidance_scale=gd,

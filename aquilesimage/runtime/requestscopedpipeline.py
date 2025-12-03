@@ -63,6 +63,8 @@ class RequestScopedPipeline:
         self.transformer = getattr(pipeline, "transformer", None)
 
         self.is_kontext = use_kontext
+
+        logger.info(f"is_kontext={self.is_kontext}")
         
         if wrap_scheduler and hasattr(pipeline, 'scheduler') and pipeline.scheduler is not None:
             if not isinstance(pipeline.scheduler, BaseAsyncScheduler):
@@ -109,7 +111,7 @@ class RequestScopedPipeline:
                 **clone_kwargs
             )
         except Exception as e:
-            logger.debug(f"clone_for_request failed: {e}; trying shallow copy fallback")
+            logger.info(f"clone_for_request failed: {e}; trying shallow copy fallback")
             try:
                 if hasattr(wrapped_scheduler, 'scheduler'):
                     try:
@@ -167,7 +169,7 @@ class RequestScopedPipeline:
                             candidates.append(name)
                             seen.add(name)
                         else:
-                            logger.debug(f"Ignoring large tensor attr '{name}', numel={val.numel()}")
+                            logger.info(f"Ignoring large tensor attr '{name}', numel={val.numel()}")
                 except Exception:
                     continue
 
@@ -175,7 +177,7 @@ class RequestScopedPipeline:
                 break
 
         self._auto_detected_attrs = candidates
-        logger.debug(f"Autodetected mutable attrs to clone: {self._auto_detected_attrs}")
+        logger.info(f"Autodetected mutable attrs to clone: {self._auto_detected_attrs}")
         return self._auto_detected_attrs
 
     def _is_readonly_property(self, base_obj, attr_name: str) -> bool:
@@ -198,18 +200,18 @@ class RequestScopedPipeline:
 
         for attr in attrs_to_clone:
             if attr in EXCLUDE_ATTRS:
-                logger.debug(f"Skipping excluded attr '{attr}'")
+                logger.info(f"Skipping excluded attr '{attr}'")
                 continue
             if not hasattr(base, attr):
                 continue
             if self._is_readonly_property(base, attr):
-                logger.debug(f"Skipping read-only property '{attr}'")
+                logger.info(f"Skipping read-only property '{attr}'")
                 continue
 
             try:
                 val = getattr(base, attr)
             except Exception as e:
-                logger.debug(f"Could not getattr('{attr}') on base pipeline: {e}")
+                logger.info(f"Could not getattr('{attr}') on base pipeline: {e}")
                 continue
 
             try:
@@ -233,10 +235,10 @@ class RequestScopedPipeline:
                         except Exception:
                             setattr(local, attr, val)
             except (AttributeError, TypeError) as e:
-                logger.debug(f"Skipping cloning attribute '{attr}' because it is not settable: {e}")
+                logger.info(f"Skipping cloning attribute '{attr}' because it is not settable: {e}")
                 continue
             except Exception as e:
-                logger.debug(f"Unexpected error cloning attribute '{attr}': {e}")
+                logger.info(f"Unexpected error cloning attribute '{attr}': {e}")
                 continue
 
     def _is_tokenizer_component(self, component) -> bool:
@@ -268,13 +270,7 @@ class RequestScopedPipeline:
         
             mu = _calculate_shift(image_seq_len)
 
-
-        
-            logger.debug(f"Calculated mu={mu:.4f} for image_seq_len={image_seq_len}")
-        
-            kwargs['mu'] = mu
-        
-            local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device, use_dynamic_shifting=False, mu=mu)
+            local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device, use_dynamic_shifting=True, mu=mu)
         elif self.use_flux:
             local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device, use_dynamic_shifting=False)
         else:
@@ -293,11 +289,15 @@ class RequestScopedPipeline:
             if hasattr(local_pipe, "image_processor") and local_pipe.image_processor is not None and not isinstance(local_pipe.image_processor, ThreadSafeImageProcessorWrapper):
                 local_pipe.image_processor = ThreadSafeImageProcessorWrapper(local_pipe.image_processor, self._image_lock)
         except Exception as e:
-            logger.debug(f"Could not wrap vae/image_processor: {e}")
+            logger.info(f"Could not wrap vae/image_processor: {e}")
 
         if local_scheduler is not None:
             try:
-                scheduler_kwargs = {k: v for k, v in kwargs.items() if k in ['timesteps', 'sigmas', 'mu']}
+                if self.is_kontext:
+                    scheduler_kwargs = {k: v for k, v in kwargs.items() if k in ['timesteps', 'sigmas', 'mu']}
+                    scheduler_kwargs['use_dynamic_shifting'] = True
+                else:
+                    scheduler_kwargs = {k: v for k, v in kwargs.items() if k in ['timesteps', 'sigmas']}
             
                 timesteps, num_steps, configured_scheduler = async_retrieve_timesteps(
                     local_scheduler.scheduler,
@@ -339,7 +339,7 @@ class RequestScopedPipeline:
                                 local_pipe.components[key] = wrapped_tokenizer
 
             except Exception as e:
-                logger.debug(f"Tokenizer wrapping step encountered an error: {e}")
+                logger.info(f"Tokenizer wrapping step encountered an error: {e}")
 
         result = None
         cm = getattr(local_pipe, "model_cpu_offload_context", None)
@@ -347,7 +347,7 @@ class RequestScopedPipeline:
         try:
 
             if self.is_kontext:
-                logger.debug(f"Calling Kontext pipeline with mu={kwargs.get('mu')}")
+                logger.info(f"Calling Kontext pipeline with mu={kwargs.get('mu')}")
 
             kwargs.pop('mu', None)
         
@@ -360,7 +360,7 @@ class RequestScopedPipeline:
                         with cm:
                             result = local_pipe(*args, num_inference_steps=num_inference_steps, **kwargs)
                     except Exception as e:
-                        logger.debug(f"model_cpu_offload_context usage failed: {e}. Proceeding without it.")
+                        logger.info(f"model_cpu_offload_context usage failed: {e}. Proceeding without it.")
                         result = local_pipe(*args, num_inference_steps=num_inference_steps, **kwargs)
             else:
                 result = local_pipe(*args, num_inference_steps=num_inference_steps, **kwargs)
@@ -377,4 +377,4 @@ class RequestScopedPipeline:
                     else:
                         setattr(local_pipe, name, tok)
             except Exception as e:
-                logger.debug(f"Error restoring original tokenizers: {e}")
+                logger.info(f"Error restoring original tokenizers: {e}")

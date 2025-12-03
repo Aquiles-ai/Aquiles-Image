@@ -19,7 +19,8 @@ import os
 import logging
 from aquilesimage.models import ImageModel
 from aquilesimage.utils import setup_colored_logger
-from diffusers import AutoencoderKL, FlowMatchEulerDiscreteScheduler
+from diffusers.schedulers.scheduling_flow_match_euler_discrete import FlowMatchEulerDiscreteScheduler
+from diffusers.models.autoencoders.autoencoder_kl import AutoencoderKL
 
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
@@ -269,13 +270,11 @@ class PipelineZImage:
             logger_p.debug("Loading CUDA")
             self.device = "cuda"
             self.load_compo()
-            self.pipeline = ZImagePipeline.from_pretrained(
+            self.pipeline = ZImagePipeline(
                 scheduler=None,
                 vae=self.vae,
                 text_encoder=self.text_encoder, 
                 tokenizer=self.tokenizer,
-                torch_dtype=torch.bfloat16,
-                low_cpu_mem_usage=False,
                 transformer=None
             )
             
@@ -285,8 +284,7 @@ class PipelineZImage:
             self.enable_flash_attn()
             self.load_scheduler()
 
-            if(self.compile_dit()):
-                self._warmup()
+            self._warmup()
 
     def enable_flash_attn(self):
         try:
@@ -301,15 +299,6 @@ class PipelineZImage:
                 return True
             except Exception as e3:
                 logger_p.error(f"X Z-Image-Turbo - FlashAttention 3.0 could not be enabled: {str(e3)}")
-            return False
-
-    def compile_dit(self):
-        try:
-            self.pipeline.transformer = torch.compile(self.pipeline.transformer, mode="max-autotune-no-cudagraphs", fullgraph=False)
-            logger_p.info("The DiT compilation is complete")
-            return True
-        except Exception as e:
-            logger_p.error(f"Z-Image-Turbo - DiT could not be compiled: {str(e)}")
             return False
 
     def _warmup(self):
