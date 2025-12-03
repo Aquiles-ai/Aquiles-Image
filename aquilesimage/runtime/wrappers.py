@@ -40,7 +40,6 @@ class ThreadSafeVAEWrapper:
 
     def __getattr__(self, name):
         attr = getattr(self._vae, name)
-        # métodos que queremos proteger
         if name in {"decode", "encode", "forward"} and callable(attr):
             def wrapped(*args, **kwargs):
                 with self._lock:

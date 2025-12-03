@@ -10,8 +10,8 @@ from fastapi import FastAPI, UploadFile, File, Request, HTTPException, Depends, 
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
-from aquilesimage.models import CreateImageRequest, ImagesResponse, Image, ImageModel, ListModelsResponse, Model, CreateVideoBody, VideoResource
-from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key, create_dev_mode_response, create_dev_mode_video_response
+from aquilesimage.models import CreateImageRequest, ImagesResponse, Image, ImageModel, ListModelsResponse, Model, CreateVideoBody, VideoResource, VideoModels, VideoListResource, DeletedVideoResource
+from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key, create_dev_mode_response, create_dev_mode_video_response, VideoTaskGeneration
 from aquilesimage.configs import load_config_app, load_config_cli
 import asyncio
 import logging
@@ -24,7 +24,7 @@ import gc
 import time
 import base64
 import io
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 
 DEV_MODE_IMAGE_URL = os.getenv("DEV_IMAGE_URL", "https://picsum.photos/1024/1024")
@@ -43,6 +43,7 @@ max_concurrent_infer: int | None = None
 load_model: bool | None = None
 steps: int | None = None
 model_name: str | None = None
+video_task_gen: VideoTaskGeneration | None = None
 
 def load_models():
     global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name
@@ -99,6 +100,8 @@ except Exception as e:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global video_task_gen
+
     app.state.total_requests = 0
     app.state.active_inferences = 0
     app.state.metrics_lock = asyncio.Lock()
@@ -119,6 +122,18 @@ async def lifespan(app: FastAPI):
             host="0.0.0.0",
             port=5500,
         )
+
+    video_models = [VideoModels.WAN2_2_DISTILL, VideoModels.WAN2_2_LI, VideoModels.HY1_5_D, VideoModels.HY1_5_Q]
+
+    video_task_gen = VideoTaskGeneration(
+        pipeline=Any,
+        max_concurrent_tasks=max_concurrent_infer or 3,
+        enable_queue=False
+    )
+
+    await video_task_gen.start()
+    if model_name in video_models:
+        logger.info("Video task manager started")
 
     async def metrics_loop():
             try:
@@ -161,6 +176,12 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 logger.warning(f"Error during pipeline shutdown: {e}")
 
+        if video_task_gen:
+            try:
+                await video_task_gen.stop()
+            except Exception as e:
+                logger.warning(f"Error during video_task_gen shutdown: {e}")
+
         logger.info("Lifespan shutdown complete")
 
 app = FastAPI(title="Aquiles-Image", lifespan=lifespan)
@@ -201,6 +222,9 @@ async def create_image(input_r: CreateImageRequest):
 
     if app.state.active_inferences >= max_concurrent_infer:
         raise HTTPException(429)
+
+    if(input_r.model == app.state.model):
+        raise HTTPException(503, f"Model not loaded")
     
     utils_app = app.state.utils_app
 
@@ -212,7 +236,7 @@ async def create_image(input_r: CreateImageRequest):
     model = input_r.model
 
     if model not in [e.value for e in ImageModel] or model not in app.state.model:
-        HTTPException(500, f"Model not available")
+        HTTPException(503, f"Model not available")
 
     n = input_r.n
     size = input_r.size
@@ -357,6 +381,9 @@ async def create_image_edit(
 
     if app.state.active_inferences >= max_concurrent_infer:
         raise HTTPException(429)
+
+    if(model == app.state.model):
+        raise HTTPException(503, f"Model not loaded")
 
     def make_generator():
         g = torch.Generator(device=initializer.device)
@@ -531,7 +558,90 @@ async def videos(input_r: CreateVideoBody):
         )
         
         return response
-    pass
+    if app.state.model in [VideoModels.WAN2_2_DISTILL, VideoModels.WAN2_2_LI, VideoModels.HY1_5_D, VideoModels.HY1_5_Q]:
+        try:
+            video_resource = await video_task_gen.create_task(input_r)
+            return video_resource
+        except Exception as e:
+            logger.error(f"X Error creating video task: {e}")
+            raise HTTPException(status_code=503, detail=str(e))
+    else:
+        raise HTTPException(503, f"You are running the model: {app.state.model}. This model does not generate videos.")
+
+@app.get("/videos/{video_id}", response_model=VideoResource, dependencies=[Depends(verify_api_key)])
+async def get_video(video_id: str):    
+    if app.state.load_model is False:
+        return create_dev_mode_video_response(
+            model="sora-2",
+            prompt="Mock prompt",
+            status="completed",
+            progress=100
+        )
+    
+    if model_name in [VideoModels.WAN2_2_DISTILL, VideoModels.WAN2_2_LI, VideoModels.HY1_5_D, VideoModels.HY1_5_Q]:
+        video = await video_task_gen.get_task(video_id)
+        if not video:
+            raise HTTPException(status_code=404, detail="Video not found")
+        return video
+    else:
+        raise HTTPException(status_code=503, detail=f"You are running the model: {app.state.model}. This model does not generate videos.")
+
+@app.get("/videos", response_model=VideoListResource, dependencies=[Depends(verify_api_key)])
+async def list_videos(
+    limit: int = 20,
+    after: Optional[str] = None
+):
+    
+    if app.state.load_model is False:
+        mock_video = create_dev_mode_video_response(
+            model="sora-2",
+            prompt="Mock prompt",
+            status="completed",
+            progress=100
+        )
+        return VideoListResource(
+            data=[mock_video],
+            object="list",
+            has_more=False,
+            first_id=mock_video.id,
+            last_id=mock_video.id
+        )
+    
+    if model_name in [VideoModels.WAN2_2_DISTILL, VideoModels.WAN2_2_LI, VideoModels.HY1_5_D, VideoModels.HY1_5_Q]:
+        videos, has_more = await video_task_gen.list_tasks(limit, after)
+        return VideoListResource(
+            data=videos,
+            object="list",
+            has_more=has_more,
+            first_id=videos[0].id if videos else None,
+            last_id=videos[-1].id if videos else None
+        )
+    else:
+        raise HTTPException(status_code=503, detail=f"You are running the model: {app.state.model}. This model does not generate videos.")
+
+@app.delete("/videos/{video_id}", response_model=DeletedVideoResource, dependencies=[Depends(verify_api_key)])
+async def delete_video(video_id: str):    
+    if app.state.load_model is False:
+        return DeletedVideoResource(
+            id=video_id,
+            object="video.deleted",
+            deleted=True
+        )
+    
+    if model_name in [VideoModels.WAN2_2_DISTILL, VideoModels.WAN2_2_LI, VideoModels.HY1_5_D, VideoModels.HY1_5_Q]:
+        deleted = await video_task_gen.delete_task(video_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Video no encontrado")
+    
+        return DeletedVideoResource(
+            id=video_id,
+            object="video.deleted",
+            deleted=True
+        )
+    else:
+        raise HTTPException(status_code=503, detail=f"You are running the model: {app.state.model}. This model does not generate videos.")
+
+# TODO: /videos/{video_id}/content endpoint
 
 app.add_middleware(
     CORSMiddleware,
