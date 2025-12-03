@@ -267,12 +267,14 @@ class RequestScopedPipeline:
             image_seq_len = _get_image_seq_len(height, width)
         
             mu = _calculate_shift(image_seq_len)
+
+
         
             logger.debug(f"Calculated mu={mu:.4f} for image_seq_len={image_seq_len}")
         
             kwargs['mu'] = mu
         
-            local_scheduler = None
+            local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device, use_dynamic_shifting=False, mu=mu)
         elif self.use_flux:
             local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device, use_dynamic_shifting=False)
         else:
@@ -343,8 +345,11 @@ class RequestScopedPipeline:
         cm = getattr(local_pipe, "model_cpu_offload_context", None)
     
         try:
+
             if self.is_kontext:
                 logger.debug(f"Calling Kontext pipeline with mu={kwargs.get('mu')}")
+
+            kwargs.pop('mu', None)
         
             if callable(cm):
                 try:
