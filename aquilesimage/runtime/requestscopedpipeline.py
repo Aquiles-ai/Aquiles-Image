@@ -304,6 +304,7 @@ class RequestScopedPipeline:
                     num_inference_steps=num_inference_steps,
                     device=device,
                     return_scheduler=True,
+                    use_kontext=self.is_kontext,
                     **scheduler_kwargs
                 )
 

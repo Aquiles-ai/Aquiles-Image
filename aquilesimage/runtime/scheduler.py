@@ -58,6 +58,7 @@ def async_retrieve_timesteps(
     device: Optional[Union[str, torch.device]] = None,
     timesteps: Optional[List[int]] = None,
     sigmas: Optional[List[float]] = None,
+    use_kontext: bool = False,
     **kwargs,
 ):
     return_scheduler = bool(kwargs.pop("return_scheduler", False))
@@ -91,6 +92,9 @@ def async_retrieve_timesteps(
             return False
 
     mu = kwargs.pop('mu', None)
+
+    if use_kontext:
+        kwargs.pop('use_dynamic_shifting', None)
     
     if timesteps is not None:
         accepts_timesteps = _accepts("timesteps")
