@@ -45,7 +45,15 @@ https://github.com/user-attachments/assets/00e18988-0472-4171-8716-dc81b53dcafa
 
 https://github.com/user-attachments/assets/00d4235c-e49c-435e-a71a-72c36040a8d7
 
+## Editing an image with `black-forest-labs/FLUX.1-Kontext-dev`
 
+<div align="center">
+
+| Edit Script | Result |
+|-------------|--------|
+| <img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1764807968/Captura_de_pantalla_1991_as3v28.png" alt="Edit Script" width="500"/> | <img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1764807952/Captura_de_pantalla_1994_ffmko2.png" alt="Edit Result" width="500"/> |
+
+</div>
 
 ## ⚙️ Installation
 
