@@ -12,6 +12,7 @@ except ImportError as e:
     print("Error import ZImagePipeline")
     pass
 from diffusers.models.auto_model import AutoModel
+from diffusers.pipelines.auto_pipeline import AutoPipelineForText2Image
 from transformers import Mistral3ForConditionalGeneration, AutoModelForCausalLM, AutoTokenizer
 from diffusers.pipelines.flux.pipeline_flux_kontext import FluxKontextPipeline
 import torch
@@ -31,7 +32,6 @@ Maybe this will mutate with the changes implemented in diffusers
 
 class PipelineSD3:
     def __init__(self, model_path: str | None = None):
-        from diffusers.pipelines.stable_diffusion_3.pipeline_stable_diffusion_3 import StableDiffusion3Pipeline
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: StableDiffusion3Pipeline | None = None
         self.device: str | None = None
@@ -57,7 +57,7 @@ class PipelineSD3:
 
         if torch.cuda.is_available():
             model_path = self.model_path or "stabilityai/stable-diffusion-3.5-large"
-            logger_p.debug("Loading CUDA")
+            logger_p.info("Loading CUDA")
             self.device = "cuda"
             self.pipeline = StableDiffusion3Pipeline.from_pretrained(
                 model_path,
@@ -79,7 +79,7 @@ class PipelineSD3:
 
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "stabilityai/stable-diffusion-3.5-medium"
-            logger_p.debug("Loading MPS for Mac M Series")
+            logger_p.info("Loading MPS for Mac M Series")
             self.device = "mps"
             self.pipeline = StableDiffusion3Pipeline.from_pretrained(
                 model_path,
@@ -89,7 +89,6 @@ class PipelineSD3:
 
 class PipelineFlux:
     def __init__(self, model_path: str | None = None, low_vram: bool = False):
-        from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: FluxPipeline | None = None
         self.device: str | None = None
@@ -98,7 +97,7 @@ class PipelineFlux:
     def start(self):
         if torch.cuda.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
-            logger_p.debug("Loading CUDA")
+            logger_p.info("Loading CUDA")
             self.device = "cuda"
 
             self.pipeline = FluxPipeline.from_pretrained(
@@ -113,7 +112,7 @@ class PipelineFlux:
                 
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
-            logger_p.debug("Loading MPS for Mac M Series")
+            logger_p.info("Loading MPS for Mac M Series")
             self.device = "mps"
             
         else:
@@ -122,7 +121,6 @@ class PipelineFlux:
 
 class PipelineFluxKontext:
     def __init__(self, model_path: str | None = None, low_vram: bool = False):
-        from diffusers.pipelines.flux.pipeline_flux_kontext import FluxKontextPipeline
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: FluxKontextPipeline | None = None
         self.device: str | None = None
@@ -131,7 +129,7 @@ class PipelineFluxKontext:
     def start(self):
         if torch.cuda.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-Kontext-dev"
-            logger_p.debug("Loading CUDA")
+            logger_p.info("Loading CUDA")
             self.device = "cuda" 
             self.pipeline = FluxKontextPipeline.from_pretrained(
                 model_path,
@@ -143,38 +141,7 @@ class PipelineFluxKontext:
                 pass
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-Kontext-dev"
-            logger_p.debug("Loading MPS for Mac M Series")
-            self.device = "mps"
-            self.pipeline = FluxKontextPipeline.from_pretrained(
-                model_path,
-                torch_dtype=torch.float16,
-            ).to(device=self.device)
-        else:
-            raise Exception("No CUDA or MPS device available")
-
-class PipelineFluxKontextMask:
-    def __init__(self, model_path: str | None = None, low_vram: bool = False):
-        self.model_path = model_path or os.getenv("MODEL_PATH")
-        self.pipeline: FluxKontextPipeline | None = None
-        self.device: str | None = None
-        self.low_vram = low_vram
-
-    def start(self):
-        if torch.cuda.is_available():
-            model_path = self.model_path or "black-forest-labs/FLUX.1-Kontext-dev"
-            logger_p.debug("Loading CUDA")
-            self.device = "cuda" 
-            self.pipeline = FluxKontextPipeline.from_pretrained(
-                model_path,
-                torch_dtype=torch.float16,
-            ).to(device=self.device)
-            if self.low_vram:
-                self.pipeline.enable_model_cpu_offload()
-            else:
-                pass
-        elif torch.backends.mps.is_available():
-            model_path = self.model_path or "black-forest-labs/FLUX.1-Kontext-dev"
-            logger_p.debug("Loading MPS for Mac M Series")
+            logger_p.info("Loading MPS for Mac M Series")
             self.device = "mps"
             self.pipeline = FluxKontextPipeline.from_pretrained(
                 model_path,
@@ -184,7 +151,7 @@ class PipelineFluxKontextMask:
             raise Exception("No CUDA or MPS device available")
 
 class PipelineFlux2:
-    def __init__(self, model_path: str | None = None, low_vram: bool = True):
+    def __init__(self, model_path: str | None = None, low_vram: bool = True, device_map: str | None = None):
 
         self.model_path = model_path or os.getenv("MODEL_PATH")
         try:
@@ -197,39 +164,42 @@ class PipelineFlux2:
         self.dit: AutoModel | None = None
         self.device: str | None = None
         self.low_vram = low_vram
+        self.device_map = device_map
 
     def start(self):
         if torch.cuda.is_available():
             if self.low_vram:
                 self.start_low_vram()
-        logger_p.debug(f"Loading FLUX.2 from {self.model_path}...")
+            elif self.low_vram and self.device_map == 'cuda':
+                self.start_low_vram_cuda()
+        logger_p.info(f"Loading FLUX.2 from {self.model_path}...")
         
         self.pipeline = Flux2Pipeline.from_pretrained(
             self.model_path, 
             torch_dtype=torch.bfloat16
         )
         
-        logger_p.debug("Enabling model CPU offload...")
+        logger_p.info("Enabling model CPU offload...")
         self.pipeline.enable_model_cpu_offload()
 
 
     def start_low_vram(self):
-        logger_p.debug("Loading quantized text encoder...")
+        logger_p.info("Loading quantized text encoder...")
         self.text_encoder = Mistral3ForConditionalGeneration.from_pretrained(
             self.model_path, subfolder="text_encoder", torch_dtype=torch.bfloat16, device_map="cpu"
         )
 
-        logger_p.debug("Loading quantized DiT transformer...")
+        logger_p.info("Loading quantized DiT transformer...")
         self.dit = AutoModel.from_pretrained(
             self.model_path, subfolder="transformer", torch_dtype=torch.bfloat16, device_map="cpu"
         )
 
-        logger_p.debug("Creating FLUX.2 pipeline...")
+        logger_p.info("Creating FLUX.2 pipeline...")
         self.pipeline = Flux2Pipeline.from_pretrained(
             self.model_path, text_encoder=self.text_encoder, transformer=self.dit, torch_dtype=torch.bfloat16
         )
 
-        logger_p.debug("Enabling model CPU offload...")
+        logger_p.info("Enabling model CPU offload...")
         self.pipeline.enable_model_cpu_offload()
 
     def enable_flash_attn(self):
@@ -237,13 +207,29 @@ class PipelineFlux2:
             self.pipeline.transformer.set_attention_backend("_flash_3")
             logger_p.info("FLUX.2 - Flash Attention 3 enabled")
         except Exception as e:
-            logger_p.debug(f"Flash Attention 3 not available: {str(e)}")
+            logger_p.info(f"Flash Attention 3 not available: {str(e)}")
             try:
                 self.pipeline.transformer.set_attention_backend("flash")
                 logger_p.info("FLUX.2 - Flash Attention 2 enabled")
             except Exception as e2:
-                logger_p.debug(f"Flash Attention 2 not available: {str(e2)}")
+                logger_p.info(f"Flash Attention 2 not available: {str(e2)}")
                 logger_p.info("FLUX.2 - Using default attention backend (SDPA)")
+
+    def start_low_vram_cuda(self):
+        logger_p.info("Loading quantized text encoder... (CUDA)")
+        self.text_encoder = Mistral3ForConditionalGeneration.from_pretrained(
+            self.model_path, subfolder="text_encoder", torch_dtype=torch.bfloat16, device_map="cuda"
+        )
+
+        logger_p.info("Loading quantized DiT transformer... (CUDA)")
+        self.dit = AutoModel.from_pretrained(
+            self.model_path, subfolder="transformer", torch_dtype=torch.bfloat16, device_map="cuda"
+        )
+
+        logger_p.info("Creating FLUX.2 pipeline... (CUDA)")
+        self.pipeline = Flux2Pipeline.from_pretrained(
+            self.model_path, text_encoder=self.text_encoder, transformer=self.dit, torch_dtype=torch.bfloat16
+        )
 
 
 class PipelineZImage:
@@ -267,7 +253,7 @@ class PipelineZImage:
     def start(self):
         if torch.cuda.is_available():
             model_path = self.model_path or "Tongyi-MAI/Z-Image-Turbo"
-            logger_p.debug("Loading CUDA")
+            logger_p.info("Loading CUDA")
             self.device = "cuda"
             self.load_compo()
             self.pipeline = ZImagePipeline(
@@ -365,13 +351,25 @@ class PipelineZImage:
         self.pipeline.scheduler = self.scheduler
 
 
+class AutoPipelineDiffusers:
+    def __init__(self, model_path: str | None = None):
+        self.pipeline: AutoPipelineForText2Image | None = None
+        self.model_name = model_path
+
+    def start(self):
+        if torch.cuda.is_available():
+            self.pipeline = AutoPipelineForText2Image.from_pretrained(self.model_name, device_map="cuda")
+            self.pipeline.to("cuda")
+
 class ModelPipelineInit:
-    def __init__(self, model: str, low_vram: bool = False):
+    def __init__(self, model: str, low_vram: bool = False, auto_pipeline: bool = False, device_map_flux2: str | None = None):
         self.model = model
         self.pipeline = None
         self.device = "cuda" if torch.cuda.is_available() else "mps"
         self.model_type = None
         self.low_vram = low_vram
+        self.auto_pipeline = auto_pipeline
+        self.device_map_flux2 = device_map_flux2
 
         self.models = ImageModel
 
@@ -415,13 +413,16 @@ class ModelPipelineInit:
             self.pipeline = PipelineZImage(self.model)
         elif self.model in self.flux2:
             if self.model == 'diffusers/FLUX.2-dev-bnb-4bit':
-                self.pipeline = PipelineFlux2(self.model, True)
+                self.pipeline = PipelineFlux2(self.model, True, self.device_map_flux2)
             else:
                 self.pipeline = PipelineFlux2(self.model, False)
         # Edition Models
         elif self.model in self.flux_kontext:
             self.pipeline = PipelineFluxKontext(self.model)
+        elif self.auto_pipeline:
+            logger_p.info(f"Loading model '{self.model}' with 'AutoPipelineDiffusers' - Experimental")
+            self.pipeline = AutoPipelineDiffusers(self.model)
         else:
-            raise ValueError(f"Unsupported model: {self.model}")
+            raise ValueError(f"Unsupported model or enable the '--auto-pipeline' option (Only the Text2Image models). Model: {self.model}")
 
         return self.pipeline

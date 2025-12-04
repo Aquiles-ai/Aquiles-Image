@@ -44,15 +44,19 @@ load_model: bool | None = None
 steps: int | None = None
 model_name: str | None = None
 video_task_gen: VideoTaskGeneration | None = None
+auto_pipeline: str | None = None
+device_map_flux2: str | None = None
 
 def load_models():
-    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name
+    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2
 
     logger.info("Loading configuration...")
     
     config = load_config_cli() 
     model_name = config.get("model")
     load_model = config.get("load_model")
+    auto_pipeline = config.get("auto_pipeline")
+    device_map_flux2 = config.get("device_map")
 
     flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2]
 
@@ -75,14 +79,20 @@ def load_models():
         try:
             from aquilesimage.runtime import RequestScopedPipeline
             from aquilesimage.pipelines import ModelPipelineInit
-            initializer = ModelPipelineInit(model=model_name)
+            if auto_pipeline is True:
+                initializer = ModelPipelineInit(model=model_name, auto_pipeline=True)
+            elif device_map_flux2 is 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
+                initializer = ModelPipelineInit(model=model_name, device_map_flux2='cuda')
+            else:
+                initializer = ModelPipelineInit(model=model_name)
+
             model_pipeline = initializer.initialize_pipeline()
             model_pipeline.start()
         
             if model_name in flux_models:
                 request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
             elif model_name == ImageModel.FLUX_1_KONTEXT_DEV:
-                    request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_kontext=True)
+                request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_kontext=True)
             else:
                 request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
         

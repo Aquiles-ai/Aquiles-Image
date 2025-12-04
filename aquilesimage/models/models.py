@@ -226,6 +226,9 @@ class ConfigsServe(BaseModel):
     block_request: bool | None = Field(default=False, description="Block requests during the maximum concurrent inferences")
     load_model: bool | None = Field(default=True, description="Loading the model or not simply allows for faster development without having to load the model constantly.")
     steps_n: int | None = Field(default=None, description="Loading the model or not simply allows for faster development without having to load the model constantly.")
+    auto_pipeline: bool | None = Field(default=None, description="Load a model that is compatible with diffusers (Only the Text2Image models) but is not mentioned in the Aquiles-Image documentation.")
+    device_map: str | None = Field(default=None, description="device_map option in which to load the model (Only compatible with diffusers/FLUX.2-dev-bnb-4bit)")
+    type_model: str | None = Field(default=None, description="This is for video models. There are only 2 options: 'Images' and 'Videos'.")
 
 class Model(BaseModel):
     id: str = Field(..., description="Unique identifier of the model")
