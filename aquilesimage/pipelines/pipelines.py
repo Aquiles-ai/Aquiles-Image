@@ -359,7 +359,6 @@ class AutoPipelineDiffusers:
     def start(self):
         if torch.cuda.is_available():
             self.pipeline = AutoPipelineForText2Image.from_pretrained(self.model_name, device_map="cuda")
-            self.pipeline.to("cuda")
 
 class ModelPipelineInit:
     def __init__(self, model: str, low_vram: bool = False, auto_pipeline: bool = False, device_map_flux2: str | None = None):

@@ -81,7 +81,7 @@ def load_models():
             from aquilesimage.pipelines import ModelPipelineInit
             if auto_pipeline is True:
                 initializer = ModelPipelineInit(model=model_name, auto_pipeline=True)
-            elif device_map_flux2 is 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
+            elif device_map_flux2 == 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
                 initializer = ModelPipelineInit(model=model_name, device_map_flux2='cuda')
             else:
                 initializer = ModelPipelineInit(model=model_name)
