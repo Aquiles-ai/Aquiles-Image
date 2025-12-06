@@ -230,7 +230,7 @@ class RequestScopedPipeline:
                 "_class_name",              
                 "_diffusers_version",       
             }
-            logger.info("Usando estrategia de clonación segura para pipeline genérico")
+            logger.info("Using safe cloning strategy for generic pipeline")
         else:
             EXCLUDE_ATTRS = {"components"}
 
@@ -298,6 +298,47 @@ class RequestScopedPipeline:
     def _should_wrap_tokenizers(self) -> bool:
         return True
 
+    def _verify_pipeline_config(self, pipeline) -> bool:
+
+        if not (self._is_auto_pipeline):
+            return True
+    
+        try:
+            if not hasattr(pipeline, 'config'):
+                logger.warning("X Pipeline does not have 'config' attribute")
+                return False
+            
+            config = pipeline.config
+
+            if isinstance(config, dict) and not hasattr(config, '_internal_dict'):
+                logger.warning(f"X config is a simple dict, should be FrozenDict or ConfigMixin")
+                return False
+            
+            return True
+        except Exception as e:
+            logger.warning(f"X Error verifying pipeline config: {e}")
+            return False
+
+    def _restore_config_if_needed(self, local_pipe):
+        if not (self._is_auto_pipeline):
+            return
+    
+        if not self._verify_pipeline_config(local_pipe):
+            logger.warning("X Pipeline config corrupted after copy, attempting to restore...")
+            if hasattr(self._base, '_internal_dict'):
+                try:
+                    local_pipe._internal_dict = self._base._internal_dict
+                    logger.info("Config restored successfully")
+                except Exception as e:
+                    logger.warning(f"X Could not restore config: {e}")
+        
+            if hasattr(self._base, 'config') and hasattr(local_pipe, '_internal_dict'):
+                try:
+                    object.__setattr__(local_pipe, '_internal_dict', self._base._internal_dict)
+                    logger.info("Config restored via object.__setattr__")
+                except Exception as e:
+                    logger.warning(f"X Alternative config restore failed: {e}")
+
     def generate(self, *args, num_inference_steps: int = 50, device: Optional[str] = None, **kwargs):
         height = kwargs.get('height', 1024)
         width = kwargs.get('width', 1024)
@@ -329,6 +370,8 @@ class RequestScopedPipeline:
                 local_pipe.image_processor = ThreadSafeImageProcessorWrapper(local_pipe.image_processor, self._image_lock)
         except Exception as e:
             logger.info(f"Could not wrap vae/image_processor: {e}")
+
+        self._restore_config_if_needed(local_pipe)
 
         if local_scheduler is not None:
             try:
