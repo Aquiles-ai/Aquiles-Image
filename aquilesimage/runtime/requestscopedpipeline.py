@@ -48,6 +48,11 @@ class RequestScopedPipeline:
         use_kontext: bool = False,
     ):
         self._base = pipeline
+
+        self._is_auto_pipeline = 'AutoPipeline' in pipeline.__class__.__name__
+    
+        if self._is_auto_pipeline:
+            logger.info("AutoPipeline detected - limiting mutable attribute cloning")
         
         self.use_flux = use_flux
         if self.use_flux and hasattr(pipeline, 'scheduler') and pipeline.scheduler is not None:
@@ -196,7 +201,14 @@ class RequestScopedPipeline:
         attrs_to_clone = list(self._mutable_attrs)
         attrs_to_clone.extend(self._autodetect_mutables())
 
-        EXCLUDE_ATTRS = {"components",}
+        if self._is_auto_pipeline:
+            EXCLUDE_ATTRS = {
+                "components",
+                "config",           
+                "_internal_dict",      
+            }
+        else:
+            EXCLUDE_ATTRS = {"components",}
 
         for attr in attrs_to_clone:
             if attr in EXCLUDE_ATTRS:
