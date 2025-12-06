@@ -232,9 +232,6 @@ async def create_image(input_r: CreateImageRequest):
 
     if app.state.active_inferences >= max_concurrent_infer:
         raise HTTPException(429)
-
-    if(input_r.model == app.state.model):
-        raise HTTPException(503, f"Model not loaded")
     
     utils_app = app.state.utils_app
 
