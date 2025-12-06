@@ -5,10 +5,10 @@ from openai import OpenAI
 import requests
 import base64
 
-client = OpenAI(base_url="http://127.0.0.1:5500", api_key="__UNKNOWN__")
+client = OpenAI(base_url="https://f4k3r22--aquiles-image-server-serve.modal.run", api_key="dummy-api-key")
 
 result = client.images.generate(
-    model="black-forest-labs/FLUX.1-Krea-dev",
+    model="stabilityai/stable-diffusion-3.5-medium",
     prompt="a white siamese cat",
     size="1024x1024",
     response_format="b64_json"
