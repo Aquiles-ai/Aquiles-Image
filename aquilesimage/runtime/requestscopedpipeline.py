@@ -204,8 +204,11 @@ class RequestScopedPipeline:
         if self._is_auto_pipeline:
             EXCLUDE_ATTRS = {
                 "components",
-                "config",           
-                "_internal_dict",      
+                "config",                   
+                "_internal_dict",           
+                "model_index",             
+                "_execution_device",        
+                "_cached_hidden_states",    
             }
         else:
             EXCLUDE_ATTRS = {"components",}
