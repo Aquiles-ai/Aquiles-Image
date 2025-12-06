@@ -197,6 +197,23 @@ class RequestScopedPipeline:
             pass
         return False
 
+    def _is_frozen_dict_or_config(self, val) -> bool:
+        if val is None:
+            return False
+        class_name = val.__class__.__name__
+        if 'FrozenDict' in class_name or 'frozendict' in class_name.lower():
+            return True
+    
+        if hasattr(val, '_internal_dict'):
+            return True
+
+        if hasattr(val, '__class__') and hasattr(val.__class__, '__module__'):
+            module_name = val.__class__.__module__
+            if 'diffusers' in module_name and hasattr(val, 'to_dict'):
+                return True
+    
+        return False
+
     def _clone_mutable_attrs(self, base, local):
         attrs_to_clone = list(self._mutable_attrs)
         attrs_to_clone.extend(self._autodetect_mutables())
@@ -205,13 +222,17 @@ class RequestScopedPipeline:
             EXCLUDE_ATTRS = {
                 "components",
                 "config",                   
-                "_internal_dict",           
-                "model_index",             
+                "_internal_dict",            
+                "model_index",               
                 "_execution_device",        
-                "_cached_hidden_states",    
+                "_cached_hidden_states",     
+                "_name_or_path",             
+                "_class_name",              
+                "_diffusers_version",       
             }
+            logger.info("Usando estrategia de clonación segura para pipeline genérico")
         else:
-            EXCLUDE_ATTRS = {"components",}
+            EXCLUDE_ATTRS = {"components"}
 
         for attr in attrs_to_clone:
             if attr in EXCLUDE_ATTRS:
@@ -230,6 +251,11 @@ class RequestScopedPipeline:
                 continue
 
             try:
+                if self._is_frozen_dict_or_config(val):
+                    logger.info(f"Sharing FrozenDict/ConfigMixin object '{attr}' (type: {val.__class__.__name__})")
+                    setattr(local, attr, val)
+                    continue
+            
                 if isinstance(val, dict):
                     setattr(local, attr, dict(val))
                 elif isinstance(val, (list, tuple, set)):
@@ -237,12 +263,10 @@ class RequestScopedPipeline:
                 elif isinstance(val, bytearray):
                     setattr(local, attr, bytearray(val))
                 else:
-                    # small tensors or atomic values
                     if isinstance(val, torch.Tensor):
                         if val.numel() <= self._tensor_numel_threshold:
                             setattr(local, attr, val.clone())
                         else:
-                            # don't clone big tensors, keep reference
                             setattr(local, attr, val)
                     else:
                         try:
@@ -253,7 +277,7 @@ class RequestScopedPipeline:
                 logger.info(f"Skipping cloning attribute '{attr}' because it is not settable: {e}")
                 continue
             except Exception as e:
-                logger.info(f"Unexpected error cloning attribute '{attr}': {e}")
+                logger.info(f"X Unexpected error cloning attribute '{attr}': {e}")
                 continue
 
     def _is_tokenizer_component(self, component) -> bool:
