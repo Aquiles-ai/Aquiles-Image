@@ -96,6 +96,134 @@ aquiles-image serve --host "0.0.0.0" --port 5500 --model "stabilityai/stable-dif
 
 > ⚠️ **VRAM Requirements**: Most models require 24GB+ VRAM with an additional ~10GB free for processing.
 
+## 🧪 Experimental: AutoPipeline Support
+
+<div align="center">
+
+![Experimental](https://img.shields.io/badge/Status-Experimental-orange)
+![Diffusers](https://img.shields.io/badge/Requires-AutoPipelineForText2Image-blue)
+![Performance](https://img.shields.io/badge/Performance-Slower-yellow)
+
+</div>
+
+Aquiles-Image now supports running additional models through the experimental **AutoPipeline** feature. This allows you to use any model compatible with `AutoPipelineForText2Image` from Hugging Face's Diffusers library.
+
+### What is AutoPipeline?
+
+AutoPipeline automatically detects and loads compatible diffusion models without requiring manual configuration. While this provides greater flexibility, it comes with some trade-offs.
+
+### Supported Models
+
+Any model that can be loaded with `AutoPipelineForText2Image` without extra configurations, including:
+
+- `stable-diffusion-v1-5/stable-diffusion-v1-5`
+- `stabilityai/stable-diffusion-xl-base-1.0`
+- And many more from HuggingFace Hub
+
+### Usage
+
+```bash
+aquiles-image serve --host "0.0.0.0" --port 5500 \
+  --model "stabilityai/stable-diffusion-xl-base-1.0" \
+  --set-steps 30 \
+  --auto-pipeline
+```
+
+### Example with OpenAI Python Client
+
+```python
+from openai import OpenAI
+import base64
+
+client = OpenAI(base_url="http://127.0.0.1:5500", api_key="__UNKNOWN__")
+
+result = client.images.generate(
+    model="stabilityai/stable-diffusion-xl-base-1.0",
+    prompt="a beautiful sunset over mountains",
+    size="1024x1024"
+)
+
+print(f"Generated image: {result.data[0].url}")
+
+# Download the image
+image_bytes = base64.b64decode(result.data[0].b64_json)
+with open("output.png", "wb") as f:
+    f.write(image_bytes)
+```
+
+### More Examples
+
+**Using Stable Diffusion v1.5:**
+```bash
+aquiles-image serve --model "stable-diffusion-v1-5/stable-diffusion-v1-5" --set-steps 40 --auto-pipeline
+```
+
+**Using SDXL Base:**
+```bash
+aquiles-image serve --model "stabilityai/stable-diffusion-xl-base-1.0" --set-steps 30 --auto-pipeline
+```
+
+**With custom port and API key:**
+```bash
+aquiles-image serve \
+  --model "stabilityai/stable-diffusion-xl-base-1.0" \
+  --set-steps 30 \
+  --auto-pipeline \
+  --port 5500 \
+  --api-key "your-secret-key"
+```
+
+### ⚠️ Important Limitations
+
+| Limitation | Description |
+|------------|-------------|
+| 🐌 **Slower Inference** | AutoPipeline models may have longer inference times compared to optimized native implementations |
+| 🚫 **No LoRA Support** | LoRA adapters are not currently supported |
+| 🚫 **No Adapters** | Other adapter types (ControlNet, T2I-Adapter, etc.) are not supported |
+| 🧪 **Experimental** | This feature is in active development and may have stability issues |
+| 📦 **Limited Configs** | Only models that work out-of-the-box with default `AutoPipelineForText2Image` settings |
+
+
+### Troubleshooting
+
+If you encounter errors with AutoPipeline:
+
+1. **Check model compatibility**: Ensure the model supports `AutoPipelineForText2Image`
+   ```python
+   # Test locally first
+   from diffusers import AutoPipelineForText2Image
+   pipe = AutoPipelineForText2Image.from_pretrained("model-name")
+   ```
+
+2. **Verify VRAM**: Some models may require more VRAM than expected
+   - Check model card on Hugging Face for requirements
+   - Monitor GPU memory usage during inference
+
+3. **Use native implementations**: For supported models (FLUX, SD3, etc.), use the optimized native pipelines instead
+   ```bash
+   # Instead of --auto-pipeline, use native support 
+   aquiles-image serve --model "stabilityai/stable-diffusion-3.5-medium"
+   ```
+
+4. **Check logs**: Enable verbose logging to see detailed error messages
+   ```bash
+   # The server logs will show detailed error information
+   # Look for errors starting with "X" emoji
+   ```
+
+> 💡 **Tip**: If a model is frequently used in your workflow, consider requesting native support by opening an issue on our [GitHub repository](https://github.com/Aquiles-ai/Aquiles-Image).
+
+### Reporting Issues
+
+When reporting AutoPipeline issues, please include:
+
+- Model name and HuggingFace URL
+- Full error message and logs
+- GPU model and VRAM amount
+- Aquiles-Image version (`pip show aquiles-image`)
+
+Create an issue at: https://github.com/Aquiles-ai/Aquiles-Image/issues
+
 ## 💻 Start your Aquiles-Image server in dev mode without loading models
 
 Dev mode allows you to start the server without loading any AI models, ideal for rapid development, integration testing, or endpoint validation without requiring GPU or heavy computational resources.
