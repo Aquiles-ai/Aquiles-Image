@@ -291,6 +291,6 @@ print(f"Image downloaded successfully\n")
 
 *Built with ❤️ for the AI community*
 
-**[⭐ Star this project](https://github.com/Aquiles-ai/Aquiles-Image) • [📖 Documentation](#) • [💬 Community](#)**
+**[⭐ Star this project](https://github.com/Aquiles-ai/Aquiles-Image) • [📖 Documentation](https://aquiles-ai.github.io/aquiles-image-docs/) • [💬 Community](#)**
 
 </div>
