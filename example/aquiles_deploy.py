@@ -56,7 +56,7 @@ def serve():
         str(AQUILES_PORT),
         "--model",
         MODEL_NAME,
-        "--set-steps", "30",
+        "--set-steps", "40",
         "--api-key", "dummy-api-key",
         "--device-map", "cuda",
     ]
