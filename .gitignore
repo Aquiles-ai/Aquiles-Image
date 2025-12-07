@@ -3,3 +3,5 @@ aquiles_image.egg-info
 venv
 dist
 __pycache__
+output.png
+vercel.jpeg
