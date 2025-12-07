@@ -172,16 +172,16 @@ class PipelineFlux2:
                 self.start_low_vram_cuda()
             elif self.low_vram:
                 self.start_low_vram()
-                
-        logger_p.info(f"Loading FLUX.2 from {self.model_path}...")
+            else:  
+                logger_p.info(f"Loading FLUX.2 from {self.model_path}...")
         
-        self.pipeline = Flux2Pipeline.from_pretrained(
-            self.model_path, 
-            torch_dtype=torch.bfloat16
-        )
+                self.pipeline = Flux2Pipeline.from_pretrained(
+                    self.model_path, 
+                    torch_dtype=torch.bfloat16
+                )
         
-        logger_p.info("Enabling model CPU offload...")
-        self.pipeline.enable_model_cpu_offload()
+                logger_p.info("Enabling model CPU offload...")
+                self.pipeline.enable_model_cpu_offload()
 
 
     def start_low_vram(self):
@@ -219,17 +219,17 @@ class PipelineFlux2:
     def start_low_vram_cuda(self):
         logger_p.info("Loading quantized text encoder... (CUDA)")
         self.text_encoder = Mistral3ForConditionalGeneration.from_pretrained(
-            self.model_path, subfolder="text_encoder", torch_dtype=torch.bfloat16, device_map="cuda"
+            self.model_path, subfolder="text_encoder", dtype=torch.bfloat16, device_map="cuda"
         )
 
         logger_p.info("Loading quantized DiT transformer... (CUDA)")
         self.dit = AutoModel.from_pretrained(
-            self.model_path, subfolder="transformer", torch_dtype=torch.bfloat16, device_map="cuda"
+            self.model_path, subfolder="transformer", dtype=torch.bfloat16, device_map="cuda"
         )
 
         logger_p.info("Creating FLUX.2 pipeline... (CUDA)")
         self.pipeline = Flux2Pipeline.from_pretrained(
-            self.model_path, text_encoder=self.text_encoder, transformer=self.dit, torch_dtype=torch.bfloat16
+            self.model_path, text_encoder=self.text_encoder, transformer=self.dit, dtype=torch.bfloat16
         )
 
 
