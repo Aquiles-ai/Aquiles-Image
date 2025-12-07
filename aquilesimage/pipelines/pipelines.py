@@ -172,15 +172,16 @@ class PipelineFlux2:
                 self.start_low_vram_cuda()
             elif self.low_vram:
                 self.start_low_vram()
-        logger_p.info(f"Loading FLUX.2 from {self.model_path}...")
+            else:
+                logger_p.info(f"Loading FLUX.2 from {self.model_path}...")
         
-        self.pipeline = Flux2Pipeline.from_pretrained(
-            self.model_path, 
-            torch_dtype=torch.bfloat16
-        )
+                self.pipeline = Flux2Pipeline.from_pretrained(
+                    self.model_path, 
+                    torch_dtype=torch.bfloat16
+                )
         
-        logger_p.info("Enabling model CPU offload...")
-        self.pipeline.enable_model_cpu_offload()
+                logger_p.info("Enabling model CPU offload...")
+                self.pipeline.enable_model_cpu_offload()
 
 
     def start_low_vram(self):

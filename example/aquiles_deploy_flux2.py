@@ -14,13 +14,14 @@ aquiles_image = (
         "git+https://github.com/huggingface/diffusers.git",
         "transformers==4.57.3",
         "tokenizers==0.22.1",
-        "aquiles-image",
+        "bitsandbytes==0.48.2",
+        "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1",
           "HF_TOKEN": os.getenv("Hugging_face_token_for_deploy", "")})  
 )
 
-MODEL_NAME = "stabilityai/stable-diffusion-3.5-medium"
+MODEL_NAME = "diffusers/FLUX.2-dev-bnb-4bit"
 
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
 aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=True)
@@ -33,8 +34,8 @@ AQUILES_PORT = 5500
 
 @app.function(
     image=aquiles_image,
-    gpu=f"A100:{N_GPU}",
-    scaledown_window=15 * MINUTES, 
+    gpu=f"H100:{N_GPU}",
+    scaledown_window=6 * MINUTES, 
     timeout=10 * MINUTES,
     volumes={
         "/root/.cache/huggingface": hf_cache_vol,
@@ -55,8 +56,9 @@ def serve():
         str(AQUILES_PORT),
         "--model",
         MODEL_NAME,
-        "--set-steps", "30",
+        "--set-steps", "35",
         "--api-key", "dummy-api-key",
+        "--device-map", "cuda",
     ]
 
     print(f"Starting Aquiles-Image with the model:{MODEL_NAME}")
