@@ -224,7 +224,7 @@ class PipelineFlux2:
 
         logger_p.info("Loading quantized DiT transformer... (CUDA)")
         self.dit = AutoModel.from_pretrained(
-            self.model_path, subfolder="transformer", dtype=torch.bfloat16, device_map="cuda"
+            self.model_path, subfolder="transformer", device_map="cuda"
         )
 
         logger_p.info("Creating FLUX.2 pipeline... (CUDA)")
