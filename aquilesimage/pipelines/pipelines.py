@@ -230,7 +230,7 @@ class PipelineFlux2:
         logger_p.info("Creating FLUX.2 pipeline... (CUDA)")
         self.pipeline = Flux2Pipeline.from_pretrained(
             self.model_path, text_encoder=self.text_encoder, transformer=self.dit, dtype=torch.bfloat16
-        )
+        ).to(device="cuda")
 
 
 class PipelineZImage:
