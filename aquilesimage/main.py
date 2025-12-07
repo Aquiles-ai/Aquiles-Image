@@ -396,7 +396,7 @@ async def create_image_edit(
     req_pipe = app.state.REQUEST_PIPE
     utils_app = app.state.utils_app
 
-    if model not in [ImageModel.FLUX_1_KONTEXT_DEV] or model not in app.state.model:
+    if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB] or model not in app.state.model:
         raise HTTPException(500, f"Model not available")
 
     try:
@@ -434,7 +434,7 @@ async def create_image_edit(
 
     image_to_use = image_pil  
     
-    if model == ImageModel.FLUX_1_KONTEXT_DEV:
+    if model in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB]:
         logger.info(f"Flux Kontext: Using original image without resizing: {image_pil.size}")
         image_to_use = image_pil
 
@@ -443,7 +443,7 @@ async def create_image_edit(
     elif input_fidelity == "low":
         gd = 2.0
     else:
-        if model == ImageModel.FLUX_1_KONTEXT_DEV:
+        if model in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB]:
             gd = 2.5 
         else:
             gd = 7.5  
@@ -451,7 +451,7 @@ async def create_image_edit(
     def infer():
         gen = make_generator()
         
-        if model == ImageModel.FLUX_1_KONTEXT_DEV:
+        if model in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB]:
             logger.info(f"FluxKontext inference - guidance_scale: {gd}")
             return req_pipe.generate(
                 image=image_to_use,

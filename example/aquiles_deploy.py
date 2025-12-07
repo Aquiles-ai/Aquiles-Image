@@ -34,7 +34,7 @@ AQUILES_PORT = 5500
 
 @app.function(
     image=aquiles_image,
-    gpu=f"A100:{N_GPU}",
+    gpu=f"H100:{N_GPU}",
     scaledown_window=6 * MINUTES, 
     timeout=10 * MINUTES,
     volumes={
