@@ -8,7 +8,7 @@ import base64
 client = OpenAI(base_url="https://f4k3r22--aquiles-image-server-serve.modal.run", api_key="dummy-api-key")
 
 result = client.images.generate(
-    model="stabilityai/stable-diffusion-3.5-medium",
+    model="diffusers/FLUX.2-dev-bnb-4bit",
     prompt="a white siamese cat",
     size="1024x1024",
     response_format="b64_json"

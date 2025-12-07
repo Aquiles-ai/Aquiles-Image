@@ -168,10 +168,10 @@ class PipelineFlux2:
 
     def start(self):
         if torch.cuda.is_available():
-            if self.low_vram:
-                self.start_low_vram()
-            elif self.low_vram and self.device_map == 'cuda':
+            if self.low_vram and self.device_map == 'cuda':
                 self.start_low_vram_cuda()
+            elif self.low_vram:
+                self.start_low_vram()
         logger_p.info(f"Loading FLUX.2 from {self.model_path}...")
         
         self.pipeline = Flux2Pipeline.from_pretrained(
