@@ -91,10 +91,10 @@ aquiles-image serve --host "0.0.0.0" --port 5500 --model "stabilityai/stable-dif
 | [`black-forest-labs/FLUX.2-dev`](https://huggingface.co/black-forest-labs/FLUX.2-dev) | `/images/generations` |
 | [`Tongyi-MAI/Z-Image-Turbo`](https://huggingface.co/Tongyi-MAI/Z-Image-Turbo) | `/images/generations` |
 | [`black-forest-labs/FLUX.1-Kontext-dev`](https://huggingface.co/black-forest-labs/FLUX.1-Kontext-dev) | `/images/edits` |
-
+| [`diffusers/FLUX.2-dev-bnb-4bit`](https://huggingface.co/diffusers/FLUX.2-dev-bnb-4bit) | `/images/edits` |
 </div>
 
-> ⚠️ **VRAM Requirements**: Most models require 24GB+ VRAM with an additional ~10GB free for processing.
+> ⚠️ **VRAM Requirements**: Most models require 24GB+ VRAM with an additional ~10GB free for processing. And for some reason, the `diffusers/FLUX.2-dev-bnb-4bit` model in Img2Img tasks tends to have high inference times, even when it is running entirely on CUDA. 
 
 ## 🧪 Experimental: AutoPipeline Support
 
