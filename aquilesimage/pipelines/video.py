@@ -1,6 +1,6 @@
 import torch
 from lightx2v import LightX2VPipeline
-from aquilesimage.utils.utils_video import get_path_file_video_model, file_exists, download_base_wan_2_2, get_encoder_path
+from aquilesimage.utils.utils_video import get_path_file_video_model, file_exists, download_base_wan_2_2, get_encoder_path, get_tokenizer_path
 
 class Wan2_2_Pipeline:
     def __init__(self, h: int = 720, w: int = 1280, frames: int = 81):
@@ -26,7 +26,7 @@ class Wan2_2_Pipeline:
             self.pipeline.out_dim = 1024
             self.pipeline.t5_original_ckpt = get_encoder_path()
             self.pipeline.text_len = 512
-            self.pipeline.tokenizer_path = "google/umt5-xxl"
+            self.pipeline.tokenizer_path = get_tokenizer_path()
 
             self.pipeline.create_generator(
                 attn_mode="flash_attn2",
