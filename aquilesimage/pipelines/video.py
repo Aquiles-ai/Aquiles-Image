@@ -25,7 +25,7 @@ class Wan2_2_Pipeline:
 
             self.pipeline.create_generator(
                 attn_mode="flash_attn2",
-                infer_steps=40,
+                infer_steps=20,
                 num_frames=self.frames,
                 height=self.h,
                 width=self.w,
