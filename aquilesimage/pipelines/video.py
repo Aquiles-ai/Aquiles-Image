@@ -25,6 +25,7 @@ class Wan2_2_Pipeline:
             self.pipeline.num_layers = 30  
             self.pipeline.out_dim = 1024
             self.pipeline.t5_original_ckpt = get_encoder_path()
+            self.pipeline.text_len = 512
 
             self.pipeline.create_generator(
                 attn_mode="flash_attn2",
