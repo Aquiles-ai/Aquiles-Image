@@ -1,6 +1,8 @@
 from platformdirs import user_data_dir
 import os
 from huggingface_hub import hf_hub_download
+from typing import Literal, Union
+from pathlib import Path
 
 ## Constant
 
@@ -10,6 +12,8 @@ os.makedirs(AQUILES_VIDEO_BASE_PATH, exist_ok=True)
 
 BASE_WAN_2_2 = "lightx2v/Wan2.2-Official-Models"
 
+BASE_WAN_2_2_FILE = "wan2.2_ti2v_lightx2v.safetensors"
+
 REPO_ID_WAN_2_2_DISTILL = "lightx2v/Wan2.2-Distill-Models"
 
 REPO_ID_WAN_2_2_LI = "lightx2v/Wan2.2-Lightning"
@@ -18,4 +22,28 @@ BASE_HY_1_5 = "tencent/HunyuanVideo-1.5"
 
 def download_base_wan_2_2():
     print(f"PATH: {AQUILES_VIDEO_BASE_PATH}/wan_2_2")
-    hf_hub_download(repo_id=BASE_WAN_2_2, filename="wan2.2_ti2v_lightx2v.safetensors", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
+    hf_hub_download(repo_id=BASE_WAN_2_2, filename=BASE_WAN_2_2_FILE, local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
+
+def get_path_file_video_model(name: Literal["wan2.2", "hy_1_5"] = "wan2.2"):
+    if name == "wan2.2":
+        return f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2/{BASE_WAN_2_2_FILE}"
+    else:
+        return None
+
+def get_path_save_video(id_video: str):
+    return f"{AQUILES_VIDEO_BASE_PATH}/results/{id_video}.mp4"
+
+
+def file_exists(path: Union[str, Path, None]) -> bool:
+    if path is None:
+        return False
+
+    p = Path(path).expanduser()
+    if not p.is_absolute():
+        p = (Path.cwd() / p)
+    p = p.resolve(strict=False)
+
+    try:
+        return p.is_file() and p.stat().st_size > 0
+    except (OSError, FileNotFoundError):
+        return False

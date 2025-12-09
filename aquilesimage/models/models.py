@@ -35,6 +35,8 @@ class VideoModels(str, Enum):
     # Wan
     WAN2_2_DISTILL = 'lightx2v/Wan2.2-Distill-Models'
     WAN2_2_LI = 'lightx2v/Wan2.2-Lightning'
+    WAN2_2_BASE = 'lightx2v/Wan2.2-Official-Models'
+    WAN2_2_API = 'wan2.2'
     # HunyuanVideo-1.5
     HY1_5_D = 'lightx2v/Hy1.5-Distill-Models'
     HY1_5_Q = 'lightx2v/Hy1.5-Quantized-Models'

@@ -5,6 +5,9 @@ from typing import Dict, Optional, Any
 from collections import deque
 from dataclasses import dataclass, field
 import uuid
+from aquilesimage.utils import get_path_save_video
+from fastapi.concurrency import run_in_threadpool
+import random
 
 @dataclass
 class VideoTask:
@@ -90,9 +93,8 @@ class VideoTaskGeneration:
                 task.progress = progress
                 await asyncio.sleep(0.5)
             
-            # TODO: Here's the actual logic behind video generation with self.pipeline
-            # video_output = await self._generate_video(task)
-            # task.video_path = video_output.path
+            video_output = await self._generate_video(task)
+            task.video_path = video_output.path
             
             task.status = VideoStatus.completed
             task.progress = 100
@@ -131,7 +133,8 @@ class VideoTaskGeneration:
                 prompt=request.prompt,
                 size=request.size,
                 seconds=request.seconds,
-                quality=request.quality or VideoQuality.standard
+                quality=request.quality or VideoQuality.standard,
+                video_path=get_path_save_video(task_id)
             )
             
             self.tasks[task_id] = task
@@ -180,8 +183,11 @@ class VideoTaskGeneration:
             return False
 
     async def _generate_video(self, task: VideoTask) -> Any:
-        # TODO: Implement the real pipeline logic.
-        pass
+        await run_in_threadpool(self.pipeline.generate(
+            seed=random.randint(1, 1000),
+            prompt=task.prompt,
+            save_result_path=task.video_path
+        ))
 
     def get_stats(self) -> dict:
         return {
@@ -192,3 +198,7 @@ class VideoTaskGeneration:
             "failed": sum(1 for t in self.tasks.values() if t.status == VideoStatus.failed),
             "max_concurrent": self.max_concurrent_tasks
         }
+
+    async def get_path_video(self, task_id):
+        task = self.tasks.get(task_id)
+        return task.video_path

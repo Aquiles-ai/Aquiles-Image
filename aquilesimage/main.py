@@ -46,9 +46,10 @@ model_name: str | None = None
 video_task_gen: VideoTaskGeneration | None = None
 auto_pipeline: str | None = None
 device_map_flux2: str | None = None
+Videomodel = [VideoModels.WAN2_2_DISTILL, VideoModels.WAN2_2_LI, VideoModels.HY1_5_D, VideoModels.HY1_5_Q, VideoModels.WAN2_2_API]
 
 def load_models():
-    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2
+    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel
 
     logger.info("Loading configuration...")
     
@@ -75,32 +76,42 @@ def load_models():
     if load_model is False:
         logger.info(f"Dev mode without model loading")
         pass
-    else:  
-        try:
-            from aquilesimage.runtime import RequestScopedPipeline
-            from aquilesimage.pipelines import ModelPipelineInit
-            if auto_pipeline is True:
-                initializer = ModelPipelineInit(model=model_name, auto_pipeline=True)
-            elif device_map_flux2 == 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
-                initializer = ModelPipelineInit(model=model_name, device_map_flux2='cuda')
-            else:
-                initializer = ModelPipelineInit(model=model_name)
+    else:
+        if model_name in  Videomodel:
+            try:
+                from aquilesimage.pipelines.video import ModelVideoPipelineInit
+                initializer = ModelVideoPipelineInit(model_name)
+                model_pipeline = initializer.initialize_pipeline()
+                model_pipeline.start()
+            except Exception as e:
+                logger.error(f"Failed to initialize model pipeline: {e}")
+                raise
+        else:
+            try:
+                from aquilesimage.runtime import RequestScopedPipeline
+                from aquilesimage.pipelines import ModelPipelineInit
+                if auto_pipeline is True:
+                    initializer = ModelPipelineInit(model=model_name, auto_pipeline=True)
+                elif device_map_flux2 == 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
+                    initializer = ModelPipelineInit(model=model_name, device_map_flux2='cuda')
+                else:
+                    initializer = ModelPipelineInit(model=model_name)
 
-            model_pipeline = initializer.initialize_pipeline()
-            model_pipeline.start()
+                model_pipeline = initializer.initialize_pipeline()
+                model_pipeline.start()
         
-            if model_name in flux_models:
-                request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
-            elif model_name == ImageModel.FLUX_1_KONTEXT_DEV:
-                request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_kontext=True)
-            else:
-                request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
+                if model_name in flux_models:
+                    request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
+                elif model_name == ImageModel.FLUX_1_KONTEXT_DEV:
+                    request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_kontext=True)
+                else:
+                    request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
         
-            logger.info(f"Model '{model_name}' loaded successfully")
+                logger.info(f"Model '{model_name}' loaded successfully")
         
-        except Exception as e:
-            logger.error(f"Failed to initialize model pipeline: {e}")
-            raise
+            except Exception as e:
+                logger.error(f"Failed to initialize model pipeline: {e}")
+                raise
 
 try:
     load_models()
@@ -133,16 +144,21 @@ async def lifespan(app: FastAPI):
             port=5500,
         )
 
-    video_models = [VideoModels.WAN2_2_DISTILL, VideoModels.WAN2_2_LI, VideoModels.HY1_5_D, VideoModels.HY1_5_Q]
-
-    video_task_gen = VideoTaskGeneration(
-        pipeline=Any,
-        max_concurrent_tasks=max_concurrent_infer or 3,
-        enable_queue=False
-    )
+    if model_name in Videomodel:
+        video_task_gen = VideoTaskGeneration(
+            pipeline=model_pipeline.pipeline,
+            max_concurrent_tasks=max_concurrent_infer or 3,
+            enable_queue=False
+        )
+    else:
+        video_task_gen = VideoTaskGeneration(
+            pipeline=Any,
+            max_concurrent_tasks=max_concurrent_infer or 3,
+            enable_queue=False
+        )
 
     await video_task_gen.start()
-    if model_name in video_models:
+    if model_name in Videomodel:
         logger.info("Video task manager started")
 
     async def metrics_loop():
@@ -562,7 +578,7 @@ async def videos(input_r: CreateVideoBody):
         )
         
         return response
-    if app.state.model in [VideoModels.WAN2_2_DISTILL, VideoModels.WAN2_2_LI, VideoModels.HY1_5_D, VideoModels.HY1_5_Q]:
+    if app.state.model in Videomodel:
         try:
             video_resource = await video_task_gen.create_task(input_r)
             return video_resource
@@ -582,7 +598,7 @@ async def get_video(video_id: str):
             progress=100
         )
     
-    if model_name in [VideoModels.WAN2_2_DISTILL, VideoModels.WAN2_2_LI, VideoModels.HY1_5_D, VideoModels.HY1_5_Q]:
+    if model_name in Videomodel:
         video = await video_task_gen.get_task(video_id)
         if not video:
             raise HTTPException(status_code=404, detail="Video not found")
@@ -611,7 +627,7 @@ async def list_videos(
             last_id=mock_video.id
         )
     
-    if model_name in [VideoModels.WAN2_2_DISTILL, VideoModels.WAN2_2_LI, VideoModels.HY1_5_D, VideoModels.HY1_5_Q]:
+    if model_name in Videomodel:
         videos, has_more = await video_task_gen.list_tasks(limit, after)
         return VideoListResource(
             data=videos,
@@ -632,7 +648,7 @@ async def delete_video(video_id: str):
             deleted=True
         )
     
-    if model_name in [VideoModels.WAN2_2_DISTILL, VideoModels.WAN2_2_LI, VideoModels.HY1_5_D, VideoModels.HY1_5_Q]:
+    if model_name in Videomodel:
         deleted = await video_task_gen.delete_task(video_id)
         if not deleted:
             raise HTTPException(status_code=404, detail="Video no encontrado")
@@ -645,7 +661,18 @@ async def delete_video(video_id: str):
     else:
         raise HTTPException(status_code=503, detail=f"You are running the model: {app.state.model}. This model does not generate videos.")
 
-# TODO: /videos/{video_id}/content endpoint
+@app.get("/videos/{video_id}/content")
+async def get_video(video_id):
+    if app.state.load_model is False:
+        pass
+
+    if model_name in Videomodel:
+        path = await video_task_gen.get_path_video(video_id)
+
+        return FileResponse(path, media_type="video/mp4")
+    else:
+        raise HTTPException(status_code=503, detail=f"You are running the model: {app.state.model}. This model does not generate videos.")
+
 
 app.add_middleware(
     CORSMiddleware,
