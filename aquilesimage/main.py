@@ -100,10 +100,10 @@ def load_models():
                 model_pipeline = initializer.initialize_pipeline()
                 model_pipeline.start()
         
-                if model_name in flux_models:
-                    request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
-                elif model_name == ImageModel.FLUX_1_KONTEXT_DEV:
+                if model_name == ImageModel.FLUX_1_KONTEXT_DEV:
                     request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_kontext=True)
+                elif model_name in flux_models:
+                    request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
                 else:
                     request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
         
