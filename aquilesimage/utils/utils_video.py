@@ -14,6 +14,8 @@ BASE_WAN_2_2 = "lightx2v/Wan2.2-Official-Models"
 
 BASE_WAN_2_2_FILE = "wan2.2_ti2v_lightx2v.safetensors"
 
+ENCODER_FILE = "models_t5_umt5-xxl-enc-bf16.pth"
+
 REPO_ID_WAN_2_2_DISTILL = "lightx2v/Wan2.2-Distill-Models"
 
 REPO_ID_WAN_2_2_LI = "lightx2v/Wan2.2-Lightning"
@@ -23,12 +25,16 @@ BASE_HY_1_5 = "tencent/HunyuanVideo-1.5"
 def download_base_wan_2_2():
     print(f"PATH: {AQUILES_VIDEO_BASE_PATH}/wan_2_2")
     hf_hub_download(repo_id=BASE_WAN_2_2, filename=BASE_WAN_2_2_FILE, local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
+    hf_hub_download(repo_id=BASE_WAN_2_2, filename=ENCODER_FILE, local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
 
 def get_path_file_video_model(name: Literal["wan2.2", "hy_1_5"] = "wan2.2"):
     if name == "wan2.2":
         return f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2/{BASE_WAN_2_2_FILE}"
     else:
         return None
+
+def get_encoder_path():
+    return return f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2/{ENCODER_FILE}"
 
 def get_path_save_video(id_video: str):
     return f"{AQUILES_VIDEO_BASE_PATH}/results/{id_video}.mp4"

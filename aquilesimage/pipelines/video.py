@@ -1,6 +1,6 @@
 import torch
 from lightx2v import LightX2VPipeline
-from aquilesimage.utils.utils_video import get_path_file_video_model, file_exists, download_base_wan_2_2
+from aquilesimage.utils.utils_video import get_path_file_video_model, file_exists, download_base_wan_2_2, get_encoder_path
 
 class Wan2_2_Pipeline:
     def __init__(self, h: int = 720, w: int = 1280, frames: int = 81):
@@ -24,6 +24,7 @@ class Wan2_2_Pipeline:
             self.pipeline.freq_dim = 256  
             self.pipeline.num_layers = 30  
             self.pipeline.out_dim = 1024
+            self.pipeline.t5_original_ckpt = get_encoder_path()
 
             self.pipeline.create_generator(
                 attn_mode="flash_attn2",
