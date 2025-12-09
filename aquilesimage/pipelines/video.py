@@ -25,7 +25,7 @@ class Wan2_2_Pipeline:
             self.pipeline.freq_dim = 256  
             self.pipeline.num_layers = 30  
             self.pipeline.out_dim = 1024
-            self.pipeline.t5_original_ckpt = get_encoder_path()
+            #self.pipeline.t5_original_ckpt = get_encoder_path()
             self.pipeline.text_len = 512
             self.pipeline.enable_cfg = True
 
