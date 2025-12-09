@@ -23,14 +23,32 @@ REPO_ID_WAN_2_2_LI = "lightx2v/Wan2.2-Lightning"
 BASE_HY_1_5 = "tencent/HunyuanVideo-1.5"
 
 def download_tokenizers():
-    print(hf_hub_download(repo_id="lightx2v/Encoders", filename="special_tokens_map.json", subfolder="google/umt5-xxl", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
-    print(hf_hub_download(repo_id="lightx2v/Encoders", filename="spiece.model", subfolder="google/umt5-xxl", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
-    print(hf_hub_download(repo_id="lightx2v/Encoders", filename="tokenizer.json", subfolder="google/umt5-xxl", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
-    print(hf_hub_download(repo_id="lightx2v/Encoders", filename="tokenizer_config.json", subfolder="google/umt5-xxl", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
+    print(hf_hub_download(repo_id="Wan-AI/Wan2.2-T2V-A14B", filename="special_tokens_map.json", subfolder="google/umt5-xxl", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
+    print(hf_hub_download(repo_id="Wan-AI/Wan2.2-T2V-A14B", filename="spiece.model", subfolder="google/umt5-xxl", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
+    print(hf_hub_download(repo_id="Wan-AI/Wan2.2-T2V-A14B", filename="tokenizer.json", subfolder="google/umt5-xxl", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
+    print(hf_hub_download(repo_id="Wan-AI/Wan2.2-T2V-A14B", filename="tokenizer_config.json", subfolder="google/umt5-xxl", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
 
 def download_base_wan_2_2():
     print(f"PATH: {AQUILES_VIDEO_BASE_PATH}/wan_2_2")
-    print(snapshot_download(repo_id="Wan-AI/Wan2.2-T2V-A14B", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
+    os.makedirs(f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2/high_noise_model", exist_ok=True)
+    os.makedirs(f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2/low_noise_model", exist_ok=True)
+    print(hf_hub_download(repo_id="lightx2v/Wan2.2-Distill-Models", filename="wan2.2_t2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step.safetensors",
+    local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2/high_noise_model"))
+    print(hf_hub_download(
+    repo_id="lightx2v/Wan2.2-Distill-Models", filename="wan2.2_t2v_A14b_low_noise_scaled_fp8_e4m3_lightx2v_4step.safetensors",
+    local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2/low_noise_model"))
+    print(hf_hub_download(
+    repo_id="Wan-AI/Wan2.2-T2V-A14B",
+    filename="models_t5_umt5-xxl-enc-bf16.pth",
+    local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
+    print(hf_hub_download(
+    repo_id="Wan-AI/Wan2.2-T2V-A14B",
+    filename="Wan2.1_VAE.pth",
+    local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
+    print(hf_hub_download(
+    repo_id="Wan-AI/Wan2.2-T2V-A14B",
+    filename="configuration.json",
+    local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
 
 def get_path_file_video_model(name: Literal["wan2.2", "hy_1_5"] = "wan2.2"):
     if name == "wan2.2":

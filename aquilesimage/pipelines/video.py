@@ -23,12 +23,12 @@ class Wan2_2_Pipeline:
 
             self.pipeline.create_generator(
                 attn_mode="flash_attn2",
-                infer_steps=40,
+                infer_steps=4,
                 num_frames=self.frames,
                 height=self.h,
                 width=self.w,
-                guidance_scale=[3.5, 3.5],
-                sample_shift=12.0, 
+                guidance_scale=[4.0, 3.0],
+                sample_shift=5.0, 
             )
         else:
             raise Exception("No CUDA device available")
