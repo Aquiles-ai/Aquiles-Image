@@ -34,7 +34,7 @@ def get_path_file_video_model(name: Literal["wan2.2", "hy_1_5"] = "wan2.2"):
         return None
 
 def get_encoder_path():
-    return return f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2/{ENCODER_FILE}"
+    return f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2/{ENCODER_FILE}"
 
 def get_path_save_video(id_video: str):
     return f"{AQUILES_VIDEO_BASE_PATH}/results/{id_video}.mp4"
