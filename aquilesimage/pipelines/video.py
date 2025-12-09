@@ -18,6 +18,10 @@ class Wan2_2_Pipeline:
                 task="t2v",
             )
 
+            self.pipeline.dim = 1536  
+            self.pipeline.num_heads = 16  
+            self.pipeline.freq_dim = 256  
+
             self.pipeline.create_generator(
                 attn_mode="flash_attn2",
                 infer_steps=40,
@@ -25,10 +29,7 @@ class Wan2_2_Pipeline:
                 height=self.h,
                 width=self.w,
                 guidance_scale=[3.5, 3.5],
-                sample_shift=5.0,
-                dim=1536,  
-                num_heads=16,  
-                freq_dim=256, 
+                sample_shift=5.0, 
             )
         else:
             raise Exception("No CUDA device available")
