@@ -46,7 +46,7 @@ model_name: str | None = None
 video_task_gen: VideoTaskGeneration | None = None
 auto_pipeline: str | None = None
 device_map_flux2: str | None = None
-Videomodel = [VideoModels.WAN2_2_DISTILL, VideoModels.WAN2_2_LI, VideoModels.HY1_5_D, VideoModels.HY1_5_Q, VideoModels.WAN2_2_API]
+Videomodel = [VideoModels.WAN2_2_API, VideoModels.HY1_5_API]
 
 def load_models():
     global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel
