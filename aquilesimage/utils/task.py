@@ -94,7 +94,6 @@ class VideoTaskGeneration:
                 await asyncio.sleep(0.5)
             
             video_output = await self._generate_video(task)
-            task.video_path = video_output.path
             
             task.status = VideoStatus.completed
             task.progress = 100
