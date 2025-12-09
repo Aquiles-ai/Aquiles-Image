@@ -1,6 +1,6 @@
 import torch
 from lightx2v import LightX2VPipeline
-from aquilesimage.utils import get_path_file_video_model, file_exists, download_base_wan_2_2
+from aquilesimage.utils.utils_video import get_path_file_video_model, file_exists, download_base_wan_2_2
 
 class Wan2_2_Pipeline:
     def __init__(self, h: int = 720, w: int = 1280, frames: int = 81):

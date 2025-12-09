@@ -5,7 +5,7 @@ from typing import Dict, Optional, Any
 from collections import deque
 from dataclasses import dataclass, field
 import uuid
-from aquilesimage.utils import get_path_save_video
+from aquilesimage.utils.utils_video import get_path_save_video
 from fastapi.concurrency import run_in_threadpool
 import random
 
