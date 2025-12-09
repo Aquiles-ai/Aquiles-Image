@@ -74,6 +74,8 @@ https://github.com/user-attachments/assets/7b1270c3-b77b-48df-a0fe-ac39b2320143
 
 
 
+> **Note**: According to tests performed on an NVIDIA H100, inference times are approximately 5 minutes or longer. Currently, only one inference is allowed at a time; the video generation process does not support producing more than one video simultaneously.
+
 </div>
 
 ## ⚙️ Installation
@@ -113,9 +115,10 @@ aquiles-image serve --host "0.0.0.0" --port 5500 --model "stabilityai/stable-dif
 | [`Tongyi-MAI/Z-Image-Turbo`](https://huggingface.co/Tongyi-MAI/Z-Image-Turbo) | `/images/generations` |
 | [`black-forest-labs/FLUX.1-Kontext-dev`](https://huggingface.co/black-forest-labs/FLUX.1-Kontext-dev) | `/images/edits` |
 | [`diffusers/FLUX.2-dev-bnb-4bit`](https://huggingface.co/diffusers/FLUX.2-dev-bnb-4bit) | `/images/edits` |
+| [`wan2.2`](https://huggingface.co/Wan-AI/Wan2.2-T2V-A14B) | `/videos` |
 </div>
 
-> ⚠️ **VRAM Requirements**: Most models require 24GB+ VRAM with an additional ~10GB free for processing. And for some reason, the `diffusers/FLUX.2-dev-bnb-4bit` model in Img2Img tasks tends to have high inference times, even when it is running entirely on CUDA. 
+> ⚠️ **VRAM Requirements**: Most models require 24GB+ VRAM with an additional ~10GB free for processing. And for some reason, the `diffusers/FLUX.2-dev-bnb-4bit` model in Img2Img tasks tends to have high inference times, even when it is running entirely on CUDA. (Video generation models require at least a graphics card with 80GB of VRAM, such as the NVIDIA H100 or NVIDIA A100-80G.)
 
 ## 🧪 Experimental: AutoPipeline Support
 

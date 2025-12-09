@@ -42,8 +42,8 @@ class VideoTaskGeneration:
     def __init__(
         self,
         pipeline: Any,
-        max_concurrent_tasks: int = 3,
-        enable_queue: bool = True
+        max_concurrent_tasks: int = 1,
+        enable_queue: bool = False
     ):
         self.pipeline = pipeline
         self.max_concurrent_tasks = max_concurrent_tasks
