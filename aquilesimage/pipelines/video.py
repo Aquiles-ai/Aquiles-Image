@@ -4,7 +4,7 @@ from aquilesimage.utils.utils_video import get_path_file_video_model, file_exist
 import os
 
 class Wan2_2_Pipeline:
-    def __init__(self, h: int = 720, w: int = 1280, frames: int = 81):
+    def __init__(self, h: int = 720, w: int = 1280, frames: int = 96):
         self.pipeline: LightX2VPipeline | None = None
         self.h = h
         self.w = w
@@ -29,6 +29,7 @@ class Wan2_2_Pipeline:
                 num_frames=self.frames,
                 height=self.h,
                 width=self.w,
+                fps=24,
                 guidance_scale=[3.5, 3.5],
                 sample_shift=12.0, 
             )
