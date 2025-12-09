@@ -21,6 +21,8 @@ class Wan2_2_Pipeline:
 
             self.pipeline.text_len = 512
 
+            self.pipeline.enable_cfg = True
+
             self.pipeline.create_generator(
                 attn_mode="flash_attn2",
                 infer_steps=40,
