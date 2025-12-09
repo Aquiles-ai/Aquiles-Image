@@ -12,7 +12,6 @@ def cli():
 def greet(name):
     click.echo(f"Hello, {name}!")
 
-
 @cli.command("serve")
 @click.option("--host", default="0.0.0.0", help="Host where Aquiles-Image will be executed")
 @click.option("--port", type=int, default=5500, help="Port where Aquiles-Image will be executed")
