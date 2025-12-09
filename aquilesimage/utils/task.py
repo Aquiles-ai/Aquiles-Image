@@ -186,7 +186,8 @@ class VideoTaskGeneration:
         await run_in_threadpool(self.pipeline.generate(
             seed=random.randint(1, 1000),
             prompt=task.prompt,
-            save_result_path=task.video_path
+            save_result_path=task.video_path,
+            negative_prompt="No deformities"
         ))
 
     def get_stats(self) -> dict:
