@@ -11,7 +11,7 @@ aquiles_image = (
     )
     .uv_pip_install(
         "torch==2.8",
-        "git+https://github.com/huggingface/diffusers.git",
+        "diffusers==0.36.0", # Note: This is the version that does not cause errors with FLUX.1-Kontext-dev
         "transformers==4.57.3",
         "tokenizers==0.22.1",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",

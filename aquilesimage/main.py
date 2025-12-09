@@ -563,7 +563,7 @@ async def get_models():
         data=models_data
     )
 
-@app.post("/videos", response_model=VideoResource, dependencies=[Depends(verify_api_key)])
+@app.post("/videos", response_model=VideoResource, dependencies=[Depends(verify_api_key)], tags=["Video APIs"])
 async def videos(input_r: CreateVideoBody):
     if app.state.load_model is False:
         logger.info("[DEV MODE] Generating mock videos response")
@@ -588,7 +588,7 @@ async def videos(input_r: CreateVideoBody):
     else:
         raise HTTPException(503, f"You are running the model: {app.state.model}. This model does not generate videos.")
 
-@app.get("/videos/{video_id}", response_model=VideoResource, dependencies=[Depends(verify_api_key)])
+@app.get("/videos/{video_id}", response_model=VideoResource, dependencies=[Depends(verify_api_key)], tags=["Video APIs"])
 async def get_video(video_id: str):    
     if app.state.load_model is False:
         return create_dev_mode_video_response(
@@ -639,7 +639,7 @@ async def list_videos(
     else:
         raise HTTPException(status_code=503, detail=f"You are running the model: {app.state.model}. This model does not generate videos.")
 
-@app.delete("/videos/{video_id}", response_model=DeletedVideoResource, dependencies=[Depends(verify_api_key)])
+@app.delete("/videos/{video_id}", response_model=DeletedVideoResource, dependencies=[Depends(verify_api_key)], tags=["Video APIs"])
 async def delete_video(video_id: str):    
     if app.state.load_model is False:
         return DeletedVideoResource(
@@ -661,7 +661,7 @@ async def delete_video(video_id: str):
     else:
         raise HTTPException(status_code=503, detail=f"You are running the model: {app.state.model}. This model does not generate videos.")
 
-@app.get("/videos/{video_id}/content")
+@app.get("/videos/{video_id}/content", tags=["Video APIs"])
 async def get_video(video_id):
     if app.state.load_model is False:
         pass
