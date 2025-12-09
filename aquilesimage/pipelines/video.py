@@ -36,7 +36,7 @@ class Wan2_2_Pipeline:
     def verify_model(self):
         model_path = get_path_file_video_model("wan2.2")
 
-        if(file_exists(model_path)):
+        if(file_exists(f"{model_path}/Wan2.1_VAE.pth")):
             pass
         else:
             download_base_wan_2_2()
