@@ -25,7 +25,7 @@ BASE_HY_1_5 = "tencent/HunyuanVideo-1.5"
 def download_base_wan_2_2():
     print(f"PATH: {AQUILES_VIDEO_BASE_PATH}/wan_2_2")
     hf_hub_download(repo_id=BASE_WAN_2_2, filename=BASE_WAN_2_2_FILE, local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
-    hf_hub_download(repo_id=BASE_WAN_2_2, filename=ENCODER_FILE, local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
+    hf_hub_download(repo_id="lightx2v/Encoders", filename=ENCODER_FILE, local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
 
 def get_path_file_video_model(name: Literal["wan2.2", "hy_1_5"] = "wan2.2"):
     if name == "wan2.2":
