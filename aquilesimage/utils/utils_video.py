@@ -31,9 +31,12 @@ def download_tokenizers():
 def download_base_wan_2_2():
     print(f"PATH: {AQUILES_VIDEO_BASE_PATH}/wan_2_2")
     hf_hub_download(repo_id=BASE_WAN_2_2, filename=BASE_WAN_2_2_FILE, local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
-    hf_hub_download(repo_id="lightx2v/Encoders", filename=ENCODER_FILE, local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
-    hf_hub_download(repo_id="Wan-AI/Wan2.2-TI2V-5B", filename="Wan2.2_VAE.pth", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2") # WTF???
-    download_tokenizers()
+    hf_hub_download(repo_id=BASE_WAN_2_2, filename="wan2.2_i2v_A14b_high_noise_lightx2v.safetensors", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
+    hf_hub_download(repo_id=BASE_WAN_2_2, filename="wan2.2_i2v_A14b_low_noise_lightx2v.safetensors", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
+    hf_hub_download(repo_id=BASE_WAN_2_2, filename="wan2.2_ti2v_scaled_fp8_e4m3_lightx2v_comfyui.safetensors", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
+    #hf_hub_download(repo_id="lightx2v/Encoders", filename=ENCODER_FILE, local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
+    #hf_hub_download(repo_id="Wan-AI/Wan2.2-TI2V-5B", filename="Wan2.2_VAE.pth", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2") # WTF???
+    #download_tokenizers()
 
 def get_path_file_video_model(name: Literal["wan2.2", "hy_1_5"] = "wan2.2"):
     if name == "wan2.2":
