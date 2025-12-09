@@ -45,7 +45,8 @@ dependencies = [
     "python-multipart",
     "openai",
     "ray[tune]",
-    "dm-tree"
+    "dm-tree",
+    "pymongo"
 ]
 
 [project.optional-dependencies]

@@ -26,6 +26,9 @@ class Wan2_2_Pipeline:
                 width=self.w,
                 guidance_scale=[3.5, 3.5],
                 sample_shift=5.0,
+                dim=1536,  
+                num_heads=16,  
+                freq_dim=256, 
             )
         else:
             raise Exception("No CUDA device available")
