@@ -1,6 +1,6 @@
 from platformdirs import user_data_dir
 import os
-from huggingface_hub import hf_hub_download
+from huggingface_hub import hf_hub_download, snapshot_download
 from typing import Literal, Union
 from pathlib import Path
 
@@ -30,10 +30,11 @@ def download_tokenizers():
 
 def download_base_wan_2_2():
     print(f"PATH: {AQUILES_VIDEO_BASE_PATH}/wan_2_2")
-    hf_hub_download(repo_id=BASE_WAN_2_2, filename=BASE_WAN_2_2_FILE, local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
-    hf_hub_download(repo_id=BASE_WAN_2_2, filename="wan2.2_i2v_A14b_high_noise_lightx2v.safetensors", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
-    hf_hub_download(repo_id=BASE_WAN_2_2, filename="wan2.2_i2v_A14b_low_noise_lightx2v.safetensors", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
-    hf_hub_download(repo_id=BASE_WAN_2_2, filename="wan2.2_ti2v_scaled_fp8_e4m3_lightx2v_comfyui.safetensors", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
+    print(snapshot_download(repo_id="Wan-AI/Wan2.2-T2V-A14B", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
+    #hf_hub_download(repo_id=BASE_WAN_2_2, filename=BASE_WAN_2_2_FILE, local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
+    #hf_hub_download(repo_id=BASE_WAN_2_2, filename="wan2.2_i2v_A14b_high_noise_lightx2v.safetensors", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
+    #hf_hub_download(repo_id=BASE_WAN_2_2, filename="wan2.2_i2v_A14b_low_noise_lightx2v.safetensors", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
+    #hf_hub_download(repo_id=BASE_WAN_2_2, filename="wan2.2_ti2v_scaled_fp8_e4m3_lightx2v_comfyui.safetensors", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
     #hf_hub_download(repo_id="lightx2v/Encoders", filename=ENCODER_FILE, local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2")
     #hf_hub_download(repo_id="Wan-AI/Wan2.2-TI2V-5B", filename="Wan2.2_VAE.pth", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2") # WTF???
     #download_tokenizers()
