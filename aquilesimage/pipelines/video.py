@@ -1,6 +1,6 @@
 import torch
 from lightx2v import LightX2VPipeline
-from aquilesimage.utils.utils_video import get_path_file_video_model, file_exists, download_base_wan_2_2, get_encoder_path, get_tokenizer_path
+from aquilesimage.utils.utils_video import get_path_file_video_model, file_exists, download_base_wan_2_2
 import os
 
 class Wan2_2_Pipeline:
