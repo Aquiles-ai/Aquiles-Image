@@ -55,6 +55,17 @@ https://github.com/user-attachments/assets/00d4235c-e49c-435e-a71a-72c36040a8d7
 
 </div>
 
+
+## Generating a video with `Wan-AI/Wan2.2-T2V-A14B`
+
+<div align="center">
+
+| Script | Result |
+|--------|--------|
+| <img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1765299750/Captura_de_pantalla_1999_nyruf1.png" alt="Edit Script" width="500"/> |  |
+
+</div>
+
 ## ⚙️ Installation
 
 ### From Pypi
