@@ -14,7 +14,7 @@ class Wan2_2_Pipeline:
         if torch.cuda.is_available():
             self.pipeline = LightX2VPipeline(
                 model_path=get_path_file_video_model("wan2.2"),
-                model_cls="wan2.2_moe",
+                model_cls="wan2.2",
                 task="t2v",
             )
 
