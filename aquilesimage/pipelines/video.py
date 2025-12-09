@@ -21,6 +21,7 @@ class Wan2_2_Pipeline:
             self.pipeline.dim = 1536  
             self.pipeline.num_heads = 16  
             self.pipeline.freq_dim = 256  
+            self.pipeline.in_dim = 36  
 
             self.pipeline.create_generator(
                 attn_mode="flash_attn2",
