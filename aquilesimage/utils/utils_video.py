@@ -32,7 +32,7 @@ def download_base_wan_2_2():
     print(f"PATH: {AQUILES_VIDEO_BASE_PATH}/wan_2_2")
     print(snapshot_download(repo_id="Wan-AI/Wan2.2-T2V-A14B", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"))
 
-def get_path_file_video_model(name: Literal["wan2.2", "hy_1_5"] = "wan2.2"):
+def get_path_file_video_model(name: Literal["wan2.2", "hunyuanVideo-1.5"] = "wan2.2"):
     if name == "wan2.2":
         return f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"
     else:
