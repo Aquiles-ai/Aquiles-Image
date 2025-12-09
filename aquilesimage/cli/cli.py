@@ -13,6 +13,7 @@ def greet(name):
     click.echo(f"Hello, {name}!")
 
 @cli.command("serve")
+@cli.command("serve")
 @click.option("--host", default="0.0.0.0", help="Host where Aquiles-Image will be executed")
 @click.option("--port", type=int, default=5500, help="Port where Aquiles-Image will be executed")
 @click.option("--model", type=str, help="The model to use for image generation.")
@@ -112,14 +113,22 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
 
     try:
         import uvicorn
-        from aquilesimage.main import app  
     except ImportError as e:
-        click.echo(f"X Error importing server modules: {e}", err=True)
+        click.echo(f"X Error importing uvicorn: {e}", err=True)
+        sys.exit(1)
+    
+    try:
+        from aquilesimage.main import app
+    except TypeError as e:
+        click.echo(f"X Error loading application (Pydantic validation): {e}", err=True)
+        click.echo(f"X This might be caused by invalid configuration values.", err=True)
+        click.echo(f"X Try running: aquiles-image configs --reset", err=True)
         sys.exit(1)
     except Exception as e:
         click.echo(f"X Error loading application: {e}", err=True)
+        import traceback
+        click.echo(f"X Traceback: {traceback.format_exc()}", err=True)
         sys.exit(1)
-
 
     click.echo(f"\nStarting Aquiles-Image server:")
     click.echo(f"   Host: {host}")
