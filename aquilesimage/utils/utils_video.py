@@ -36,7 +36,7 @@ def download_base_wan_2_2():
 
 def get_path_file_video_model(name: Literal["wan2.2", "hy_1_5"] = "wan2.2"):
     if name == "wan2.2":
-        return f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2/{BASE_WAN_2_2_FILE}"
+        return f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"
     else:
         return None
 
