@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "aquiles-image"
 version = "0.1.92"
-description = "Aquiles-Image."
+description = "A high-performance, memory-efficient inference server for diffusion models, compatible with the OpenAI client"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "Apache License 2.0"}
