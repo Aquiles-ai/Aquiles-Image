@@ -100,11 +100,11 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 
 ### Text-to-Video (`/videos`) - Experimental
 
-- `Wan-AI/Wan2.2-T2V-A14B` (requires H100/A100-80G)
+- `Wan-AI/Wan2.2-T2V-A14B` (It requires H100/A100-80G and to start the server with this model, enter `--model "wan2.2"`)
 
 > **VRAM Requirements**: Most models need 24GB+ VRAM. Video generation requires 80GB+ (H100/A100-80G).
 
-[**📖 Full model documentation**](https://aquiles-ai.github.io/aquiles-image-docs/#models)
+[**📖 Full models documentation**](https://aquiles-ai.github.io/aquiles-image-docs/#models)
 
 ## 💡 Examples
 
