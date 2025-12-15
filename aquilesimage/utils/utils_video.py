@@ -1,5 +1,8 @@
-from platformdirs import user_data_dir
 import os
+
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1" # It's supposed to go faster
+
+from platformdirs import user_data_dir
 from huggingface_hub import hf_hub_download, snapshot_download
 from typing import Literal, Union
 from pathlib import Path

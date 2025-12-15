@@ -100,7 +100,8 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 
 ### Text-to-Video (`/videos`) - Experimental
 
-- `Wan-AI/Wan2.2-T2V-A14B` (It requires H100/A100-80G and to start the server with this model, enter `--model "wan2.2"`)
+- `Wan-AI/Wan2.2-T2V-A14B` (High quality, 40 steps - requires H100/A100-80G, start with `--model "wan2.2"`)
+- `Aquiles-ai/Wan2.2-Turbo` ⚡ **9.5x faster** - Same quality in 4 steps! (requires H100/A100-80G, start with `--model "wan2.2-turbo"`)
 
 > **VRAM Requirements**: Most models need 24GB+ VRAM. Video generation requires 80GB+ (H100/A100-80G).
 
@@ -128,7 +129,7 @@ https://github.com/user-attachments/assets/00d4235c-e49c-435e-a71a-72c36040a8d7
 
 https://github.com/user-attachments/assets/7b1270c3-b77b-48df-a0fe-ac39b2320143
 
-> **Note**: Video generation takes ~15 minutes on H100. Only one video can be generated at a time.
+> **Note**: Video generation with `wan2.2` takes ~30 minutes on H100. With `wan2.2-turbo`, it takes only ~3 minutes! Only one video can be generated at a time.
 
 ## 🧪 Advanced Features
 
