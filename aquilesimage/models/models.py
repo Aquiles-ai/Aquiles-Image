@@ -33,6 +33,8 @@ class ImageModel(str, Enum):
 class VideoModels(str, Enum):
     """I plan to have all of these models optimized for the Aquiles-Image runtime"""
     WAN2_2_API = 'wan2.2'
+
+    WAN2_2_TURBO = 'wan2.2-turbo'
     # HunyuanVideo-1.5
     HY1_5_API = 'hunyuanVideo-1.5'
 
