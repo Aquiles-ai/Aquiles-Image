@@ -38,7 +38,7 @@ AQUILES_PORT = 5500
     image=aquiles_image,
     gpu=f"H100:{N_GPU}",
     scaledown_window=30 * MINUTES, 
-    timeout=15 * MINUTES,
+    timeout=30 * MINUTES,
     volumes={
         "/root/.cache/huggingface": hf_cache_vol,
         "/root/.local/share": aquiles_config_vol,
