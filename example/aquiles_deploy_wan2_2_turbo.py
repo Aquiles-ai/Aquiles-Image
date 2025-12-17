@@ -16,8 +16,7 @@ aquiles_image = (
         "tokenizers==0.22.1",
         "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
-        "git+https://github.com/ModelTC/LightX2V.git",
-        "fastmcp"
+        "git+https://github.com/ModelTC/LightX2V.git"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1",
           "HF_TOKEN": os.getenv("Hugging_face_token_for_deploy", "")})  
