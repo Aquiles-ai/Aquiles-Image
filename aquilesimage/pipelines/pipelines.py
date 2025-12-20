@@ -22,6 +22,7 @@ from aquilesimage.models import ImageModel
 from aquilesimage.utils import setup_colored_logger
 from diffusers.schedulers.scheduling_flow_match_euler_discrete import FlowMatchEulerDiscreteScheduler
 from diffusers.models.autoencoders.autoencoder_kl import AutoencoderKL
+import gc
 
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
@@ -302,6 +303,12 @@ class PipelineZImage:
                     generator=torch.Generator(self.device).manual_seed(42 + i),
                 ).images[0]      
             logger_p.info("Warmup completed successfully")
+
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+                
         except Exception as e:
             logger_p.error(f"X Warmup failed: {str(e)}")
 
