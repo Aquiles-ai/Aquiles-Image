@@ -261,6 +261,8 @@ class PipelineFlux2:
                     self.model_path, 
                     torch_dtype=torch.bfloat16
                 )
+
+                self.optimization()
         
                 logger_p.info("Enabling model CPU offload...")
                 self.pipeline.enable_model_cpu_offload()
@@ -287,16 +289,38 @@ class PipelineFlux2:
 
     def enable_flash_attn(self):
         try:
-            self.pipeline.transformer.set_attention_backend("_flash_3")
-            logger_p.info("FLUX.2 - Flash Attention 3 enabled")
+            self.pipeline.transformer.set_attention_backend("_flash_3_hub")
+            logger_p.info("FlashAttention 3 enabled")
         except Exception as e:
-            logger_p.info(f"Flash Attention 3 not available: {str(e)}")
+            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
             try:
                 self.pipeline.transformer.set_attention_backend("flash")
-                logger_p.info("FLUX.2 - Flash Attention 2 enabled")
+                logger_p.info("FlashAttention 2 enabled")
             except Exception as e2:
-                logger_p.info(f"Flash Attention 2 not available: {str(e2)}")
-                logger_p.info("FLUX.2 - Using default attention backend (SDPA)")
+                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
+                try:
+                    self.pipeline.transformer.set_attention_backend("sage_hub")
+                    logger_p.info("SAGE Attention enabled")
+                except Exception as e3:
+                    logger_p.warning(f"No optimized attention available, using default SDPA: {str(e3)}")
+
+    def optimization(self):
+        try:
+            logger_p.info("QKV projections fused")
+            self.pipeline.transformer.fuse_qkv_projections()
+            self.pipeline.vae.fuse_qkv_projections()
+            logger_p.info("Channels last memory format enabled")
+            self.pipeline.transformer.to(memory_format=torch.channels_last)
+            self.pipeline.vae.to(memory_format=torch.channels_last)
+            try:
+                logger_p.info("FlashAttention")
+                self.enable_flash_attn()
+            except Exception as ea:
+                logger_p.warning(f"Error in optimization (flash_attn): {str(ea)}")
+                pass
+        except Exception as e:
+            logger_p.warning(f"Error in optimization: {str(e)}")
+            pass
 
     def start_low_vram_cuda(self):
         logger_p.info("Loading quantized text encoder... (CUDA)")
@@ -313,6 +337,8 @@ class PipelineFlux2:
         self.pipeline = Flux2Pipeline.from_pretrained(
             self.model_path, text_encoder=self.text_encoder, transformer=self.dit, dtype=torch.bfloat16
         ).to(device="cuda")
+
+        self.optimization()
 
 
 class PipelineZImage:
