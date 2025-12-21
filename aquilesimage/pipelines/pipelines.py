@@ -143,6 +143,9 @@ class PipelineFlux:
             self.pipeline.transformer.to(memory_format=torch.channels_last)
             self.pipeline.vae.to(memory_format=torch.channels_last)
 
+            logger_p.info("FlashAttention")
+            self.enable_flash_attn()
+
             if self.compile_flag:
                 logger_p.info("Compiling transformer and VAE...")
                 self.pipeline.transformer = torch.compile(
@@ -199,6 +202,23 @@ class PipelineFlux:
         except Exception as e:
             logger_p.error(f"X Warmup failed: {str(e)}")
             pass
+
+    def enable_flash_attn(self):
+        try:
+            self.pipeline.transformer.set_attention_backend("_flash_3_hub")
+            logger_p.info("FlashAttention 3 enabled")
+        except Exception as e:
+            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
+            try:
+                self.pipeline.transformer.set_attention_backend("flash")
+                logger_p.info("FlashAttention 2 enabled")
+            except Exception as e2:
+                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
+                try:
+                    self.pipeline.transformer.set_attention_backend("sage_hub")
+                    logger_p.info("SAGE Attention enabled")
+                except Exception as e3:
+                    logger_p.warning(f"No optimized attention available, using default SDPA: {str(e3)}")
 
 
 class PipelineFluxKontext:
