@@ -1,7 +1,7 @@
 from openai import OpenAI
 import base64
 
-client = OpenAI(base_url="https://f4k3r22--aquiles-image-server-serve.modal.run", api_key="dummy-api-key")
+client = OpenAI(base_url="https://riveraaai200678--aquiles-image-server-serve.modal.run", api_key="dummy-api-key")
 
 prompt = "A vast futuristic city curving upward into the sky, its buildings bending and connecting overhead in a continuous loop. Gravity shifts seamlessly along the curve, with sunlight streaming across inverted skyscrapers. The scene feels serene and awe-inspiring—earthlike fields and rivers running along the inner surface of a colossal rotating structure."
 
