@@ -15,7 +15,7 @@ aquiles_image = (
         "transformers==4.57.3",
         "tokenizers==0.22.1",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
-        "xformers==0.0.32post1"
+        "xformers==0.0.32post1",
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1",
           "HF_TOKEN": os.getenv("Hugging_face_token_for_deploy", "")})  
@@ -37,7 +37,7 @@ AQUILES_PORT = 5500
     secrets=[modal.Secret.from_name("huggingface-secret")],
     gpu=f"H100:{N_GPU}",
     scaledown_window=6 * MINUTES, 
-    timeout=20 * MINUTES, # For torch.compile
+    timeout=20 * MINUTES,
     volumes={
         "/root/.cache/huggingface": hf_cache_vol,
         "/root/.local/share": aquiles_config_vol,
@@ -57,7 +57,7 @@ def serve():
         str(AQUILES_PORT),
         "--model",
         MODEL_NAME,
-        "--set-steps", "35",
+        "--set-steps", "50",
         "--api-key", "dummy-api-key",
         "--device-map", "cuda",
     ]

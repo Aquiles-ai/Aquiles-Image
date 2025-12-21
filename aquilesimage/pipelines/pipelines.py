@@ -143,8 +143,8 @@ class PipelineFlux:
             self.pipeline.transformer.to(memory_format=torch.channels_last)
             self.pipeline.vae.to(memory_format=torch.channels_last)
 
-            logger_p.info("Compiling transformer and VAE...")
             if self.compile_flag:
+                logger_p.info("Compiling transformer and VAE...")
                 self.pipeline.transformer = torch.compile(
                     self.pipeline.transformer,
                     mode="max-autotune-no-cudagraphs", 
