@@ -288,21 +288,24 @@ class PipelineFlux2:
         self.pipeline.enable_model_cpu_offload()
 
     def enable_flash_attn(self):
-        try:
-            self.pipeline.transformer.set_attention_backend("_flash_3_hub")
-            logger_p.info("FlashAttention 3 enabled")
-        except Exception as e:
-            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
+        if self.model_path == "black-forest-labs/FLUX.2-dev":
             try:
-                self.pipeline.transformer.set_attention_backend("flash")
-                logger_p.info("FlashAttention 2 enabled")
-            except Exception as e2:
-                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
+                self.pipeline.transformer.set_attention_backend("_flash_3_hub")
+                logger_p.info("FlashAttention 3 enabled")
+            except Exception as e:
+                logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
                 try:
-                    self.pipeline.transformer.set_attention_backend("sage_hub")
-                    logger_p.info("SAGE Attention enabled")
-                except Exception as e3:
-                    logger_p.warning(f"No optimized attention available, using default SDPA: {str(e3)}")
+                    self.pipeline.transformer.set_attention_backend("flash")
+                    logger_p.info("FlashAttention 2 enabled")
+                except Exception as e2:
+                    logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
+                    try:
+                        self.pipeline.transformer.set_attention_backend("sage_hub")
+                        logger_p.info("SAGE Attention enabled")
+                    except Exception as e3:
+                        logger_p.warning(f"No optimized attention available, using default SDPA: {str(e3)}")
+        else:
+            logger_p.info("Skip FlashAttention")
 
     def optimization(self):
         try:
