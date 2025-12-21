@@ -448,6 +448,47 @@ class AutoPipelineDiffusers:
     def start(self):
         if torch.cuda.is_available():
             self.pipeline = AutoPipelineForText2Image.from_pretrained(self.model_name, device_map="cuda")
+            self.optimization()
+
+    def optimization(self):
+        try:
+            self.optimize_attention_sdpa()
+            self.optimize_memory_format()
+            self.fuse_qkv_projections()
+        except Exception as e:
+            logger_p.error(f"❌ The optimizations could not be applied: {e}")
+            logger_p.info("Running with the non-optimized version")
+            pass
+
+    def optimize_attention_sdpa(self):
+        try:
+            logger_p.info("SDPA (Scaled Dot Product Attention)")
+            from diffusers.models.attention_processor import AttnProcessor2_0
+            self.pipeline.unet.set_attn_processor(AttnProcessor2_0())
+        except Exception as e:
+            logger_p.error(f"❌ Error enabling SDPA: {e}")
+            pass
+
+    def optimize_memory_format(self): 
+        try:
+            logger_p.info("channels_last memory format")
+            self.pipeline.unet.to(memory_format=torch.channels_last)
+            if hasattr(self.pipeline, 'vae'):
+                self.pipeline.vae.to(memory_format=torch.channels_last)
+        except Exception as e:
+            logger_p.error(f"❌ Error optimizing memory format: {e}")
+            pass
+
+    def fuse_qkv_projections(self):        
+        try:
+            self.pipeline.fuse_qkv_projections()
+            logger_p.info("QKV projection fusion")
+        except AttributeError:
+            logger_p.warning("⚠️ fuse_qkv_projections not available for this model")
+            pass
+        except Exception as e:
+            logger_p.error(f"❌ Error merging QKV projections: {e}")
+            pass
 
 class ModelPipelineInit:
     def __init__(self, model: str, low_vram: bool = False, auto_pipeline: bool = False, device_map_flux2: str | None = None):
