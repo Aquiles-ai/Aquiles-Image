@@ -36,7 +36,21 @@ class VideoModels(str, Enum):
 
     WAN2_2_TURBO = 'wan2.2-turbo'
     # HunyuanVideo-1.5
-    HY1_5_API = 'hunyuanVideo-1.5'
+    HY1_5_480_API = 'hunyuanVideo-1.5-480p'
+
+    HY1_5_720_API = 'hunyuanVideo-1.5-720p'
+
+    HY1_5_480_API_FP8 = 'hunyuanVideo-1.5-480p-fp8'
+
+    HY1_5_720_API_FP8 = 'hunyuanVideo-1.5-720p-fp8'
+
+    HY1_5_480_API_TURBO = 'hunyuanVideo-1.5-480p-turbo'
+
+    WAN_2_1 = 'wan2.1'
+
+    WAN_2_1_TURBO = 'wan2.1-turbo'
+
+    WAN_2_1_3B = 'wan2.1-3B'
 
 class ResponseFormat(str, Enum):
     URL = "url"

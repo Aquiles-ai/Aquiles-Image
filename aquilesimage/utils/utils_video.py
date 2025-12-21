@@ -39,7 +39,7 @@ def download_wan_2_2_turbo():
     print(f"PATH: {AQUILES_VIDEO_BASE_PATH}/wan_2_2_turbo")
     print(snapshot_download(repo_id="Aquiles-ai/Wan2.2-Turbo", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2_turbo"))
 
-def get_path_file_video_model(name: Literal["wan2.2", "wan2.2-turbo", "hunyuanVideo-1.5"] = "wan2.2"):
+def get_path_file_video_model(name: Literal["wan2.2", "wan2.2-turbo", "hunyuanVideo-1.5-480p", "hunyuanVideo-1.5-720p", "wan2.1", "wan2.1-turbo", "wan2.1-3B", "hunyuanVideo-1.5-480p-fp8", "hunyuanVideo-1.5-720p-fp8", "hunyuanVideo-1.5-480p-turbo"] = "wan2.2"):
     if name == "wan2.2":
         return f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"
     elif name == "wan2.2-turbo":
