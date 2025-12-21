@@ -114,6 +114,8 @@ class PipelineFlux:
 
             if self.optimization_flag:
                 self.optimization()
+            else:
+                pass
                 
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
