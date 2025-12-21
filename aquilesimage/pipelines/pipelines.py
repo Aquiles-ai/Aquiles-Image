@@ -89,11 +89,12 @@ class PipelineSD3:
             raise Exception("No CUDA or MPS device available")
 
 class PipelineFlux:
-    def __init__(self, model_path: str | None = None, low_vram: bool = False):
+    def __init__(self, model_path: str | None = None, low_vram: bool = False, optimization_flag: bool = False):
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: FluxPipeline | None = None
         self.device: str | None = None
         self.low_vram = low_vram
+        self.optimization_flag = optimization_flag
 
     def start(self):
         if torch.cuda.is_available():
@@ -111,7 +112,8 @@ class PipelineFlux:
             else:
                 pass
 
-            self.optimization()
+            if self.optimization_flag:
+                self.optimization()
                 
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
