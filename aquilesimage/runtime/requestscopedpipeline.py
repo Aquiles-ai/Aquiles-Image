@@ -461,3 +461,150 @@ class RequestScopedPipeline:
                         setattr(local_pipe, name, tok)
             except Exception as e:
                 logger.info(f"Error restoring original tokenizers: {e}")
+
+    def generate_batch(self, prompts: List[str], *args, num_inference_steps: int = 50, device: Optional[str] = None, **kwargs):
+        height = kwargs.get('height', 1024)
+        width = kwargs.get('width', 1024)
+
+        if not prompts:
+            raise ValueError("prompts list cannot be empty")
+    
+        if not isinstance(prompts, list):
+            raise TypeError(f"prompts must be a list, got {type(prompts)}")
+    
+        if self.is_kontext:
+            logger.debug(f"Kontext mode detected - calculating mu for resolution {height}x{width}")
+        
+            image_seq_len = _get_image_seq_len(height, width)
+        
+            mu = _calculate_shift(image_seq_len)
+
+            local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device, use_dynamic_shifting=True, mu=mu)
+        elif self.use_flux:
+            local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device, use_dynamic_shifting=False)
+        else:
+            local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device)
+
+        try:
+            local_pipe = copy.copy(self._base)
+        except Exception as e:
+            logger.warning(f"copy.copy(self._base) failed: {e}. Falling back to deepcopy (may increase memory).")
+            local_pipe = copy.deepcopy(self._base)
+
+        try:
+            if hasattr(local_pipe, "vae") and local_pipe.vae is not None and not isinstance(local_pipe.vae, ThreadSafeVAEWrapper):
+                local_pipe.vae = ThreadSafeVAEWrapper(local_pipe.vae, self._vae_lock)
+
+            if hasattr(local_pipe, "image_processor") and local_pipe.image_processor is not None and not isinstance(local_pipe.image_processor, ThreadSafeImageProcessorWrapper):
+                local_pipe.image_processor = ThreadSafeImageProcessorWrapper(local_pipe.image_processor, self._image_lock)
+        except Exception as e:
+            logger.info(f"Could not wrap vae/image_processor: {e}")
+
+        self._restore_config_if_needed(local_pipe)
+
+        if local_scheduler is not None:
+            try:
+                if self.is_kontext:
+                    scheduler_kwargs = {k: v for k, v in kwargs.items() if k in ['timesteps', 'sigmas', 'mu']}
+                    scheduler_kwargs['use_dynamic_shifting'] = True
+                else:
+                    scheduler_kwargs = {k: v for k, v in kwargs.items() if k in ['timesteps', 'sigmas']}
+            
+                timesteps, num_steps, configured_scheduler = async_retrieve_timesteps(
+                    local_scheduler.scheduler,
+                    num_inference_steps=num_inference_steps,
+                    device=device,
+                    return_scheduler=True,
+                    use_kontext=self.is_kontext,
+                    **scheduler_kwargs
+                )
+
+                final_scheduler = BaseAsyncScheduler(configured_scheduler)
+                setattr(local_pipe, "scheduler", final_scheduler)
+            except Exception as e:
+                logger.warning(f"Could not set scheduler on local pipe; proceeding without replacing scheduler. Error{e}")
+
+        self._clone_mutable_attrs(self._base, local_pipe)
+
+        generators = []
+        for _ in range(len(prompts)):
+            g = torch.Generator(device=device or "cuda")
+            g.manual_seed(torch.randint(0, 10_000_000, (1,)).item())
+            generators.append(g)
+
+        original_tokenizers = {}
+    
+        if self._should_wrap_tokenizers():
+            try:
+                for name in dir(local_pipe):
+                    if "tokenizer" in name and not name.startswith("_"):
+                        tok = getattr(local_pipe, name, None)
+                        if tok is not None and self._is_tokenizer_component(tok):
+                            if not isinstance(tok, ThreadSafeTokenizerWrapper):
+                                original_tokenizers[name] = tok
+                                wrapped_tokenizer = ThreadSafeTokenizerWrapper(tok, self._tokenizer_lock)
+                                setattr(local_pipe, name, wrapped_tokenizer)
+
+                if hasattr(local_pipe, "components") and isinstance(local_pipe.components, dict):
+                    for key, val in local_pipe.components.items():
+                        if val is None:
+                            continue
+                    
+                        if self._is_tokenizer_component(val):
+                            if not isinstance(val, ThreadSafeTokenizerWrapper):
+                                original_tokenizers[f"components[{key}]"] = val
+                                wrapped_tokenizer = ThreadSafeTokenizerWrapper(val, self._tokenizer_lock)
+                                local_pipe.components[key] = wrapped_tokenizer
+
+            except Exception as e:
+                logger.info(f"Tokenizer wrapping step encountered an error: {e}")
+
+        result = None
+        cm = getattr(local_pipe, "model_cpu_offload_context", None)
+    
+        try:
+
+            if self.is_kontext:
+                logger.info(f"Calling Kontext pipeline with mu={kwargs.get('mu')}")
+
+            kwargs.pop('mu', None)
+        
+            if callable(cm):
+                try:
+                    with cm():
+                        result = local_pipe(prompt=prompts,
+                generator=generators, num_inference_steps=num_inference_steps, **kwargs)
+                except TypeError:
+                    try:
+                        with cm:
+                            result = local_pipe(prompt=prompts,
+                generator=generators, num_inference_steps=num_inference_steps, **kwargs)
+                    except Exception as e:
+                        logger.info(f"model_cpu_offload_context usage failed: {e}. Proceeding without it.")
+                        result = local_pipe(prompt=prompts,
+                generator=generators, num_inference_steps=num_inference_steps, **kwargs)
+            else:
+                result = local_pipe(prompt=prompts,
+                generator=generators, num_inference_steps=num_inference_steps, **kwargs)
+
+            if len(result.images) != len(prompts):
+                raise RuntimeError(
+                    f"X CRITICAL: Pipeline returned {len(result.images)} images "
+                    f"but expected {len(prompts)}. Output mapping is BROKEN!"
+                )
+
+            logger.info(f"Batch of {len(prompts)} completed successfully")
+
+            return result
+
+        finally:
+            try:
+                for name, tok in original_tokenizers.items():
+                    if name.startswith("components["):
+                        key = name[len("components["):-1]
+                        if hasattr(local_pipe, 'components') and isinstance(local_pipe.components, dict):
+                            local_pipe.components[key] = tok
+                    else:
+                        setattr(local_pipe, name, tok)
+            except Exception as e:
+                logger.info(f"Error restoring original tokenizers: {e}")
