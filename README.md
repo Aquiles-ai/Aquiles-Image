@@ -105,7 +105,7 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 
 > **VRAM Requirements**: Most models need 24GB+ VRAM. Video generation requires 80GB+ (H100/A100-80G).
 
-[**📖 Full models documentation**](https://aquiles-ai.github.io/aquiles-image-docs/#models)
+[**📖 Full models documentation**](https://aquiles-ai.github.io/aquiles-image-docs/#models) and more models in [**🎬 Aquiles-Studio**](https://huggingface.co/collections/Aquiles-ai/aquiles-studio)
 
 ## 💡 Examples
 
