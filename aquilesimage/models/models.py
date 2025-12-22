@@ -242,6 +242,8 @@ class ConfigsServe(BaseModel):
     auto_pipeline: bool | None = Field(default=None, description="Load a model that is compatible with diffusers (Only the Text2Image models) but is not mentioned in the Aquiles-Image documentation.")
     device_map: str | None = Field(default=None, description="device_map option in which to load the model (Only compatible with diffusers/FLUX.2-dev-bnb-4bit)")
     type_model: str | None = Field(default=None, description="This is for video models. There are only 2 options: 'Images' and 'Videos'.")
+    batch_mode: bool | None = Field(default=False, description="Use batch mode (Experimental)")
+    dist_inference: bool | None = Field(default=False, description="Use distributed inference (Not yet implemented)")
 
 class Model(BaseModel):
     id: str = Field(..., description="Unique identifier of the model")

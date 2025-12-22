@@ -46,10 +46,12 @@ model_name: str | None = None
 video_task_gen: VideoTaskGeneration | None = None
 auto_pipeline: str | None = None
 device_map_flux2: str | None = None
+batch_mode: bool | None = None
+batch_pipeline = None
 Videomodel = [VideoModels.WAN2_2_API, VideoModels.HY1_5_API, VideoModels.WAN2_2_TURBO]
 
 def load_models():
-    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel
+    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline
 
     logger.info("Loading configuration...")
     
@@ -58,6 +60,7 @@ def load_models():
     load_model = config.get("load_model")
     auto_pipeline = config.get("auto_pipeline")
     device_map_flux2 = config.get("device_map")
+    batch_mode = config.get("batch_mode")
 
     flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2]
 
@@ -106,8 +109,25 @@ def load_models():
                     request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
                 else:
                     request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
-        
+
                 logger.info(f"Model '{model_name}' loaded successfully")
+
+                if batch_mode is not None and batch_mode is True:
+                    try:
+                        logger.info(f"Using Batch Mode (Experimental)")
+                        from aquilesimage.runtime.batch_infer import BatchPipeline
+                        
+                        batch_pipeline = BatchPipeline(
+                            request_scoped_pipeline=request_pipe,
+                            max_batch_size=4,
+                            batch_timeout=0.5,
+                            worker_sleep=0.05,
+                        )
+
+                    except Exception as e:
+                        logger.error(f"Failed to Using Batch Mode: {e}")
+                        pass
+
         
             except Exception as e:
                 logger.error(f"Failed to initialize model pipeline: {e}")

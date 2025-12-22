@@ -24,10 +24,12 @@ def greet(name):
 @click.option("--set-steps", type=int, default=None, help="Set the steps that the model will use")
 @click.option("--auto-pipeline/--no-auto-pipeline", default=None, help="Load a model that is compatible with diffusers but is not mentioned in the Aquiles-Image documentation")
 @click.option("--device-map", type=str, default=None, help="Device map option in which to load the model (Only compatible with diffusers/FLUX.2-dev-bnb-4bit)")
+@click.option("--batch-mode/--no-batch-mode", default=None, help="Use batch mode (Experimental)")
+@click.option("--dist-inference/--no-dist-inference", default=None, help="Use distributed inference (Not yet implemented)")
 def serve(host: str, port: int, model: Optional[str], api_key: Optional[str], 
          max_concurrent_infer: Optional[int], block_request: Optional[bool], force: bool, 
          no_load_model: bool, set_steps: Optional[int], auto_pipeline: Optional[bool], 
-         device_map: Optional[str]):
+         device_map: Optional[str], batch_mode: Optional[bool], dist_inference: Optional[bool]):
     """Start the Aquiles-Image server."""
     try:
         from aquilesimage.configs import (
@@ -82,7 +84,9 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
         no_load_model,
         set_steps is not None,
         auto_pipeline is not None,
-        device_map is not None
+        device_map is not None,
+        batch_mode is not None,
+        dist_inference is not None
     ])
 
     if config_needs_update:
@@ -100,7 +104,9 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
                 load_model=False if no_load_model else conf.get("load_model", True),
                 steps_n=set_steps if set_steps is not None else conf.get("steps_n"),
                 auto_pipeline=auto_pipeline if auto_pipeline is not None else conf.get("auto_pipeline"),
-                device_map=device_map if device_map is not None else conf.get("device_map")
+                device_map=device_map if device_map is not None else conf.get("device_map"),
+                batch_mode=batch_mode if batch_mode is not None else conf.get("batch_mode"),
+                dist_inference=dist_inference if dist_inference is not None else conf.get("dist_inference")
             )
 
             configs_image_serve(updated_conf, force=True)
