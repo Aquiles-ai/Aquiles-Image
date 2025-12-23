@@ -180,6 +180,8 @@ class HunyuanVideo_Pipeline:
                 fps=24,  
             )
 
+            self.pipeline.aspect_ratio = "16:9"
+
         elif name == "hunyuanVideo-1.5-720p-fp8":
 
             model_path = get_path_file_video_model("hunyuanVideo-1.5-720p-fp8")
@@ -211,6 +213,8 @@ class HunyuanVideo_Pipeline:
                 fps=24,  
             )
 
+            self.pipeline.aspect_ratio = "16:9"
+
     def start_standard(self, name: Literal["hunyuanVideo-1.5-480p", "hunyuanVideo-1.5-720p"]):
         if name == "hunyuanVideo-1.5-480p":
             model_path = get_path_file_video_model("hunyuanVideo-1.5-480p")
@@ -233,6 +237,8 @@ class HunyuanVideo_Pipeline:
                 fps=24,  
             )
 
+            self.pipeline.aspect_ratio = "16:9"
+
         elif name == "hunyuanVideo-1.5-720p":
             model_path = get_path_file_video_model("hunyuanVideo-1.5-720p")
 
@@ -253,6 +259,8 @@ class HunyuanVideo_Pipeline:
                 sample_shift=9.0,  
                 fps=24,  
             )
+
+            self.pipeline.aspect_ratio = "16:9"
 
 
     def start_turbo(self, name: Literal["hunyuanVideo-1.5-480p-turbo", "hunyuanVideo-1.5-480p-turbo-fp8"]):
@@ -279,6 +287,8 @@ class HunyuanVideo_Pipeline:
                 fps=16,
                 denoising_step_list=[1000, 750, 500, 250]
             )
+
+            self.pipeline.aspect_ratio = "16:9"
 
         elif name == "hunyuanVideo-1.5-480p-turbo-fp8":
             model_path = get_path_file_video_model("hunyuanVideo-1.5-480p-turbo")
@@ -308,6 +318,8 @@ class HunyuanVideo_Pipeline:
                 fps=16,
                 denoising_step_list=[1000, 750, 500, 250]
             )
+
+            self.pipeline.aspect_ratio = "16:9"
 
 class ModelVideoPipelineInit:
     def __init__(self, model: str):
