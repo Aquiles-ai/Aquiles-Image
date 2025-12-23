@@ -182,12 +182,21 @@ class VideoTaskGeneration:
             return False
 
     async def _generate_video(self, task: VideoTask) -> Any:
-        await run_in_threadpool(self.pipeline.generate,
-            seed=random.randint(1, 1000),
-            prompt=task.prompt,
-            save_result_path=task.video_path,
-            negative_prompt="No deformities"
-        )
+        if task.model in ["hunyuanVideo-1.5-480p", "hunyuanVideo-1.5-720p", "hunyuanVideo-1.5-480p-fp8", "hunyuanVideo-1.5-720p-fp8", "hunyuanVideo-1.5-480p-turbo", "hunyuanVideo-1.5-480p-turbo-fp8"]:
+            await run_in_threadpool(self.pipeline.generate,
+                seed=random.randint(1, 1000),
+                prompt=task.prompt,
+                save_result_path=task.video_path,
+                negative_prompt="No deformities",
+                aspect_ratio="16:9"
+            )
+        else:
+            await run_in_threadpool(self.pipeline.generate,
+                seed=random.randint(1, 1000),
+                prompt=task.prompt,
+                save_result_path=task.video_path,
+                negative_prompt="No deformities"
+            )
 
     def get_stats(self) -> dict:
         return {
