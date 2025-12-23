@@ -48,7 +48,7 @@ auto_pipeline: str | None = None
 device_map_flux2: str | None = None
 batch_mode: bool | None = None
 batch_pipeline = None
-Videomodel = [VideoModels.WAN2_2_API, VideoModels.HY1_5_API, VideoModels.WAN2_2_TURBO]
+Videomodel = [VideoModels.WAN2_2_API, VideoModels.HY1_5_480_API, VideoModels.WAN2_2_TURBO, VideoModels.HY1_5_720_API, VideoModels.HY1_5_480_API_FP8, VideoModels.HY1_5_720_API_FP8, VideoModels.HY1_5_480_API_TURBO, VideoModels.HY1_5_480_API_TURBO_FP8]
 
 def load_models():
     global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline
