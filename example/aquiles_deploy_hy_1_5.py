@@ -18,8 +18,7 @@ aquiles_image = (
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
         "git+https://github.com/ModelTC/LightX2V.git",
         "kernels",
-        "vllm==0.11.0",
-        "sgl-kernel"
+        "vllm==0.11.0"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1",
           "HF_TOKEN": os.getenv("Hugging_face_token_for_deploy", "")})  
