@@ -158,8 +158,9 @@ class HunyuanVideo_Pipeline:
                 model_cls="hunyuan_video_1.5",
                 transformer_model_name="480p_t2v",
                 task="t2v",
-                use_image_encoder=False
             )
+
+            self.pipeline.use_image_encoder = False  
 
             self.pipeline.enable_quantize(  
                 dit_quantized=True,  
@@ -189,8 +190,9 @@ class HunyuanVideo_Pipeline:
                 model_cls="hunyuan_video_1.5",
                 transformer_model_name="720p_t2v",
                 task="t2v",
-                use_image_encoder=False
             )
+
+            self.pipeline.use_image_encoder = False  
 
             self.pipeline.enable_quantize(  
                 dit_quantized=True,  
@@ -220,8 +222,9 @@ class HunyuanVideo_Pipeline:
                 model_cls="hunyuan_video_1.5",
                 transformer_model_name="480p_t2v",
                 task="t2v",
-                use_image_encoder=False
             )
+
+            self.pipeline.use_image_encoder = False  
 
             self.pipeline.create_generator(  
                 attn_mode="flash_attn2",  
@@ -241,8 +244,9 @@ class HunyuanVideo_Pipeline:
                 model_cls="hunyuan_video_1.5",
                 transformer_model_name="720p_t2v",
                 task="t2v",
-                use_image_encoder=False
             )
+
+            self.pipeline.use_image_encoder = False  
 
             self.pipeline.create_generator(  
                 attn_mode="flash_attn2",  
@@ -266,8 +270,9 @@ class HunyuanVideo_Pipeline:
                 transformer_model_name="480p_t2v",
                 task="t2v",
                 dit_original_ckpt=f"{model_path}/lora/hy1.5_t2v_480p_lightx2v_4step.safetensors",
-                use_image_encoder=False
             )
+
+            self.pipeline.use_image_encoder = False  
 
             self.pipeline.create_generator(  
                 attn_mode="flash_attn2",  
@@ -288,8 +293,9 @@ class HunyuanVideo_Pipeline:
                 model_cls="hunyuan_video_1.5",
                 transformer_model_name="480p_t2v",
                 task="t2v",
-                use_image_encoder=False
             )
+
+            self.pipeline.use_image_encoder = False  
 
             self.pipeline.enable_quantize(
                 quant_scheme='fp8-sgl',
