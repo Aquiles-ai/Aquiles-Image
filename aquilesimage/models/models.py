@@ -46,6 +46,8 @@ class VideoModels(str, Enum):
 
     HY1_5_480_API_TURBO = 'hunyuanVideo-1.5-480p-turbo'
 
+    HY1_5_480_API_TURBO_FP8 = 'hunyuanVideo-1.5-480p-turbo-fp8'
+
     WAN_2_1 = 'wan2.1'
 
     WAN_2_1_TURBO = 'wan2.1-turbo'
