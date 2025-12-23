@@ -165,7 +165,7 @@ class HunyuanVideo_Pipeline:
                 dit_quantized_ckpt=f"{model_path}/quantized/hy15_480p_t2v_fp8_e4m3_lightx2v.safetensors",  
                 text_encoder_quantized=True, 
                 text_encoder_quantized_ckpt=f"{model_path}/vllm_encoder/hy15_qwen25vl_llm_encoder_fp8_e4m3_lightx2v.safetensors",
-                quant_scheme="fp8-vllm",
+                quant_scheme="fp8-sgl",
                 image_encoder_quantized=False,
             )
 
@@ -199,7 +199,7 @@ class HunyuanVideo_Pipeline:
                 dit_quantized_ckpt=f"{model_path}/quantized/hy15_720p_t2v_fp8_e4m3_lightx2v.safetensors",  
                 text_encoder_quantized=True, 
                 text_encoder_quantized_ckpt=f"{model_path}/vllm_encoder/hy15_qwen25vl_llm_encoder_fp8_e4m3_lightx2v.safetensors",
-                quant_scheme="fp8-vllm",
+                quant_scheme="fp8-sgl",
                 image_encoder_quantized=False,
             )
 
@@ -308,7 +308,7 @@ class HunyuanVideo_Pipeline:
             self.pipeline.use_image_encoder = False  
 
             self.pipeline.enable_quantize(
-                quant_scheme="fp8-vllm",
+                quant_scheme="fp8-sgl",
                 dit_quantized=True,
                 dit_quantized_ckpt=f"{model_path}/lora/hy1.5_t2v_480p_scaled_fp8_e4m3_lightx2v_4step.safetensors",
                 image_encoder_quantized=False,

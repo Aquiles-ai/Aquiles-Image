@@ -2,7 +2,7 @@ from openai import OpenAI
 import sys
 import time
 
-openai = OpenAI(base_url="https://f4k3r22--aquiles-image-server-wan2-2-serve.modal.run", api_key="dummy-api-key")
+openai = OpenAI(base_url="https://riveraaai200678--aquiles-image-server-hy-1-5-serve.modal.run", api_key="dummy-api-key")
 
 POLL_INTERVAL = 2.0
 TIMEOUT_SECONDS = 120 * 30
