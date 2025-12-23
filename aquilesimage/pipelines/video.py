@@ -162,8 +162,6 @@ class HunyuanVideo_Pipeline:
 
             self.pipeline.use_image_encoder = False  
 
-            self.pipeline.aspect_ratio = "16:9"
-
             self.pipeline.enable_quantize(  
                 dit_quantized=True,  
                 dit_quantized_ckpt=f"{model_path}/quantized/hy15_480p_t2v_fp8_e4m3_lightx2v.safetensors",  
@@ -182,6 +180,8 @@ class HunyuanVideo_Pipeline:
                 fps=24,  
             )
 
+            self.pipeline.runner.set_config({"aspect_ratio": "16:9"})
+
 
         elif name == "hunyuanVideo-1.5-720p-fp8":
 
@@ -195,8 +195,6 @@ class HunyuanVideo_Pipeline:
             )
 
             self.pipeline.use_image_encoder = False  
-
-            self.pipeline.aspect_ratio = "16:9"
 
             self.pipeline.enable_quantize(  
                 dit_quantized=True,  
@@ -216,6 +214,8 @@ class HunyuanVideo_Pipeline:
                 fps=24,  
             )
 
+            self.pipeline.runner.set_config({"aspect_ratio": "16:9"})
+
     def start_standard(self, name: Literal["hunyuanVideo-1.5-480p", "hunyuanVideo-1.5-720p"]):
         if name == "hunyuanVideo-1.5-480p":
             model_path = get_path_file_video_model("hunyuanVideo-1.5-480p")
@@ -229,8 +229,6 @@ class HunyuanVideo_Pipeline:
 
             self.pipeline.use_image_encoder = False  
 
-            self.pipeline.aspect_ratio = "16:9"
-
             self.pipeline.create_generator(  
                 attn_mode="flash_attn2",  
                 infer_steps=50,  
@@ -240,6 +238,7 @@ class HunyuanVideo_Pipeline:
                 fps=24,  
             )
 
+            self.pipeline.runner.set_config({"aspect_ratio": "16:9"})
 
         elif name == "hunyuanVideo-1.5-720p":
             model_path = get_path_file_video_model("hunyuanVideo-1.5-720p")
@@ -253,8 +252,6 @@ class HunyuanVideo_Pipeline:
 
             self.pipeline.use_image_encoder = False  
 
-            self.pipeline.aspect_ratio = "16:9"
-
             self.pipeline.create_generator(  
                 attn_mode="flash_attn2",  
                 infer_steps=50,  
@@ -263,6 +260,8 @@ class HunyuanVideo_Pipeline:
                 sample_shift=9.0,  
                 fps=24,  
             )
+
+            self.pipeline.runner.set_config({"aspect_ratio": "16:9"})
 
 
 
@@ -281,8 +280,6 @@ class HunyuanVideo_Pipeline:
 
             self.pipeline.use_image_encoder = False
 
-            self.pipeline.aspect_ratio = "16:9"  
-
             self.pipeline.create_generator(  
                 attn_mode="flash_attn2",  
                 infer_steps=4,  
@@ -292,6 +289,8 @@ class HunyuanVideo_Pipeline:
                 fps=16,
                 denoising_step_list=[1000, 750, 500, 250]
             )
+
+            self.pipeline.runner.set_config({"aspect_ratio": "16:9"})
 
 
         elif name == "hunyuanVideo-1.5-480p-turbo-fp8":
@@ -305,8 +304,6 @@ class HunyuanVideo_Pipeline:
             )
 
             self.pipeline.use_image_encoder = False  
-
-            self.pipeline.aspect_ratio = "16:9"
 
             self.pipeline.enable_quantize(
                 quant_scheme='fp8-sgl',
@@ -324,6 +321,8 @@ class HunyuanVideo_Pipeline:
                 fps=16,
                 denoising_step_list=[1000, 750, 500, 250]
             )
+
+            self.pipeline.runner.set_config({"aspect_ratio": "16:9"})
 
 
 class ModelVideoPipelineInit:
