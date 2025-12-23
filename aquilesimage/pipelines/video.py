@@ -1,4 +1,5 @@
 import torch
+from lightx2v.models.runners.hunyuan_video.hunyuan_video_15_runner import HunyuanVideo15Runner
 from lightx2v import LightX2VPipeline
 from aquilesimage.utils.utils_video import get_path_file_video_model, file_exists, download_base_wan_2_2, download_wan_2_2_turbo, download_hy, download_wan2_1
 from typing import Literal
