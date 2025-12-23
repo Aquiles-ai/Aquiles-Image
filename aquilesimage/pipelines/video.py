@@ -176,8 +176,7 @@ class HunyuanVideo_Pipeline:
                 infer_steps=50,  
                 num_frames=121,  
                 guidance_scale=6.0,  
-                sample_shift=9.0,  
-                aspect_ratio="16:9",  
+                sample_shift=9.0, 
                 fps=24,  
             )
 
@@ -208,8 +207,7 @@ class HunyuanVideo_Pipeline:
                 infer_steps=50,  
                 num_frames=121,  
                 guidance_scale=6.0,  
-                sample_shift=9.0,  
-                aspect_ratio="16:9",  
+                sample_shift=9.0, 
                 fps=24,  
             )
 
@@ -231,8 +229,7 @@ class HunyuanVideo_Pipeline:
                 infer_steps=50,  
                 num_frames=121,  
                 guidance_scale=6.0,  
-                sample_shift=9.0,  
-                aspect_ratio="16:9",  
+                sample_shift=9.0,   
                 fps=24,  
             )
 
@@ -254,7 +251,6 @@ class HunyuanVideo_Pipeline:
                 num_frames=121,  
                 guidance_scale=6.0,  
                 sample_shift=9.0,  
-                aspect_ratio="16:9",  
                 fps=24,  
             )
 
@@ -279,8 +275,7 @@ class HunyuanVideo_Pipeline:
                 infer_steps=4,  
                 num_frames=81,  
                 guidance_scale=1,  
-                sample_shift=9.0,  
-                aspect_ratio="16:9",  
+                sample_shift=9.0,   
                 fps=16,
                 denoising_step_list=[1000, 750, 500, 250]
             )
@@ -310,7 +305,6 @@ class HunyuanVideo_Pipeline:
                 num_frames=81,  
                 guidance_scale=1,  
                 sample_shift=9.0,  
-                aspect_ratio="16:9",  
                 fps=16,
                 denoising_step_list=[1000, 750, 500, 250]
             )
