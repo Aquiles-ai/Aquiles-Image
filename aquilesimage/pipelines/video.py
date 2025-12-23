@@ -105,10 +105,8 @@ class Wan2_2_Turbo_Pipeline:
             download_wan_2_2_turbo()
 
 class HunyuanVideo_Pipeline:
-    def __init__(self, model_name: Literal["hunyuanVideo-1.5-480p", "hunyuanVideo-1.5-720p", "hunyuanVideo-1.5-480p-fp8", "hunyuanVideo-1.5-720p-fp8", "hunyuanVideo-1.5-480p-turbo", "hunyuanVideo-1.5-480p-turbo-fp8"], h: int = 720, w: int = 1280, frames: int = 81):
+    def __init__(self, model_name: Literal["hunyuanVideo-1.5-480p", "hunyuanVideo-1.5-720p", "hunyuanVideo-1.5-480p-fp8", "hunyuanVideo-1.5-720p-fp8", "hunyuanVideo-1.5-480p-turbo", "hunyuanVideo-1.5-480p-turbo-fp8"], frames: int = 81):
         self.pipeline: LightX2VPipeline | None = None
-        self.h = h
-        self.w = w
         self.frames = frames
         self.model_name = model_name
         self.verify_model()
