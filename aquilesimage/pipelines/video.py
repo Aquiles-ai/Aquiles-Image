@@ -211,6 +211,8 @@ class HunyuanVideo_Pipeline:
                 num_frames=121,  
                 guidance_scale=6.0,  
                 sample_shift=9.0, 
+                height=720,
+                width=1280,
                 fps=24,  
             )
 
@@ -257,7 +259,9 @@ class HunyuanVideo_Pipeline:
                 infer_steps=50,  
                 num_frames=121,  
                 guidance_scale=6.0,  
-                sample_shift=9.0,  
+                sample_shift=9.0,
+                height=720,
+                width=1280,
                 fps=24,  
             )
 
@@ -306,7 +310,7 @@ class HunyuanVideo_Pipeline:
             self.pipeline.use_image_encoder = False  
 
             self.pipeline.enable_quantize(
-                quant_scheme='fp8-sgl',
+                quant_scheme="fp8-vllm",
                 dit_quantized=True,
                 dit_quantized_ckpt=f"{model_path}/lora/hy1.5_t2v_480p_scaled_fp8_e4m3_lightx2v_4step.safetensors",
                 image_encoder_quantized=False,

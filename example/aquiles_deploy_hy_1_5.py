@@ -18,13 +18,14 @@ aquiles_image = (
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
         "git+https://github.com/ModelTC/LightX2V.git",
         "kernels",
-        "vllm==0.11.0"
+        "vllm==0.11.0",
+        "starlette"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1",
           "HF_TOKEN": os.getenv("Hugging_face_token_for_deploy", "")})  
 )
 
-MODEL_NAME = "hunyuanVideo-1.5-480p"
+MODEL_NAME = "hunyuanVideo-1.5-720p"
 
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
 aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=True)
