@@ -211,7 +211,7 @@ class BatchPipeline:
             def batch_infer():
                 return self.pipeline.generate_batch(
                     prompts=prompts,
-                    images=images,
+                    image=images,
                     height=params['height'],
                     width=params['width'],
                     num_inference_steps=params['num_inference_steps'],

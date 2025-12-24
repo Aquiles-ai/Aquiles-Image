@@ -569,25 +569,7 @@ async def create_image_edit(
                 def __init__(self, images):
                     self.images = images
 
-            if n > 1:
-                images = []
-                for _ in range(n):
-                    img = await batch_pipeline.submit(
-                        prompt=prompt,
-                        image=image_to_use,
-                        height=height,
-                        width=width,
-                        num_inference_steps=steps if steps is not None else 30,
-                        device=initializer.device,
-                        timeout=600.0,
-                        guidance_scale=gd,
-                        output_type="pil",
-                        num_images_per_prompt=n or 1,
-                    )
-                    images.append(img)
-                output = DummyOutput(images)
-            else:
-                output = DummyOutput([image])
+            output = DummyOutput([image])
 
         else:
             output = await run_in_threadpool(infer)

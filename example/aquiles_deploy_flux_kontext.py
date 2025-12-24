@@ -15,7 +15,6 @@ aquiles_image = (
         "transformers==4.57.3",
         "tokenizers==0.22.1",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
-        "xformers==0.0.32post1",
         "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl",
         "kernels"
     )
@@ -62,6 +61,7 @@ def serve():
         "--set-steps", "35",
         "--api-key", "dummy-api-key",
         "--device-map", "cuda",
+        "--batch-mode"
     ]
 
     print(f"Starting Aquiles-Image with the model:{MODEL_NAME}")
