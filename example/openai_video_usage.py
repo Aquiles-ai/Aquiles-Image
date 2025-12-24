@@ -90,7 +90,7 @@ def download_with_retries(video_id, out_path="video.mp4"):
 def main():
     try:
         created = openai.videos.create(
-            model="wan2.1-turbo",
+            model="wan2.1-turbo-fp8",
             prompt=PROMPT,
         )
     except Exception as e:

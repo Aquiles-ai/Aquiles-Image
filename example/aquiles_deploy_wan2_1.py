@@ -15,7 +15,7 @@ aquiles_image = (
         "transformers==4.57.3",
         "tokenizers==0.22.1",
         "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl",
-        "aquiles-image==0.2.74",
+        "aquiles-image==0.2.75",
         "git+https://github.com/ModelTC/LightX2V.git",
         "vllm==0.11.0"
     )
@@ -23,7 +23,7 @@ aquiles_image = (
           "HF_TOKEN": os.getenv("Hugging_face_token_for_deploy", "")})  
 )
 
-MODEL_NAME = "wan2.1-turbo"
+MODEL_NAME = "wan2.1-turbo-fp8"
 
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
 aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=True)
