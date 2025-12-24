@@ -463,4 +463,7 @@ class ModelVideoPipelineInit:
         elif self.model in ["hunyuanVideo-1.5-480p", "hunyuanVideo-1.5-720p", "hunyuanVideo-1.5-480p-fp8", "hunyuanVideo-1.5-720p-fp8", "hunyuanVideo-1.5-480p-turbo", "hunyuanVideo-1.5-480p-turbo-fp8"]:
             self.pipeline = HunyuanVideo_Pipeline(self.model)
 
+        elif self.model in ["wan2.1", "wan2.1-3B", "wan2.1-turbo", "wan2.1-turbo-fp8"]:
+            self.pipeline = Wan2_1_Pipeline(self.model)
+
         return self.pipeline
