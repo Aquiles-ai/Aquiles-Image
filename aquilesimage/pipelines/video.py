@@ -355,7 +355,13 @@ class Wan2_1_Pipeline:
 
 
     def start(self):
-        pass
+        if torch.cuda.is_available():
+            if self.model_name in ["wan2.1", "wan2.1-3B"]:
+                self.start_standard(self.model_name)
+            elif self.model_name in ["wan2.1-turbo", "wan2.1-turbo-fp8"]:
+                self.start_turbo(self.model_name)
+        else:
+            raise Exception("No CUDA device available")
 
     def start_standard(self, name: Literal["wan2.1", "wan2.1-3B"]):
         if name == "wan2.1":
