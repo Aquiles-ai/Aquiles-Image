@@ -294,7 +294,7 @@ class HunyuanVideo_Pipeline:
 
 
         elif name == "hunyuanVideo-1.5-480p-turbo-fp8":
-            model_path = get_path_file_video_model("hunyuanVideo-1.5-480p-turbo")
+            model_path = get_path_file_video_model("hunyuanVideo-1.5-480p-turbo-fp8")
 
             self.pipeline = LightX2VPipeline(
                 model_path=model_path,
