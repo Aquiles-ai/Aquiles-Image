@@ -26,6 +26,7 @@ import base64
 import io
 from typing import Optional, Any
 from datetime import datetime
+from aquilesimage.runtime.batch_inf import BatchPipeline
 
 DEV_MODE_IMAGE_URL = os.getenv("DEV_IMAGE_URL", "https://picsum.photos/1024/1024")
 DEV_MODE_IMAGE_PATH = os.getenv("DEV_IMAGE_PATH", None)
@@ -47,7 +48,7 @@ video_task_gen: VideoTaskGeneration | None = None
 auto_pipeline: str | None = None
 device_map_flux2: str | None = None
 batch_mode: bool | None = None
-batch_pipeline = None
+batch_pipeline: BatchPipeline | None = None
 Videomodel = [VideoModels.WAN2_2_API, VideoModels.HY1_5_480_API, VideoModels.WAN2_2_TURBO, VideoModels.HY1_5_720_API, VideoModels.HY1_5_480_API_FP8, VideoModels.HY1_5_720_API_FP8, VideoModels.HY1_5_480_API_TURBO, VideoModels.HY1_5_480_API_TURBO_FP8, VideoModels.WAN_2_1, VideoModels.WAN_2_1_TURBO, VideoModels.WAN_2_1_3B, VideoModels.WAN_2_1_TURBO_FP8]
 
 def load_models():
@@ -115,8 +116,7 @@ def load_models():
                 if batch_mode is not None and batch_mode is True:
                     try:
                         logger.info(f"Using Batch Mode (Experimental)")
-                        from aquilesimage.runtime.batch_infer import BatchPipeline
-                        
+
                         batch_pipeline = BatchPipeline(
                             request_scoped_pipeline=request_pipe,
                             max_batch_size=4,
@@ -181,6 +181,10 @@ async def lifespan(app: FastAPI):
     if model_name in Videomodel:
         logger.info("Video task manager started")
 
+    if batch_pipeline is not None:
+        await batch_pipeline.start()
+        logger.info("batch_pipeline started")
+
     async def metrics_loop():
             try:
                 while True:
@@ -228,6 +232,13 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 logger.warning(f"Error during video_task_gen shutdown: {e}")
 
+        if batch_pipeline:
+            try:
+                await batch_pipeline.stop()
+            except Exception as e:
+                logger.warning(f"Error during batch_pipeline shutdown: {e}")
+
+
         logger.info("Lifespan shutdown complete")
 
 app = FastAPI(title="Aquiles-Image", lifespan=lifespan)
@@ -270,16 +281,11 @@ async def create_image(input_r: CreateImageRequest):
         raise HTTPException(429)
     
     utils_app = app.state.utils_app
-
-    def make_generator():
-        g = torch.Generator(device=initializer.device)
-        return g.manual_seed(random.randint(0, 10_000_000))
-
     prompt = input_r.prompt
     model = input_r.model
 
     if model not in [e.value for e in ImageModel] or model not in app.state.model:
-        HTTPException(503, f"Model not available")
+        raise HTTPException(503, f"Model not available")
 
     n = input_r.n
     size = input_r.size
@@ -308,24 +314,60 @@ async def create_image(input_r: CreateImageRequest):
 
     req_pipe = app.state.REQUEST_PIPE
 
-    def infer():
-        gen = make_generator()
-        return req_pipe.generate(
-            prompt=prompt,
-            generator=gen,
-            num_inference_steps=steps if steps is not None else 30,
-            height=h,
-            width=w,
-            num_images_per_prompt=n,
-            device=initializer.device,
-            output_type="pil",
-        )
-
     try:
         async with app.state.metrics_lock:
             app.state.active_inferences += 1
 
-        output = await run_in_threadpool(infer)
+        if batch_pipeline is not None:
+            image = await batch_pipeline.submit(
+                prompt=prompt,
+                height=h,
+                width=w,
+                num_inference_steps=steps if steps is not None else 30,
+                device=initializer.device,
+                timeout=60.0
+            )
+            
+            # Crear output compatible con tu código
+            class DummyOutput:
+                def __init__(self, images):
+                    self.images = images
+
+            if n > 1:
+                images = []
+                for _ in range(n):
+                    img = await batch_pipeline.submit(
+                        prompt=prompt,
+                        height=h,
+                        width=w,
+                        num_inference_steps=steps if steps is not None else 30,
+                        device=initializer.device,
+                        timeout=60.0
+                    )
+                    images.append(img)
+                output = DummyOutput(images)
+            else:
+                output = DummyOutput([image])
+        
+        else:
+            def make_generator():
+                g = torch.Generator(device=initializer.device)
+                return g.manual_seed(random.randint(0, 10_000_000))
+            
+            def infer():
+                gen = make_generator()
+                return req_pipe.generate(
+                    prompt=prompt,
+                    generator=gen,
+                    num_inference_steps=steps if steps is not None else 30,
+                    height=h,
+                    width=w,
+                    num_images_per_prompt=n,
+                    device=initializer.device,
+                    output_type="pil",
+                )
+            
+            output = await run_in_threadpool(infer)
 
         async with app.state.metrics_lock:
             app.state.active_inferences = max(0, app.state.active_inferences - 1)
@@ -359,14 +401,19 @@ async def create_image(input_r: CreateImageRequest):
             response_data["background"] = background
         if output_format:
             response_data["output_format"] = output_format
-            
 
         return ImagesResponse(**response_data)
+        
+    except asyncio.TimeoutError:
+        async with app.state.metrics_lock:
+            app.state.active_inferences = max(0, app.state.active_inferences - 1)
+        logger.error("X Request timed out")
+        raise HTTPException(504, "Request timed out")
         
     except Exception as e:
         async with app.state.metrics_lock:
             app.state.active_inferences = max(0, app.state.active_inferences - 1)
-        logger.error(f"Error during inference: {e}")
+        logger.error(f"X Error during inference: {e}")
         raise HTTPException(500, f"Error in processing: {e}")
 
     finally:
