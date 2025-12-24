@@ -209,16 +209,27 @@ class BatchPipeline:
             from fastapi.concurrency import run_in_threadpool
             
             def batch_infer():
-                return self.pipeline.generate_batch(
-                    prompts=prompts,
-                    image=images,
-                    height=params['height'],
-                    width=params['width'],
-                    num_inference_steps=params['num_inference_steps'],
-                    device=params['device'],
-                    **{k: v for k, v in params.items() 
-                       if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images']}
-                )
+                if images is not None:
+                    return self.pipeline.generate_batch(
+                        prompts=prompts,
+                        image=images,
+                        height=params['height'],
+                        width=params['width'],
+                        num_inference_steps=params['num_inference_steps'],
+                        device=params['device'],
+                        **{k: v for k, v in params.items() 
+                            if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images']}
+                    )
+                else:
+                    return self.pipeline.generate_batch(
+                        prompts=prompts,
+                        height=params['height'],
+                        width=params['width'],
+                        num_inference_steps=params['num_inference_steps'],
+                        device=params['device'],
+                        **{k: v for k, v in params.items() 
+                            if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images']}
+                    )
 
             output = await run_in_threadpool(batch_infer)
 

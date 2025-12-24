@@ -15,9 +15,9 @@ aquiles_image = (
         "transformers==4.57.3",
         "tokenizers==0.22.1",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
-        "xformers==0.0.32post1",
         "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl",
-        "kernels"
+        "kernels",
+        "uvicorn"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1",
           "HF_TOKEN": os.getenv("Hugging_face_token_for_deploy", "")})  
@@ -45,7 +45,7 @@ AQUILES_PORT = 5500
         "/root/.local/share": aquiles_config_vol,
     },
 )
-@modal.concurrent(max_inputs=4)
+@modal.concurrent(max_inputs=100)
 @modal.web_server(port=AQUILES_PORT, startup_timeout=10 * MINUTES)
 def serve():
     import subprocess
