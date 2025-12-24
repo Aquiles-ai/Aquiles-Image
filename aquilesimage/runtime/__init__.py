@@ -1,1 +1,2 @@
 from .requestscopedpipeline import RequestScopedPipeline
+from .distributed_inference import get_device_count

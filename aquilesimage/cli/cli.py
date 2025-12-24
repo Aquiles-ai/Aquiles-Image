@@ -25,10 +25,14 @@ def greet(name):
 @click.option("--auto-pipeline/--no-auto-pipeline", default=None, help="Load a model that is compatible with diffusers but is not mentioned in the Aquiles-Image documentation")
 @click.option("--device-map", type=str, default=None, help="Device map option in which to load the model (Only compatible with diffusers/FLUX.2-dev-bnb-4bit)")
 @click.option("--dist-inference/--no-dist-inference", default=None, help="Use distributed inference (Not yet implemented)")
+@click.option("--max-batch-size", type=int, default=4)
+@click.option("--batch-timeout", type=float, default=0.5)
+@click.option("--worker-sleep", type=float, default=0.05)
 def serve(host: str, port: int, model: Optional[str], api_key: Optional[str], 
          max_concurrent_infer: Optional[int], block_request: Optional[bool], force: bool, 
          no_load_model: bool, set_steps: Optional[int], auto_pipeline: Optional[bool], 
-         device_map: Optional[str], dist_inference: Optional[bool]):
+         device_map: Optional[str], dist_inference: Optional[bool], max_batch_size: Optional[int], 
+         batch_timeout: Optional[float], worker_sleep: Optional[float]):
     """Start the Aquiles-Image server."""
     try:
         from aquilesimage.configs import (
@@ -84,7 +88,10 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
         set_steps is not None,
         auto_pipeline is not None,
         device_map is not None,
-        dist_inference is not None
+        dist_inference is not None,
+        max_batch_size is not None,
+        batch_timeout is not None,
+        worker_sleep is not None
     ])
 
     if config_needs_update:
@@ -103,7 +110,10 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
                 steps_n=set_steps if set_steps is not None else conf.get("steps_n"),
                 auto_pipeline=auto_pipeline if auto_pipeline is not None else conf.get("auto_pipeline"),
                 device_map=device_map if device_map is not None else conf.get("device_map"),
-                dist_inference=dist_inference if dist_inference is not None else conf.get("dist_inference")
+                dist_inference=dist_inference if dist_inference is not None else conf.get("dist_inference"),
+                max_batch_size=max_batch_size if max_batch_size is not None else conf.get("max_batch_size"),
+                batch_timeout=batch_timeout if batch_timeout is not None else conf.get("batch_timeout"),
+                worker_sleep=worker_sleep if worker_sleep is not None else conf.get("worker_sleep")
             )
 
             configs_image_serve(updated_conf, force=True)
