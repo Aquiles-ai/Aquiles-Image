@@ -13,16 +13,19 @@ logger = setup_colored_logger("Aquiles-Image-BatchCoordinator", logging.INFO)
 class PendingRequest:
     id: str
     prompt: str
-    params: Dict[str, Any]  # height, width, steps, device, etc.
-    timestamp: float
+    image: Optional[Any] = None
+    params: Dict[str, Any] = field(default_factory=dict)  # height, width, steps, device, etc.
+    timestamp: float = field(default_factory=time.time)
     future: asyncio.Future = field(default_factory=asyncio.Future)
     
     def params_key(self) -> Tuple:
+        has_image = self.image is not None
         return (
             self.params.get('height', 1024),
             self.params.get('width', 1024),
             self.params.get('num_inference_steps', 30),
-            self.params.get('device', 'cuda')
+            self.params.get('device', 'cuda'),
+            has_image,
         )
 
 class BatchPipeline:    
@@ -61,6 +64,7 @@ class BatchPipeline:
     async def submit(
         self,
         prompt: str,
+        image: Optional[Any] = None,
         height: int = 1024,
         width: int = 1024,
         num_inference_steps: int = 30,
@@ -74,6 +78,7 @@ class BatchPipeline:
         request = PendingRequest(
             id=req_id,
             prompt=prompt,
+            image=image,
             params={
                 'height': height,
                 'width': width,
@@ -89,8 +94,9 @@ class BatchPipeline:
             queue_size = len(self.pending)
             self.total_requests += 1
         
+        request_type = "I2I" if image is not None else "T2I"
         logger.info(
-            f"Request {req_id} queued "
+            f"Request {req_id} queued ({request_type}, "
             f"(queue_size={queue_size}, prompt='{prompt[:50]}...')"
         )
 
@@ -186,11 +192,16 @@ class BatchPipeline:
         if not group:
             return
 
-        logger.info(f"Processing group with params {params_key}:")
+        has_images = group[0].image is not None
+        batch_type = "Image-to-Image" if has_images else "Text-to-Image"
+
+        logger.info(f"Processing {batch_type} group with params {params_key}:")
         for i, req in enumerate(group):
             logger.info(f"  [{i}] {req.id}: '{req.prompt[:50]}...'")
 
         prompts = [r.prompt for r in group]
+
+        images = [r.image for r in group] if has_images else None
         
         params = group[0].params
         
@@ -200,12 +211,13 @@ class BatchPipeline:
             def batch_infer():
                 return self.pipeline.generate_batch(
                     prompts=prompts,
+                    images=images,
                     height=params['height'],
                     width=params['width'],
                     num_inference_steps=params['num_inference_steps'],
                     device=params['device'],
                     **{k: v for k, v in params.items() 
-                       if k not in ['height', 'width', 'num_inference_steps', 'device']}
+                       if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images']}
                 )
 
             output = await run_in_threadpool(batch_infer)

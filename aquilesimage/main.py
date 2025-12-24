@@ -325,10 +325,9 @@ async def create_image(input_r: CreateImageRequest):
                 width=w,
                 num_inference_steps=steps if steps is not None else 30,
                 device=initializer.device,
-                timeout=60.0
+                timeout=600.0
             )
             
-            # Crear output compatible con tu código
             class DummyOutput:
                 def __init__(self, images):
                     self.images = images
@@ -342,7 +341,7 @@ async def create_image(input_r: CreateImageRequest):
                         width=w,
                         num_inference_steps=steps if steps is not None else 30,
                         device=initializer.device,
-                        timeout=60.0
+                        timeout=600.0
                     )
                     images.append(img)
                 output = DummyOutput(images)
@@ -552,7 +551,46 @@ async def create_image_edit(
         async with app.state.metrics_lock:
             app.state.active_inferences += 1
 
-        output = await run_in_threadpool(infer)
+        if batch_pipeline is not None:
+            image = await batch_pipeline.submit(
+                prompt=prompt,
+                image=image_to_use,
+                height=height,
+                width=width,
+                num_inference_steps=steps if steps is not None else 30,
+                device=initializer.device,
+                timeout=600.0,
+                guidance_scale=gd,
+                output_type="pil",
+                num_images_per_prompt=n or 1,  
+            )
+            
+            class DummyOutput:
+                def __init__(self, images):
+                    self.images = images
+
+            if n > 1:
+                images = []
+                for _ in range(n):
+                    img = await batch_pipeline.submit(
+                        prompt=prompt,
+                        image=image_to_use,
+                        height=height,
+                        width=width,
+                        num_inference_steps=steps if steps is not None else 30,
+                        device=initializer.device,
+                        timeout=600.0,
+                        guidance_scale=gd,
+                        output_type="pil",
+                        num_images_per_prompt=n or 1,
+                    )
+                    images.append(img)
+                output = DummyOutput(images)
+            else:
+                output = DummyOutput([image])
+
+        else:
+            output = await run_in_threadpool(infer)
 
         async with app.state.metrics_lock:
             app.state.active_inferences = max(0, app.state.active_inferences - 1)
