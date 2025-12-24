@@ -11,10 +11,12 @@ aquiles_image = (
     )
     .uv_pip_install(
         "torch==2.8",
-        "git+https://github.com/huggingface/diffusers.git",
+        "diffusers==0.36.0",
         "transformers==4.57.3",
         "tokenizers==0.22.1",
-        "aquiles-image",
+        "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
+        "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl",
+        "kernels"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1",
           "HF_TOKEN": os.getenv("Hugging_face_token_for_deploy", "")})  
@@ -33,7 +35,8 @@ AQUILES_PORT = 5500
 
 @app.function(
     image=aquiles_image,
-    gpu=f"A100:{N_GPU}",
+    secrets=[modal.Secret.from_name("huggingface-secret")],
+    gpu=f"H100:{N_GPU}",
     scaledown_window=15 * MINUTES, 
     timeout=10 * MINUTES,
     volumes={
@@ -41,7 +44,7 @@ AQUILES_PORT = 5500
         "/root/.local/share": aquiles_config_vol,
     },
 )
-@modal.concurrent(max_inputs=4)
+@modal.concurrent(max_inputs=100)
 @modal.web_server(port=AQUILES_PORT, startup_timeout=10 * MINUTES)
 def serve():
     import subprocess
@@ -57,6 +60,7 @@ def serve():
         MODEL_NAME,
         "--set-steps", "30",
         "--api-key", "dummy-api-key",
+        "--batch-mode",
     ]
 
     print(f"Starting Aquiles-Image with the model:{MODEL_NAME}")
