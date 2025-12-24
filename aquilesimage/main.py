@@ -18,7 +18,6 @@ import logging
 from contextlib import asynccontextmanager
 import threading
 import torch
-import random
 import os
 import gc
 import time
@@ -49,10 +48,15 @@ auto_pipeline: str | None = None
 device_map_flux2: str | None = None
 batch_mode: bool | None = None
 batch_pipeline: BatchPipeline | None = None
-Videomodel = [VideoModels.WAN2_2_API, VideoModels.HY1_5_480_API, VideoModels.WAN2_2_TURBO, VideoModels.HY1_5_720_API, VideoModels.HY1_5_480_API_FP8, VideoModels.HY1_5_720_API_FP8, VideoModels.HY1_5_480_API_TURBO, VideoModels.HY1_5_480_API_TURBO_FP8, VideoModels.WAN_2_1, VideoModels.WAN_2_1_TURBO, VideoModels.WAN_2_1_3B, VideoModels.WAN_2_1_TURBO_FP8]
+max_batch_size: int | None = None
+batch_timeout: float | None = None
+worker_sleep: float | None = None
+Videomodel = [VideoModels.WAN2_2_API, VideoModels.HY1_5_480_API, VideoModels.WAN2_2_TURBO, VideoModels.HY1_5_720_API, 
+                                VideoModels.HY1_5_480_API_FP8, VideoModels.HY1_5_720_API_FP8, VideoModels.HY1_5_480_API_TURBO, VideoModels.HY1_5_480_API_TURBO_FP8, 
+                                VideoModels.WAN_2_1, VideoModels.WAN_2_1_TURBO, VideoModels.WAN_2_1_3B, VideoModels.WAN_2_1_TURBO_FP8]
 
 def load_models():
-    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline
+    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout
 
     logger.info("Loading configuration...")
     
@@ -61,16 +65,35 @@ def load_models():
     load_model = config.get("load_model")
     auto_pipeline = config.get("auto_pipeline")
     device_map_flux2 = config.get("device_map")
-    batch_mode = config.get("batch_mode")
 
     flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2]
 
-    max_concurrent_infer = int(config.get("max_concurrent_infer"))
+    max_concurrent_infer = config.get("max_concurrent_infer")
 
     steps = config.get("steps_n")
 
+    max_batch_size = config.get("max_batch_size")
+
+    batch_timeout = config.get("batch_timeout")
+
+    worker_sleep = config.get("worker_sleep")
+
     if steps is not None:
         steps = int(steps)
+
+    if max_concurrent_infer is not None:
+        max_concurrent_infer = int(max_concurrent_infer)
+
+    if max_batch_size is not None:
+        max_batch_size = int(max_batch_size)
+
+    if batch_timeout is not None:
+        batch_timeout = float(batch_timeout)
+
+
+    if worker_sleep is not None:
+        worker_sleep = float(worker_sleep)
+
 
     if not model_name:
         raise ValueError("No model specified in configuration. Please configure a model first.")
@@ -113,25 +136,20 @@ def load_models():
 
                 logger.info(f"Model '{model_name}' loaded successfully")
 
-                if batch_mode is not None and batch_mode is True:
-                    try:
-                        logger.info(f"Using Batch Mode (Experimental)")
+                batch_pipeline = BatchPipeline(
+                    request_scoped_pipeline=request_pipe,
+                    max_batch_size=max_batch_size if max_batch_size is not None else 4,
+                    batch_timeout=batch_timeout if batch_timeout is not None else 0.5,
+                    worker_sleep=worker_sleep if worker_sleep is not None else 0.05,
+                )
 
-                        batch_pipeline = BatchPipeline(
-                            request_scoped_pipeline=request_pipe,
-                            max_batch_size=4,
-                            batch_timeout=0.5,
-                            worker_sleep=0.05,
-                        )
-
-                    except Exception as e:
-                        logger.error(f"Failed to Using Batch Mode: {e}")
-                        pass
-
-        
             except Exception as e:
                 logger.error(f"Failed to initialize model pipeline: {e}")
                 raise
+
+class DummyOutput:
+    def __init__(self, images):
+        self.images = images
 
 try:
     load_models()
@@ -153,6 +171,7 @@ async def lifespan(app: FastAPI):
     app.state.MODEL_PIPELINE = model_pipeline
     app.state.REQUEST_PIPE = request_pipe
     app.state.PIPELINE_LOCK = pipeline_lock
+    app.state.BATCH_PIPELINE = batch_pipeline
 
     app.state.model = app.state.config.get("model")
 
@@ -181,9 +200,9 @@ async def lifespan(app: FastAPI):
     if model_name in Videomodel:
         logger.info("Video task manager started")
 
-    if batch_pipeline is not None:
-        await batch_pipeline.start()
-        logger.info("batch_pipeline started")
+
+    await batch_pipeline.start()
+    logger.info("batch_pipeline started")
 
     async def metrics_loop():
             try:
@@ -312,61 +331,21 @@ async def create_image(input_r: CreateImageRequest):
         h, w = 1024, 1024
         size = "1024x1024"
 
-    req_pipe = app.state.REQUEST_PIPE
-
     try:
         async with app.state.metrics_lock:
             app.state.active_inferences += 1
 
-        if batch_pipeline is not None:
-            image = await batch_pipeline.submit(
-                prompt=prompt,
-                height=h,
-                width=w,
-                num_inference_steps=steps if steps is not None else 30,
-                device=initializer.device,
-                timeout=600.0
-            )
-            
-            class DummyOutput:
-                def __init__(self, images):
-                    self.images = images
-
-            if n > 1:
-                images = []
-                for _ in range(n):
-                    img = await batch_pipeline.submit(
-                        prompt=prompt,
-                        height=h,
-                        width=w,
-                        num_inference_steps=steps if steps is not None else 30,
-                        device=initializer.device,
-                        timeout=600.0
-                    )
-                    images.append(img)
-                output = DummyOutput(images)
-            else:
-                output = DummyOutput([image])
         
-        else:
-            def make_generator():
-                g = torch.Generator(device=initializer.device)
-                return g.manual_seed(random.randint(0, 10_000_000))
-            
-            def infer():
-                gen = make_generator()
-                return req_pipe.generate(
-                    prompt=prompt,
-                    generator=gen,
-                    num_inference_steps=steps if steps is not None else 30,
-                    height=h,
-                    width=w,
-                    num_images_per_prompt=n,
-                    device=initializer.device,
-                    output_type="pil",
-                )
-            
-            output = await run_in_threadpool(infer)
+        image = await batch_pipeline.submit(
+            prompt=prompt,
+            height=h,
+            width=w,
+            num_inference_steps=steps if steps is not None else 30,
+            device=initializer.device,
+            timeout=600.0
+        )
+
+        output = DummyOutput([image])
 
         async with app.state.metrics_lock:
             app.state.active_inferences = max(0, app.state.active_inferences - 1)
@@ -449,6 +428,8 @@ async def create_image_edit(
         
         try:
             response_data = create_dev_mode_response(
+                DEV_MODE_IMAGE_PATH,
+                DEV_MODE_IMAGE_URL,
                 n=n or 1,
                 response_format=response_format or "url",
                 output_format=output_format or "png",
@@ -470,10 +451,6 @@ async def create_image_edit(
 
     if app.state.active_inferences >= max_concurrent_infer:
         raise HTTPException(429)
-
-    def make_generator():
-        g = torch.Generator(device=initializer.device)
-        return g.manual_seed(random.randint(0, 10_000_000))
 
     req_pipe = app.state.REQUEST_PIPE
     utils_app = app.state.utils_app
@@ -530,49 +507,26 @@ async def create_image_edit(
         else:
             gd = 7.5  
 
-    def infer():
-        gen = make_generator()
-        
-        if model in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB]:
-            logger.info(f"FluxKontext inference - guidance_scale: {gd}")
-            return req_pipe.generate(
-                image=image_to_use,
-                height=height,
-                width=width,
-                prompt=prompt,
-                num_inference_steps=steps if steps is not None else 30,
-                guidance_scale=gd,
-                generator=gen, 
-                num_images_per_prompt=n or 1,  
-                output_type="pil",  
-            )
-
     try:
         async with app.state.metrics_lock:
             app.state.active_inferences += 1
 
-        if batch_pipeline is not None:
-            image = await batch_pipeline.submit(
-                prompt=prompt,
-                image=image_to_use,
-                height=height,
-                width=width,
-                num_inference_steps=steps if steps is not None else 30,
-                device=initializer.device,
-                timeout=600.0,
-                guidance_scale=gd,
-                output_type="pil",
-                num_images_per_prompt=n or 1,  
-            )
+
+        image = await batch_pipeline.submit(
+            prompt=prompt,
+            image=image_to_use,
+            height=height,
+            width=width,
+            num_inference_steps=steps if steps is not None else 30,
+            device=initializer.device,
+            timeout=600.0,
+            guidance_scale=gd,
+            output_type="pil",
+            num_images_per_prompt=n or 1,  
+        )
             
-            class DummyOutput:
-                def __init__(self, images):
-                    self.images = images
 
-            output = DummyOutput([image])
-
-        else:
-            output = await run_in_threadpool(infer)
+        output = DummyOutput([image])
 
         async with app.state.metrics_lock:
             app.state.active_inferences = max(0, app.state.active_inferences - 1)
