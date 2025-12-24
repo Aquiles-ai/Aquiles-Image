@@ -415,11 +415,6 @@ class Wan2_1_Pipeline:
                 task="t2v",
             )
 
-            self.pipeline.enable_lora([{
-                "path": f"{model_path}/lora/wan2.1_t2v_14b_lightx2v_4step.safetensors",  
-                "strength": 1.0
-            }])
-
             self.pipeline.create_generator(  
                 infer_steps=4,    
                 height=480,  
@@ -438,10 +433,11 @@ class Wan2_1_Pipeline:
                 task="t2v",
             )
 
-            self.pipeline.enable_lora([{
-                "path": f"{model_path}/lora/wan2.1_t2v_14b_scaled_fp8_e4m3_lightx2v_4step.safetensors",  
-                "strength": 1.0
-            }])
+            self.pipeline.enable_quantize(  
+                dit_quantized=True,  
+                dit_quantized_ckpt=f"{model_path}/wan2.1_t2v_14b_scaled_fp8_e4m3_lightx2v_4step.safetensors",  
+                quant_scheme="fp8-vllm" 
+            )  
 
             self.pipeline.create_generator(  
                 infer_steps=4,    
