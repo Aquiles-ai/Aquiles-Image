@@ -54,6 +54,8 @@ class VideoModels(str, Enum):
 
     WAN_2_1_3B = 'wan2.1-3B'
 
+    WAN_2_1_TURBO_FP8 = 'wan2.1-turbo-fp8'
+
 class ResponseFormat(str, Enum):
     URL = "url"
     B64_JSON = "b64_json"
