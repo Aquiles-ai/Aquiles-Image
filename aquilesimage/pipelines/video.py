@@ -425,7 +425,7 @@ class Wan2_1_Pipeline:
                 height=480,  
                 width=832,  
                 num_frames=81,
-                guidance_scale=[1.0, 1.0]  
+                guidance_scale=1.0
             )
 
         elif name == "wan2.1-turbo-fp8":
@@ -447,7 +447,7 @@ class Wan2_1_Pipeline:
                 height=480,  
                 width=832,  
                 num_frames=81,
-                guidance_scale=[1.0, 1.0]  
+                guidance_scale=1.0  
             )
 
 

@@ -23,7 +23,7 @@ aquiles_image = (
           "HF_TOKEN": os.getenv("Hugging_face_token_for_deploy", "")})  
 )
 
-MODEL_NAME = "wan2.1"
+MODEL_NAME = "wan2.1-turbo"
 
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
 aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=True)
