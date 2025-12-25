@@ -25,9 +25,9 @@ def greet(name):
 @click.option("--auto-pipeline/--no-auto-pipeline", default=None, help="Load a model that is compatible with diffusers but is not mentioned in the Aquiles-Image documentation")
 @click.option("--device-map", type=str, default=None, help="Device map option in which to load the model (Only compatible with diffusers/FLUX.2-dev-bnb-4bit)")
 @click.option("--dist-inference/--no-dist-inference", default=None, help="Use distributed inference (Not yet implemented)")
-@click.option("--max-batch-size", type=int, default=4)
-@click.option("--batch-timeout", type=float, default=0.5)
-@click.option("--worker-sleep", type=float, default=0.05)
+@click.option("--max-batch-size", type=int, default=None, help="Maximum number of requests to group in a single batch for inference")
+@click.option("--batch-timeout", type=float, default=None, help="Maximum time (in seconds) to wait before processing a batch even if not full")
+@click.option("--worker-sleep", type=float, default=None, help="Time (in seconds) the worker sleeps between checking for new batch requests")
 def serve(host: str, port: int, model: Optional[str], api_key: Optional[str], 
          max_concurrent_infer: Optional[int], block_request: Optional[bool], force: bool, 
          no_load_model: bool, set_steps: Optional[int], auto_pipeline: Optional[bool], 

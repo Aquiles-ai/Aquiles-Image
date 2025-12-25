@@ -60,8 +60,7 @@ def serve():
         MODEL_NAME,
         "--set-steps", "35",
         "--api-key", "dummy-api-key",
-        "--device-map", "cuda",
-        "--batch-mode"
+        "--device-map", "cuda"
     ]
 
     print(f"Starting Aquiles-Image with the model:{MODEL_NAME}")

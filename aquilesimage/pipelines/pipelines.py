@@ -23,6 +23,7 @@ from aquilesimage.utils import setup_colored_logger
 from diffusers.schedulers.scheduling_flow_match_euler_discrete import FlowMatchEulerDiscreteScheduler
 from diffusers.models.autoencoders.autoencoder_kl import AutoencoderKL
 import gc
+from aquilesimage.runtime import get_device_count
 
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)

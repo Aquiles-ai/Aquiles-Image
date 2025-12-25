@@ -247,9 +247,9 @@ class ConfigsServe(BaseModel):
     device_map: str | None = Field(default=None, description="device_map option in which to load the model (Only compatible with diffusers/FLUX.2-dev-bnb-4bit)")
     type_model: str | None = Field(default=None, description="This is for video models. There are only 2 options: 'Images' and 'Videos'.")
     dist_inference: bool | None = Field(default=False, description="Use distributed inference (Not yet implemented)")
-    max_batch_size: int | None = Field(default=4)
-    batch_timeout: float | None = Field(default=0.5)
-    worker_sleep: float | None = Field(default=0.05)
+    max_batch_size: int | None = Field(default=4, description="Maximum number of requests to group in a single batch for inference")
+    batch_timeout: float | None = Field(default=0.5, description="Maximum time (in seconds) to wait before processing a batch even if not full")
+    worker_sleep: float | None = Field(default=0.05, description="Time (in seconds) the worker sleeps between checking for new batch requests")
 
 class Model(BaseModel):
     id: str = Field(..., description="Unique identifier of the model")
