@@ -17,6 +17,7 @@ class PendingRequest:
     params: Dict[str, Any] = field(default_factory=dict)  # height, width, steps, device, etc.
     timestamp: float = field(default_factory=time.time)
     future: asyncio.Future = field(default_factory=asyncio.Future)
+    num_images: int = 1 
     
     def params_key(self) -> Tuple:
         has_image = self.image is not None
@@ -26,6 +27,7 @@ class PendingRequest:
             self.params.get('num_inference_steps', 30),
             self.params.get('device', 'cuda'),
             has_image,
+            self.num_images,
         )
 
 class BatchPipeline:    
@@ -71,6 +73,7 @@ class BatchPipeline:
         device: Optional[str] = None,
         request_id: Optional[str] = None,
         timeout: float = 60.0,
+        num_images_per_prompt: int = 1,
         **kwargs
     ) -> Any:
         req_id = request_id or str(uuid.uuid4())[:8]
@@ -84,9 +87,11 @@ class BatchPipeline:
                 'width': width,
                 'num_inference_steps': num_inference_steps,
                 'device': device or 'cuda',
+                'num_images_per_prompt': num_images_per_prompt,
                 **kwargs
             },
-            timestamp=time.time()
+            timestamp=time.time(),
+            num_images=num_images_per_prompt
         )
         
         async with self.lock:
@@ -204,6 +209,8 @@ class BatchPipeline:
         images = [r.image for r in group] if has_images else None
         
         params = group[0].params
+
+        total_expected_images = sum(req.num_images for req in group)
         
         try:
             from fastapi.concurrency import run_in_threadpool
@@ -217,8 +224,9 @@ class BatchPipeline:
                         width=params['width'],
                         num_inference_steps=params['num_inference_steps'],
                         device=params['device'],
+                        num_images_per_prompt=params['num_images_per_prompt'],
                         **{k: v for k, v in params.items() 
-                            if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images']}
+                            if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images', 'num_images_per_prompt']}
                     )
                 else:
                     return self.pipeline.generate_batch(
@@ -227,28 +235,37 @@ class BatchPipeline:
                         width=params['width'],
                         num_inference_steps=params['num_inference_steps'],
                         device=params['device'],
+                        num_images_per_prompt=params['num_images_per_prompt'],
                         **{k: v for k, v in params.items() 
-                            if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images']}
+                            if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images', 'num_images_per_prompt']}
                     )
 
             output = await run_in_threadpool(batch_infer)
 
-            if len(output.images) != len(group):
+            if len(output.images) != total_expected_images:
                 raise RuntimeError(
                     f"X CRITICAL: Batch size mismatch! "
-                    f"Expected {len(group)} images, got {len(output.images)}. "
+                    f"Expected {total_expected_images} images, got {len(output.images)}. "
                     f"Output mapping is BROKEN!"
                 )
 
+            image_idx = 0
             for i, req in enumerate(group):
-                logger.info(f"  [{i}] {req.id} → image[{i}]")
-                req.future.set_result(output.images[i])
+                req_images = output.images[image_idx:image_idx + req.num_images]
+                logger.info(f"  [{i}] {req.id} → images[{image_idx}:{image_idx + req.num_images}]")
+
+                if req.num_images == 1:
+                    req.future.set_result(req_images[0])
+                else:
+                    req.future.set_result(req_images)
+            
+                image_idx += req.num_images
 
             self.total_batches += 1
-            self.total_images += len(group)
+            self.total_images += total_expected_images
             
             logger.info(
-                f"Group completed: {len(group)} images "
+                f"Group completed: {total_expected_images} images "
                 f"(total_batches={self.total_batches}, "
                 f"total_images={self.total_images})"
             )

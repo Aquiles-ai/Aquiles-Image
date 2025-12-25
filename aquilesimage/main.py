@@ -360,10 +360,14 @@ async def create_image(input_r: CreateImageRequest):
             width=w,
             num_inference_steps=steps if steps is not None else 30,
             device=initializer.device,
-            timeout=600.0
+            timeout=600.0,
+            num_images_per_prompt=n or 1,
         )
 
-        output = DummyOutput([image])
+        if isinstance(image, list):
+            output = DummyOutput(image)
+        else:
+            output = DummyOutput([image])
 
         async with app.state.metrics_lock:
             app.state.active_inferences = max(0, app.state.active_inferences - 1)
@@ -544,7 +548,10 @@ async def create_image_edit(
         )
             
 
-        output = DummyOutput([image])
+        if isinstance(image, list):
+            output = DummyOutput(image)
+        else:
+            output = DummyOutput([image])
 
         async with app.state.metrics_lock:
             app.state.active_inferences = max(0, app.state.active_inferences - 1)
