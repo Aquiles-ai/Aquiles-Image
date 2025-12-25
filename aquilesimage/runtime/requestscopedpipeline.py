@@ -433,7 +433,7 @@ class RequestScopedPipeline:
         try:
 
             if self.is_kontext:
-                logger.info(f"Calling Kontext pipeline with mu={kwargs.get('mu')}")
+                logger.info(f"Calling Kontext pipeline with mu={calculated_mu}")
 
             #kwargs.pop('mu', None)
         
