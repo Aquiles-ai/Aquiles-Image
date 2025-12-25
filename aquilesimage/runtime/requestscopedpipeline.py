@@ -343,16 +343,14 @@ class RequestScopedPipeline:
         height = kwargs.get('height', 1024)
         width = kwargs.get('width', 1024)
 
-        calculated_mu = None
+        image_seq_len = _get_image_seq_len(height, width)
+        
+        mu = _calculate_shift(image_seq_len)
     
         if self.is_kontext:
             logger.debug(f"Kontext mode detected - calculating mu for resolution {height}x{width}")
-        
-            image_seq_len = _get_image_seq_len(height, width)
-        
-            calculated_mu = _calculate_shift(image_seq_len)
 
-            local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device, use_dynamic_shifting=True, mu=calculated_mu)
+            local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device, use_dynamic_shifting=True, mu=mu)
         elif self.use_flux:
             local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device, use_dynamic_shifting=False)
         else:
@@ -380,7 +378,6 @@ class RequestScopedPipeline:
                 if self.is_kontext:
                     scheduler_kwargs = {k: v for k, v in kwargs.items() if k in ['timesteps', 'sigmas', 'mu']}
                     scheduler_kwargs['use_dynamic_shifting'] = True
-                    scheduler_kwargs['mu'] = calculated_mu
                 else:
                     scheduler_kwargs = {k: v for k, v in kwargs.items() if k in ['timesteps', 'sigmas']}
             
@@ -433,9 +430,9 @@ class RequestScopedPipeline:
         try:
 
             if self.is_kontext:
-                logger.info(f"Calling Kontext pipeline with mu={calculated_mu}")
+                logger.info(f"Calling Kontext pipeline with mu={kwargs.get('mu')}")
 
-            #kwargs.pop('mu', None)
+            kwargs.pop('mu', None)
         
             if callable(cm):
                 try:
