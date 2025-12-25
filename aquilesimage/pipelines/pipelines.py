@@ -80,6 +80,19 @@ class PipelineSD3:
             except Exception as e:
                 print("xformers not available:", e)
 
+            try:
+                self.pipeline.transformer.fuse_qkv_projections()
+                print("fuse_qkv_projections enabled")
+            except Exception as e:
+                print("fuse_qkv_projections not available:", e)
+                pass
+
+            try:
+                self.enable_flash_attn()
+            except Exception as e:
+                print("flash_attn not available:", e)
+                pass
+
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "stabilityai/stable-diffusion-3.5-medium"
             logger_p.info("Loading MPS for Mac M Series")
@@ -89,6 +102,23 @@ class PipelineSD3:
             ).to(device=self.device)
         else:
             raise Exception("No CUDA or MPS device available")
+
+    def enable_flash_attn(self):
+        try:
+            self.pipeline.transformer.set_attention_backend("_flash_3_hub")
+            logger_p.info("FlashAttention 3 enabled")
+        except Exception as e:
+            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
+            try:
+                self.pipeline.transformer.set_attention_backend("flash")
+                logger_p.info("FlashAttention 2 enabled")
+            except Exception as e2:
+                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
+                try:
+                    self.pipeline.transformer.set_attention_backend("sage_hub")
+                    logger_p.info("SAGE Attention enabled")
+                except Exception as e3:
+                    logger_p.warning(f"No optimized attention available, using default SDPA: {str(e3)}")
 
 class PipelineFlux:
     def __init__(self, model_path: str | None = None, low_vram: bool = False, compile_flag: bool = False, dist_inf: bool = False):
