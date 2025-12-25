@@ -33,10 +33,11 @@ Maybe this will mutate with the changes implemented in diffusers
 """
 
 class PipelineSD3:
-    def __init__(self, model_path: str | None = None):
+    def __init__(self, model_path: str | None = None, dist_inf: bool = False):
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: StableDiffusion3Pipeline | None = None
         self.device: str | None = None
+        self.dist_inf = dist_inf
 
     def start(self):
         torch.set_float32_matmul_precision("high")
@@ -90,12 +91,13 @@ class PipelineSD3:
             raise Exception("No CUDA or MPS device available")
 
 class PipelineFlux:
-    def __init__(self, model_path: str | None = None, low_vram: bool = False, compile_flag: bool = False):
+    def __init__(self, model_path: str | None = None, low_vram: bool = False, compile_flag: bool = False, dist_inf: bool = False):
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: FluxPipeline | None = None
         self.device: str | None = None
         self.low_vram = low_vram
         self.compile_flag = compile_flag
+        self.dist_inf = dist_inf
 
     def start(self):
         if torch.cuda.is_available():
@@ -223,11 +225,12 @@ class PipelineFlux:
 
 
 class PipelineFluxKontext:
-    def __init__(self, model_path: str | None = None, low_vram: bool = False):
+    def __init__(self, model_path: str | None = None, low_vram: bool = False, dist_inf: bool = False):
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: FluxKontextPipeline | None = None
         self.device: str | None = None
         self.low_vram = low_vram
+        self.dist_inf = dist_inf
 
     def start(self):
         if torch.cuda.is_available():
@@ -302,9 +305,10 @@ class PipelineFluxKontext:
                     logger_p.warning(f"No optimized attention available, using default SDPA: {str(e3)}")
 
 class PipelineFlux2:
-    def __init__(self, model_path: str | None = None, low_vram: bool = True, device_map: str | None = None):
+    def __init__(self, model_path: str | None = None, low_vram: bool = True, device_map: str | None = None, dist_inf: bool = False):
 
         self.model_path = model_path or os.getenv("MODEL_PATH")
+        self.dist_inf = dist_inf
         try:
             self.pipeline: Flux2Pipeline | None = None
         except Exception as e:
@@ -415,9 +419,10 @@ class PipelineFlux2:
 
 
 class PipelineZImage:
-    def __init__(self, model_path: str | None = None):
+    def __init__(self, model_path: str | None = None, dist_inf: bool = False):
 
         self.model_path = model_path or os.getenv("MODEL_PATH")
+        self.dist_inf = dist_inf
         try:
             self.pipeline: ZImagePipeline | None = None
             self.transformer_z: ZImageTransformer2DModel | None = None
@@ -590,7 +595,7 @@ class AutoPipelineDiffusers:
             pass
 
 class ModelPipelineInit:
-    def __init__(self, model: str, low_vram: bool = False, auto_pipeline: bool = False, device_map_flux2: str | None = None):
+    def __init__(self, model: str, low_vram: bool = False, auto_pipeline: bool = False, device_map_flux2: str | None = None, dist_inf: bool = False):
         self.model = model
         self.pipeline = None
         self.device = "cuda" if torch.cuda.is_available() else "mps"
@@ -598,6 +603,7 @@ class ModelPipelineInit:
         self.low_vram = low_vram
         self.auto_pipeline = auto_pipeline
         self.device_map_flux2 = device_map_flux2
+        self.dist_inf = dist_inf
 
         self.models = ImageModel
 

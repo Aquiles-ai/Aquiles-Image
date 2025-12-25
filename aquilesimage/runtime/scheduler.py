@@ -31,7 +31,7 @@ class BaseAsyncScheduler:
             cloned = self.__class__(local)
             return cloned
         except Exception as e1:
-            logger.info(f"Error cloning scheduler 'e1': {e1}")
+            logger.info(f"X Error cloning scheduler 'e1': {e1}")
             try:
                 scheduler_class = self.scheduler.__class__
                 if hasattr(self.scheduler, 'config'):
@@ -42,7 +42,7 @@ class BaseAsyncScheduler:
                 cloned = self.__class__(local)
                 return cloned
             except Exception as e2:
-                logger.info(f"Error in the fallback when cloning the scheduler 'e2': {e2}")
+                logger.info(f"X Error in the fallback when cloning the scheduler 'e2': {e2}")
                 return self
 
     def __repr__(self):
@@ -70,7 +70,11 @@ def async_retrieve_timesteps(
     if return_scheduler:
         if hasattr(scheduler, "clone_for_request"):
             try:
-                scheduler_in_use = scheduler.clone_for_request(num_inference_steps=num_inference_steps or 0, device=device)
+                scheduler_in_use = scheduler.clone_for_request(
+                    num_inference_steps=num_inference_steps or 0, 
+                    device=device,
+                    **kwargs
+                )
             except Exception as e1:
                 logger.info(f"X Error cloning the scheduler with clone_for_request on 'async_retrieve_timesteps': {e1}")
                 try:
@@ -93,7 +97,7 @@ def async_retrieve_timesteps(
 
     mu = kwargs.pop('mu', None)
 
-    if use_kontext:
+    if not use_kontext:
         kwargs.pop('use_dynamic_shifting', None)
     
     if timesteps is not None:
@@ -103,7 +107,10 @@ def async_retrieve_timesteps(
                 f"The current scheduler class {scheduler_in_use.__class__}'s `set_timesteps` does not support custom"
                 f" timestep schedules. Please check whether you are using the correct scheduler."
             )
-        set_timesteps_kwargs = {'timesteps': timesteps, 'device': device, **kwargs}
+        set_timesteps_kwargs = {'timesteps': timesteps, 'device': device}
+        for key in ['use_dynamic_shifting']:
+            if key in kwargs and _accepts(key):
+                set_timesteps_kwargs[key] = kwargs[key]
         if mu is not None and _accepts('mu'):
             set_timesteps_kwargs['mu'] = mu
         
@@ -117,7 +124,10 @@ def async_retrieve_timesteps(
                 f"The current scheduler class {scheduler_in_use.__class__}'s `set_timesteps` does not support custom"
                 f" sigmas schedules. Please check whether you are using the correct scheduler."
             )
-        set_timesteps_kwargs = {'sigmas': sigmas, 'device': device, **kwargs}
+        set_timesteps_kwargs = {'sigmas': sigmas, 'device': device}
+        for key in ['use_dynamic_shifting']:
+            if key in kwargs and _accepts(key):
+                set_timesteps_kwargs[key] = kwargs[key]
         if mu is not None and _accepts('mu'):
             set_timesteps_kwargs['mu'] = mu
             
@@ -125,7 +135,10 @@ def async_retrieve_timesteps(
         timesteps_out = scheduler_in_use.timesteps
         num_inference_steps = len(timesteps_out)
     else:
-        set_timesteps_kwargs = {'num_inference_steps': num_inference_steps, 'device': device, **kwargs}
+        set_timesteps_kwargs = {'num_inference_steps': num_inference_steps, 'device': device}
+        for key in ['use_dynamic_shifting']:
+            if key in kwargs and _accepts(key):
+                set_timesteps_kwargs[key] = kwargs[key]
         if mu is not None and _accepts('mu'):
             set_timesteps_kwargs['mu'] = mu
             logger.debug(f"Passing mu={mu} to set_timesteps")
