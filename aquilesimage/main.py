@@ -210,7 +210,25 @@ async def lifespan(app: FastAPI):
                     async with app.state.metrics_lock:
                         total = app.state.total_requests
                         active = app.state.active_inferences
-                    logger.info(f"[METRICS] total_requests={total} active_inferences={active}")
+                        vram_info = ""
+                        if torch.cuda.is_available():
+                            try:
+                                for i in range(torch.cuda.device_count()):
+                                    allocated = torch.cuda.memory_allocated(i) / 1024**3
+                                    reserved = torch.cuda.memory_reserved(i) / 1024**3
+                                    total_memory = torch.cuda.get_device_properties(i).total_memory / 1024**3
+                        
+                                    if i == 0:
+                                        vram_info = f" vram_allocated={allocated:.2f}GB vram_reserved={reserved:.2f}GB vram_total={total_memory:.2f}GB"
+                                    else:
+                                        vram_info += f" gpu{i}_allocated={allocated:.2f}GB gpu{i}_reserved={reserved:.2f}GB"
+                            except Exception as e:
+                                logger.error(f"X Error retrieving VRAM information: {e}")
+                                vram_info = " vram=error"
+                        else:
+                            vram_info = " vram=no_gpu"
+
+                    logger.info(f"[METRICS] total_requests={total} active_inferences={active}{vram_info}")
                     await asyncio.sleep(5)
             except asyncio.CancelledError:
                 logger.info("Metrics loop cancelled")
