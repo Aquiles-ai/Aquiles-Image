@@ -506,6 +506,7 @@ class RequestScopedPipeline:
                 if self.is_kontext:
                     scheduler_kwargs = {k: v for k, v in kwargs.items() if k in ['timesteps', 'sigmas', 'mu']}
                     scheduler_kwargs['use_dynamic_shifting'] = True
+                    scheduler_kwargs['mu'] = mu
                 else:
                     scheduler_kwargs = {k: v for k, v in kwargs.items() if k in ['timesteps', 'sigmas']}
             
