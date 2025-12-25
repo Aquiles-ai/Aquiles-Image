@@ -465,6 +465,9 @@ class RequestScopedPipeline:
     def generate_batch(self, prompts: List[str], *args, num_inference_steps: int = 50, device: Optional[str] = None, **kwargs):
         height = kwargs.get('height', 1024)
         width = kwargs.get('width', 1024)
+        image_seq_len = _get_image_seq_len(height, width)
+        
+        mu = _calculate_shift(image_seq_len)
 
         if not prompts:
             raise ValueError("prompts list cannot be empty")
@@ -474,10 +477,6 @@ class RequestScopedPipeline:
     
         if self.is_kontext:
             logger.debug(f"Kontext mode detected - calculating mu for resolution {height}x{width}")
-        
-            image_seq_len = _get_image_seq_len(height, width)
-        
-            mu = _calculate_shift(image_seq_len)
 
             local_scheduler = self._make_local_scheduler(num_inference_steps=num_inference_steps, device=device, use_dynamic_shifting=True, mu=mu)
         elif self.use_flux:
