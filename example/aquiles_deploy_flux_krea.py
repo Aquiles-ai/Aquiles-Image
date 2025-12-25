@@ -14,7 +14,7 @@ aquiles_image = (
         "git+https://github.com/huggingface/diffusers.git",
         "transformers==4.57.3",
         "tokenizers==0.22.1",
-        "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
+        "aquiles-image==0.2.80",
         "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl",
         "kernels",
         "uvicorn"
