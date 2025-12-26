@@ -320,9 +320,10 @@ async def create_image(input_r: CreateImageRequest):
     utils_app = app.state.utils_app
     prompt = input_r.prompt
     model = input_r.model
-
-    if model not in [e.value for e in ImageModel] or model not in app.state.model:
-        raise HTTPException(503, f"Model not available")
+    valid_models = [e.value for e in ImageModel]
+    loaded_model = app.state.model
+    if model not in valid_models and model != loaded_model:
+        raise HTTPException(status_code=503, detail=f"Model not available: {model}")
 
     n = input_r.n
     size = input_r.size
