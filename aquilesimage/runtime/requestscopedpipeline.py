@@ -591,10 +591,11 @@ class RequestScopedPipeline:
                 result = local_pipe(prompt=prompts,
                 generator=generators, num_inference_steps=num_inference_steps, **kwargs)
 
-            if len(result.images) != len(prompts):
+            if len(result.images) != total_images:
                 raise RuntimeError(
                     f"X CRITICAL: Pipeline returned {len(result.images)} images "
-                    f"but expected {len(prompts)}. Output mapping is BROKEN!"
+                    f"but expected {total_images} ({len(prompts)} prompts × {num_images_per_prompt} images each). "
+                    f"Output mapping is BROKEN!"
                 )
 
             logger.info(f"Batch of {len(prompts)} completed successfully")
