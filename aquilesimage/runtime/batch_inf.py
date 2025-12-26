@@ -213,6 +213,8 @@ class BatchPipeline:
         params = group[0].params
 
         total_expected_images = sum(req.num_images for req in group)
+        logger.info(f"DEBUG: Group requests num_images: {[req.num_images for req in group]}")
+        logger.info(f"DEBUG: total_expected_images calculated: {total_expected_images}")
         
         try:
             from fastapi.concurrency import run_in_threadpool
