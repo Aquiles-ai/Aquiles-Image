@@ -527,8 +527,10 @@ class RequestScopedPipeline:
 
         self._clone_mutable_attrs(self._base, local_pipe)
 
+        num_images_per_prompt = kwargs.get('num_images_per_prompt', 1)
+        total_images = len(prompts) * num_images_per_prompt
         generators = []
-        for _ in range(len(prompts)):
+        for _ in range(total_images):
             g = torch.Generator(device=device or "cuda")
             g.manual_seed(torch.randint(0, 10_000_000, (1,)).item())
             generators.append(g)
