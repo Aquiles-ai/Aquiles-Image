@@ -9,6 +9,7 @@ aquiles_image = (
         "python -m pip install --upgrade pip",
         "python -m pip install --upgrade setuptools wheel"
     )
+    .env({"UV_HTTP_TIMEOUT": "600"})
     .uv_pip_install(
         "torch==2.8",
         "diffusers==0.36.0",
