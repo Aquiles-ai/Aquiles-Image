@@ -77,6 +77,8 @@ class BatchPipeline:
         **kwargs
     ) -> Any:
         req_id = request_id or str(uuid.uuid4())[:8]
+
+        logger.info(f"submit (BatchPipeline) - req_id:{req_id} num_images_per_prompt:{num_images_per_prompt}")
         
         request = PendingRequest(
             id=req_id,
@@ -202,7 +204,7 @@ class BatchPipeline:
 
         logger.info(f"Processing {batch_type} group with params {params_key}:")
         for i, req in enumerate(group):
-            logger.info(f"  [{i}] {req.id}: '{req.prompt[:50]}...'")
+            logger.info(f"  [{i}] {req.id}: '{req.prompt[:50]}...' params: {req.params}")
 
         prompts = [r.prompt for r in group]
 

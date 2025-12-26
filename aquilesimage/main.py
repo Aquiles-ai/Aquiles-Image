@@ -335,6 +335,8 @@ async def create_image(input_r: CreateImageRequest):
     background = input_r.background or "auto"
     output_format = input_r.output_format or "png"
 
+    logger.info(f"{prompt[:50]} - num_images_per_prompt: {n}")
+
     if size == "1024x1024":
         h, w = 1024, 1024
     elif size == "1536x1024":

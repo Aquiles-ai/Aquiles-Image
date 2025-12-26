@@ -528,6 +528,7 @@ class RequestScopedPipeline:
         self._clone_mutable_attrs(self._base, local_pipe)
 
         num_images_per_prompt = kwargs.get('num_images_per_prompt', 1)
+        logger.info(f"generate_batch - num_images_per_prompt:{num_images_per_prompt}")
         total_images = len(prompts) * num_images_per_prompt
         generators = []
         for _ in range(total_images):
