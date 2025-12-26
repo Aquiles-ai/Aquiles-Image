@@ -325,7 +325,10 @@ async def create_image(input_r: CreateImageRequest):
     if model not in valid_models and model != loaded_model:
         raise HTTPException(status_code=503, detail=f"Model not available: {model}")
 
-    n = input_r.n
+    if input_r.n is None:
+        n = 1
+    else:
+        n = input_r.n
     size = input_r.size
     response_format = input_r.response_format or "url"
     quality = input_r.quality or "auto"
@@ -362,7 +365,7 @@ async def create_image(input_r: CreateImageRequest):
             num_inference_steps=steps if steps is not None else 30,
             device=initializer.device,
             timeout=600.0,
-            num_images_per_prompt=n or 1,
+            num_images_per_prompt=n,
         )
 
         if isinstance(image, list):
@@ -480,6 +483,11 @@ async def create_image_edit(
 
     if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB]:
         raise HTTPException(500, f"Model not available")
+
+    if n is None:
+        n = 1
+    else:
+        n = n
 
     try:
         image_content = await image.read()
