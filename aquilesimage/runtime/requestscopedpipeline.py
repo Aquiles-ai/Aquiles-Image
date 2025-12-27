@@ -580,6 +580,7 @@ class RequestScopedPipeline:
 
             if is_sd3_pipeline:
                 kwargs.pop('num_images_per_prompt', None)
+                logger.info(f"kwargs SD3: {kwargs}")
         
             if callable(cm):
                 try:
