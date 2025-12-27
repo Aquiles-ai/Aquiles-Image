@@ -527,12 +527,7 @@ class RequestScopedPipeline:
 
         self._clone_mutable_attrs(self._base, local_pipe)
 
-        is_sd3_pipeline = 'StableDiffusion3Pipeline' in local_pipe.__class__.__name__
-        if is_sd3_pipeline:
-            num_images_per_prompt = 1
-            logger.info("The parameter 'num_images_per_prompt' has been discarded due to the use of StableDiffusion3 models")
-        else:
-            num_images_per_prompt = kwargs.get('num_images_per_prompt', 1)
+        num_images_per_prompt = kwargs.get('num_images_per_prompt', 1)
         logger.info(f"generate_batch - num_images_per_prompt:{num_images_per_prompt}")
         total_images = len(prompts) * num_images_per_prompt
         generators = []
@@ -577,10 +572,6 @@ class RequestScopedPipeline:
                 logger.info(f"Calling Kontext pipeline with mu={kwargs.get('mu')}")
 
             kwargs.pop('mu', None)
-
-            if is_sd3_pipeline:
-                kwargs.pop('num_images_per_prompt', None)
-                logger.info(f"kwargs SD3: {kwargs}")
         
             if callable(cm):
                 try:

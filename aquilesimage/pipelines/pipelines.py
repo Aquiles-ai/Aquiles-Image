@@ -85,13 +85,6 @@ class PipelineSD3:
                     print("xformers not available:", e)
 
                 try:
-                    self.pipeline.transformer.fuse_qkv_projections()
-                    print("fuse_qkv_projections enabled")
-                except Exception as e:
-                    print("fuse_qkv_projections not available:", e)
-                    pass
-
-                try:
                     self.enable_flash_attn()
                 except Exception as e:
                     print("flash_attn not available:", e)
