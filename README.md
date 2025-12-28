@@ -2,7 +2,7 @@
 
 # Aquiles-Image
 
-<img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1763763684/aquiles_image_m6ej7u.png" alt="Aquiles-Image Logo" width="2560" height="1200"/>
+<img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1763763684/aquiles_image_m6ej7u.png" alt="Aquiles-Image Logo" width="800"/>
 
 ### **Self-hosted image generation with OpenAI-compatible APIs**
 
@@ -89,7 +89,7 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `black-forest-labs/FLUX.1-dev`
 - `black-forest-labs/FLUX.1-schnell`
 - `black-forest-labs/FLUX.1-Krea-dev`
-- `black-forest-labs/FLUX.2-dev`
+- `black-forest-labs/FLUX.2-dev` * 
 - `diffusers/FLUX.2-dev-bnb-4bit`
 - `Tongyi-MAI/Z-Image-Turbo`
 
@@ -97,6 +97,9 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 
 - `black-forest-labs/FLUX.1-Kontext-dev`
 - `diffusers/FLUX.2-dev-bnb-4bit`
+- `black-forest-labs/FLUX.2-dev` * 
+
+> **\* Note on FLUX.2-dev**: Requires NVIDIA H200 with 64GB RAM minimum. Inference times are variable (17s-2min) and may be unpredictable.
 
 ### Text-to-Video (`/videos`) - Experimental
 
