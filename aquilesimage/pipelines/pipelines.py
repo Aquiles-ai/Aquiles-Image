@@ -402,7 +402,7 @@ class PipelineFluxKontext:
                     logger_p.warning(f"No optimized attention available, using default SDPA: {str(e3)}")
 
 class PipelineFlux2:
-    def __init__(self, model_path: str | None = None, low_vram: bool = True, device_map: str | None = None, dist_inf: bool = False):
+    def __init__(self, model_path: str | None = None, low_vram: bool = False, device_map: str | None = None, dist_inf: bool = False):
 
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.dist_inf = dist_inf
@@ -426,16 +426,27 @@ class PipelineFlux2:
                 self.start_low_vram()
             else:  
                 logger_p.info(f"Loading FLUX.2 from {self.model_path}...")
-        
-                self.pipeline = Flux2Pipeline.from_pretrained(
-                    self.model_path, 
-                    torch_dtype=torch.bfloat16
+
+                logger_p.info("Loading quantized text encoder... (CUDA)")
+                self.text_encoder = Mistral3ForConditionalGeneration.from_pretrained(
+                    "diffusers/FLUX.2-dev-bnb-4bit", subfolder="text_encoder", dtype=torch.bfloat16, device_map="cuda"
                 )
 
-                self.optimization()
+                logger_p.info("Loading DiT transformer... (CUDA)")
+                self.dit = AutoModel.from_pretrained(
+                    self.model_path, subfolder="transformer", device_map="cuda"
+                )
         
-                logger_p.info("Enabling model CPU offload...")
-                self.pipeline.enable_model_cpu_offload()
+                logger_p.info("Creating FLUX.2 pipeline... (CUDA)")
+                self.pipeline = Flux2Pipeline.from_pretrained(
+                    self.model_path, text_encoder=self.text_encoder, transformer=self.dit, dtype=torch.bfloat16
+                ).to(device="cuda")
+
+                self.optimization()
+                
+                # Perhaps this configuration doesn't need this
+                #logger_p.info("Enabling model CPU offload...")
+                #self.pipeline.enable_model_cpu_offload()
 
 
     def start_low_vram(self):
