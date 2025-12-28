@@ -35,7 +35,9 @@ AQUILES_PORT = 5500
 
 @app.function(
     image=aquiles_image,
-    gpu=f"B200:{N_GPU}",
+    gpu=f"H100:{N_GPU}",
+    memory=65536,
+    cpu=8.0,
     secrets=[modal.Secret.from_name("huggingface-secret")],
     scaledown_window=6 * MINUTES, 
     timeout=10 * MINUTES,

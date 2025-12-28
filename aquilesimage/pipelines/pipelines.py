@@ -426,14 +426,22 @@ class PipelineFlux2:
                 self.start_low_vram()
             else:  
                 logger_p.info(f"Loading FLUX.2 from {self.model_path}...")
-        
+
+                self.text_encoder = Mistral3ForConditionalGeneration.from_pretrained(
+                    self.model_path, subfolder="text_encoder", torch_dtype=torch.bfloat16, device_map="cpu"
+                )
+
+                self.dit = AutoModel.from_pretrained(
+                    self.model_path, subfolder="transformer", torch_dtype=torch.bfloat16, device_map="cuda"
+                )
+
                 logger_p.info("Creating FLUX.2 pipeline... (CUDA)")
                 self.pipeline = Flux2Pipeline.from_pretrained(
-                    self.model_path, dtype=torch.bfloat16
+                    self.model_path, text_encoder=self.text_encoder, transformer=self.dit, dtype=torch.bfloat16
                 ).to(device="cuda")
 
                 self.optimization()
-                
+
 
 
     def start_low_vram(self):
