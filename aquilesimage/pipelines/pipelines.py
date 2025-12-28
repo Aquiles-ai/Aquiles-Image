@@ -2,6 +2,8 @@ from diffusers.pipelines.stable_diffusion_3.pipeline_stable_diffusion_3 import S
 from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
 try:
     from diffusers.pipelines.flux2.pipeline_flux2 import Flux2Pipeline
+    from diffusers.models.transformers.transformer_flux2 import Flux2Transformer2DModel
+    from diffusers.models.autoencoders.autoencoder_kl_flux2 import AutoencoderKLFlux2
 except ImportError as e:
     print("Error import Flux2Pipeline")
     pass
@@ -413,7 +415,8 @@ class PipelineFlux2:
             print("Error import Flux2Pipeline")
             pass
         self.text_encoder: Mistral3ForConditionalGeneration | None = None
-        self.dit: AutoModel | None = None
+        self.dit: Flux2Transformer2DModel | None = None
+        self.vae: AutoencoderKLFlux2 | None
         self.device: str | None = None
         self.low_vram = low_vram
         self.device_map = device_map
@@ -427,17 +430,30 @@ class PipelineFlux2:
             else:  
                 logger_p.info(f"Loading FLUX.2 from {self.model_path}...")
 
+                logger_p.info("Loading text encoder... (CPU)")
                 self.text_encoder = Mistral3ForConditionalGeneration.from_pretrained(
                     self.model_path, subfolder="text_encoder", torch_dtype=torch.bfloat16, device_map="cpu"
                 )
 
-                self.dit = AutoModel.from_pretrained(
+                logger_p.info("Loading DiT transformer... (CUDA)")
+                self.dit = Flux2Transformer2DModel.from_pretrained(
                     self.model_path, subfolder="transformer", torch_dtype=torch.bfloat16, device_map="cuda"
                 )
 
+                logger_p.info("Loading VAE... (CUDA)")
+                self.vae = AutoencoderKLFlux2.from_pretrained(
+                    self.model_path,
+                    subfolder="vae",
+                    torch_dtype=torch.bfloat16).to("cuda")
+
+                logger_p.info("Converting all parameters to bfloat16...")
+                self.dit = self.dit.to(torch.bfloat16)
+                self.vae = self.vae.to(torch.bfloat16)
+
+
                 logger_p.info("Creating FLUX.2 pipeline... (CUDA)")
                 self.pipeline = Flux2Pipeline.from_pretrained(
-                    self.model_path, text_encoder=self.text_encoder, transformer=self.dit, dtype=torch.bfloat16
+                    self.model_path, text_encoder=self.text_encoder, transformer=self.dit, vae=self.vae, dtype=torch.bfloat16
                 ).to(device="cuda")
 
                 self.optimization()

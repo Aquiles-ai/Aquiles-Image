@@ -14,7 +14,6 @@ aquiles_image = (
         "git+https://github.com/huggingface/diffusers.git",
         "transformers==4.57.3",
         "tokenizers==0.22.1",
-        "bitsandbytes==0.48.2",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
         "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl"
     )
@@ -35,7 +34,7 @@ AQUILES_PORT = 5500
 
 @app.function(
     image=aquiles_image,
-    gpu=f"H100:{N_GPU}",
+    gpu=f"H200:{N_GPU}",
     memory=65536,
     cpu=8.0,
     secrets=[modal.Secret.from_name("huggingface-secret")],
