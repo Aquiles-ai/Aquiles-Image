@@ -35,7 +35,7 @@ AQUILES_PORT = 5500
 
 @app.function(
     image=aquiles_image,
-    gpu=f"H200:{N_GPU}",
+    gpu=f"B200:{N_GPU}",
     secrets=[modal.Secret.from_name("huggingface-secret")],
     scaledown_window=6 * MINUTES, 
     timeout=10 * MINUTES,
@@ -44,7 +44,7 @@ AQUILES_PORT = 5500
         "/root/.local/share": aquiles_config_vol,
     },
 )
-@modal.concurrent(max_inputs=4)
+@modal.concurrent(max_inputs=100)
 @modal.web_server(port=AQUILES_PORT, startup_timeout=10 * MINUTES)
 def serve():
     import subprocess
