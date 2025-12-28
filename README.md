@@ -92,6 +92,7 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `black-forest-labs/FLUX.2-dev` * 
 - `diffusers/FLUX.2-dev-bnb-4bit`
 - `Tongyi-MAI/Z-Image-Turbo`
+- `Qwen/Qwen-Image`
 
 ### Image-to-Image (`/images/edits`)
 
