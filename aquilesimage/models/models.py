@@ -30,6 +30,14 @@ class ImageModel(str, Enum):
     #Z-Image-Turbo
     Z_IMAGE_TURBO = 'Tongyi-MAI/Z-Image-Turbo'
 
+    QWEN_IMAGE = 'Qwen/Qwen-Image'
+
+    QWEN_IMAGE_EDIT_BASE = 'Qwen/Qwen-Image-Edit'
+
+    QWEN_IMAGE_EDIT_2511 = 'Qwen/Qwen-Image-Edit-2511'
+
+    QWEN_IMAGE_EDIT_2509 = 'Qwen/Qwen-Image-Edit-2509'
+
 class VideoModels(str, Enum):
     """I plan to have all of these models optimized for the Aquiles-Image runtime"""
     WAN2_2_API = 'wan2.2'

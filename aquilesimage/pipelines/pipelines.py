@@ -17,6 +17,9 @@ from diffusers.models.auto_model import AutoModel
 from diffusers.pipelines.auto_pipeline import AutoPipelineForText2Image
 from transformers import Mistral3ForConditionalGeneration, AutoModelForCausalLM, AutoTokenizer
 from diffusers.pipelines.flux.pipeline_flux_kontext import FluxKontextPipeline
+from diffusers.pipelines.qwenimage.pipeline_qwenimage import QwenImagePipeline
+from diffusers.pipelines.qwenimage.pipeline_qwenimage_edit import QwenImageEditPipeline
+from diffusers.pipelines.qwenimage.pipeline_qwenimage_edit_plus import QwenImageEditPlusPipeline
 import torch
 import os
 import logging
@@ -662,6 +665,151 @@ class PipelineZImage:
         self.scheduler = FlowMatchEulerDiscreteScheduler(num_train_timesteps=1000, shift=3.0)
         self.pipeline.scheduler = self.scheduler
 
+class PipelineQwenImage:
+    def __init__(self, model_path: str | None):
+        self.pipeline: QwenImagePipeline | None = None
+        self.model_name = model_path
+
+    def start(self):
+        if torch.cuda.is_available():
+            self.pipeline = QwenImagePipeline.from_pretrained(
+                self.model_name,
+                torch_dtype=torch.bfloat16
+            ).to("cuda")
+            self.optimization()
+        else:
+            raise ValueError("CUDA not available")
+
+    def optimization(self):
+        try:
+            try:
+                torch._inductor.config.conv_1x1_as_mm = True
+                torch._inductor.config.coordinate_descent_tuning = True
+                torch._inductor.config.epilogue_fusion = False
+                torch._inductor.config.coordinate_descent_check_all_directions = True
+                torch._inductor.config.max_autotune_gemm = True
+                torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
+                torch._inductor.config.triton.cudagraphs = False
+            except Exception as e:
+                logger_p.error(f"❌ torch_opt failed: {str(e)}")
+                pass
+            self.flash_attn()
+            self.fuse_qkv_projections()
+            self.optimize_memory_format()
+        except Exception as e:
+            logger_p.error(f"❌ The optimizations could not be applied: {e}")
+            logger_p.info("Running with the non-optimized version")
+            pass
+
+    def optimize_memory_format(self):
+        try:
+            logger_p.info("channels_last memory format")
+            if hasattr(self.pipeline, 'vae'):
+                self.pipeline.vae.to(memory_format=torch.channels_last)
+            if hasattr(self.pipeline, 'transformer'):
+                self.pipeline.transformer.to(memory_format=torch.channels_last)
+        except Exception as e:
+            logger_p.error(f"❌ Error optimizing memory format: {e}")
+            pass
+
+    def fuse_qkv_projections(self):
+        try:
+            self.pipeline.transformer.fuse_qkv_projections()
+            self.pipeline.vae.fuse_qkv_projections()
+            logger_p.info("QKV projection fusion")
+        except Exception as e:
+            logger_p.error(f"❌ Error merging QKV projections: {e}")
+            pass
+
+    def flash_attn(self):
+        try:
+            self.pipeline.transformer.set_attention_backend("_flash_3_hub")
+            logger_p.info("FlashAttention 3 enabled")
+        except Exception as e:
+            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
+            try:
+                self.pipeline.transformer.set_attention_backend("flash")
+                logger_p.info("FlashAttention 2 enabled")
+            except Exception as e2:
+                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
+                pass
+
+class PipelineQwenImageEdit:
+    def __init__(self, model_path: str | None):
+        self.pipeline: QwenImageEditPipeline | QwenImageEditPlusPipeline | None = None
+        self.model_name = model_path
+
+    def start(self):
+        if torch.cuda.is_available():
+            if self.model_name in ["Qwen/Qwen-Image-Edit"]:
+                self.pipeline = QwenImageEditPipeline.from_pretrained(
+                    self.model_name,
+                    torch_dtype=torch.bfloat16
+                ).to("cuda")
+            elif self.model_name in ["Qwen/Qwen-Image-Edit-2509", "Qwen/Qwen-Image-Edit-2511"]:
+                self.pipeline = QwenImageEditPlusPipeline.from_pretrained(
+                    self.model_name,
+                    torch_dtype=torch.bfloat16
+                ).to("cuda")
+            else:
+                raise ValueError("Unsupported model")
+            self.optimization()
+        else:
+            raise ValueError("CUDA not available")
+
+    def optimization(self):
+        try:
+            try:
+                torch._inductor.config.conv_1x1_as_mm = True
+                torch._inductor.config.coordinate_descent_tuning = True
+                torch._inductor.config.epilogue_fusion = False
+                torch._inductor.config.coordinate_descent_check_all_directions = True
+                torch._inductor.config.max_autotune_gemm = True
+                torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
+                torch._inductor.config.triton.cudagraphs = False
+            except Exception as e:
+                logger_p.error(f"❌ torch_opt failed: {str(e)}")
+                pass
+            self.flash_attn()
+            self.fuse_qkv_projections()
+            self.optimize_memory_format()
+        except Exception as e:
+            logger_p.error(f"❌ The optimizations could not be applied: {e}")
+            logger_p.info("Running with the non-optimized version")
+            pass
+
+    def optimize_memory_format(self):
+        try:
+            logger_p.info("channels_last memory format")
+            if hasattr(self.pipeline, 'vae'):
+                self.pipeline.vae.to(memory_format=torch.channels_last)
+            if hasattr(self.pipeline, 'transformer'):
+                self.pipeline.transformer.to(memory_format=torch.channels_last)
+        except Exception as e:
+            logger_p.error(f"❌ Error optimizing memory format: {e}")
+            pass
+
+    def fuse_qkv_projections(self):
+        try:
+            self.pipeline.transformer.fuse_qkv_projections()
+            self.pipeline.vae.fuse_qkv_projections()
+            logger_p.info("QKV projection fusion")
+        except Exception as e:
+            logger_p.error(f"❌ Error merging QKV projections: {e}")
+            pass
+
+    def flash_attn(self):
+        try:
+            self.pipeline.transformer.set_attention_backend("_flash_3_hub")
+            logger_p.info("FlashAttention 3 enabled")
+        except Exception as e:
+            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
+            try:
+                self.pipeline.transformer.set_attention_backend("flash")
+                logger_p.info("FlashAttention 2 enabled")
+            except Exception as e2:
+                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
+                pass
 
 class AutoPipelineDiffusers:
     def __init__(self, model_path: str | None = None):
@@ -675,6 +823,17 @@ class AutoPipelineDiffusers:
 
     def optimization(self):
         try:
+            try:
+                torch._inductor.config.conv_1x1_as_mm = True
+                torch._inductor.config.coordinate_descent_tuning = True
+                torch._inductor.config.epilogue_fusion = False
+                torch._inductor.config.coordinate_descent_check_all_directions = True
+                torch._inductor.config.max_autotune_gemm = True
+                torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
+                torch._inductor.config.triton.cudagraphs = False
+            except Exception as e:
+                logger_p.error(f"X torch_opt failed: {str(e)}")
+                pass
             self.optimize_attention_sdpa()
             self.optimize_memory_format()
             self.fuse_qkv_projections()
@@ -698,6 +857,8 @@ class AutoPipelineDiffusers:
             self.pipeline.unet.to(memory_format=torch.channels_last)
             if hasattr(self.pipeline, 'vae'):
                 self.pipeline.vae.to(memory_format=torch.channels_last)
+            if hasattr(self.pipeline, 'transformer'):
+                self.pipeline.transformer.to(memory_format=torch.channels_last)
         except Exception as e:
             logger_p.error(f"❌ Error optimizing memory format: {e}")
             pass
@@ -747,6 +908,16 @@ class ModelPipelineInit:
             self.models.Z_IMAGE_TURBO
         ]
 
+        self.qwen_image = [
+            self.models.QWEN_IMAGE
+        ]
+
+        self.qwen_image_edit = [
+            self.models.QWEN_IMAGE_EDIT_BASE,
+            self.models.QWEN_IMAGE_EDIT_2511,
+            self.models.QWEN_IMAGE_EDIT_2509
+        ]
+
         self.flux2 = [
             self.models.FLUX_2_4BNB,
             self.models.FLUX_2
@@ -769,7 +940,10 @@ class ModelPipelineInit:
                 self.pipeline = PipelineFlux2(self.model, True, self.device_map_flux2)
             else:
                 self.pipeline = PipelineFlux2(self.model, False)
-        # Edition Models
+        elif self.model in self.qwen_image:
+            self.pipeline = PipelineQwenImage(self.model)
+        elif self.model in self.qwen_image_edit:
+            self.pipeline = PipelineQwenImageEdit(self.model)
         elif self.model in self.flux_kontext:
             self.pipeline = PipelineFluxKontext(self.model)
         elif self.auto_pipeline:
