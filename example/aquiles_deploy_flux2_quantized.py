@@ -22,7 +22,7 @@ aquiles_image = (
           "HF_TOKEN": os.getenv("Hugging_face_token_for_deploy", "")})  
 )
 
-MODEL_NAME = "black-forest-labs/FLUX.2-dev"
+MODEL_NAME = "diffusers/FLUX.2-dev-bnb-4bit"
 
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
 aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=True)
