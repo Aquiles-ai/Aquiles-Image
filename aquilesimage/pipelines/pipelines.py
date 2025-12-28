@@ -741,12 +741,12 @@ class PipelineQwenImageEdit:
 
     def start(self):
         if torch.cuda.is_available():
-            if self.model_name in ["Qwen/Qwen-Image-Edit"]:
+            if self.model_name in [ImageModel.QWEN_IMAGE_EDIT_BASE]:
                 self.pipeline = QwenImageEditPipeline.from_pretrained(
                     self.model_name,
                     torch_dtype=torch.bfloat16
                 ).to("cuda")
-            elif self.model_name in ["Qwen/Qwen-Image-Edit-2509", "Qwen/Qwen-Image-Edit-2511"]:
+            elif self.model_name in [ImageModel.QWEN_IMAGE_EDIT_2511, ImageModel.QWEN_IMAGE_EDIT_2509]:
                 self.pipeline = QwenImageEditPlusPipeline.from_pretrained(
                     self.model_name,
                     torch_dtype=torch.bfloat16
