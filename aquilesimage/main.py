@@ -483,7 +483,7 @@ async def create_image_edit(
     req_pipe = app.state.REQUEST_PIPE
     utils_app = app.state.utils_app
 
-    if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB]:
+    if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2]:
         raise HTTPException(500, f"Model not available")
 
     if n is None:
