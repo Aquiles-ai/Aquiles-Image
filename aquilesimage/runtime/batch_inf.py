@@ -7,7 +7,7 @@ import uuid
 from aquilesimage.utils import setup_colored_logger
 import logging
 
-logger = setup_colored_logger("Aquiles-Image-BatchCoordinator", logging.INFO)
+logger = setup_colored_logger("Aquiles-Image-BatchPipeline", logging.INFO)
 
 @dataclass
 class PendingRequest:

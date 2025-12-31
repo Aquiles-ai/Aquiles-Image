@@ -1,7 +1,12 @@
 import torch
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
+import asyncio
+from typing import Optional, List
 import time
+from aquilesimage.utils import setup_colored_logger
+import logging
+
+logger = setup_colored_logger("Aquiles-Image-DistributedCoordinator", logging.INFO)
 
 def get_device_count():
     return torch.cuda.device_count()
