@@ -6,6 +6,7 @@ import time
 import uuid
 from aquilesimage.utils import setup_colored_logger
 import logging
+from aquilesimage.runtime.distributed_inference import DistributedCoordinator
 
 logger = setup_colored_logger("Aquiles-Image-BatchPipeline", logging.INFO)
 
@@ -44,13 +45,16 @@ class BatchPipeline:
         max_batch_size: int = 4,
         batch_timeout: float = 0.5,
         worker_sleep: float = 0.05,
-        is_dist: bool = False
+        is_dist: bool = False,
+        device_ids: Optional[List[str]] = None
     ):
         self.pipeline = request_scoped_pipeline
         self.max_batch_size = max_batch_size
         self.batch_timeout = batch_timeout
         self.worker_sleep = worker_sleep
         self.is_dist = is_dist
+        if self.is_dist and device_ids is not None:
+            self.dist_cor = DistributedCoordinator(device_ids)
 
         self.pending: deque[PendingRequest] = deque()
         self.lock = asyncio.Lock()
@@ -319,7 +323,7 @@ class BatchPipeline:
 
     async def get_stats(self) -> dict:
         if self.is_dist:
-            return {"Status": "Ok"} # This is only temporary while I implement distributed inference
+            return self.dist_cor.get_stats_summary()
         else:
             async with self.lock:
                 queued = len(self.pending)
