@@ -1,7 +1,7 @@
 from openai import OpenAI
 import base64
 
-client = OpenAI(base_url="https://riveraaai200678--aquiles-image-server-serve.modal.run", api_key="dummy-api-key")
+client = OpenAI(base_url="https://f4k3r22--aquiles-image-server-serve.modal.run", api_key="dummy-api-key")
 
 print("Editing an image...")
 result = client.images.edit(

@@ -11,7 +11,7 @@ aquiles_image = (
     )
     .uv_pip_install(
         "torch==2.8",
-        "diffusers==0.36.0", # Note: This is the version that does not cause errors with FLUX.1-Kontext-dev
+        "git+https://github.com/huggingface/diffusers.git",
         "transformers==4.57.3",
         "tokenizers==0.22.1",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
@@ -22,7 +22,7 @@ aquiles_image = (
           "HF_TOKEN": os.getenv("Hugging_face_token_for_deploy", "")})  
 )
 
-MODEL_NAME = "black-forest-labs/FLUX.1-Kontext-dev"
+MODEL_NAME = "Qwen/Qwen-Image-Edit-2511"
 
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
 aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=True)

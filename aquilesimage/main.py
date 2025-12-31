@@ -433,7 +433,8 @@ async def create_image(input_r: CreateImageRequest):
 
 @app.post("/images/edits", response_model=ImagesResponse, tags=["Edit"], dependencies=[Depends(verify_api_key)])  
 async def create_image_edit(
-    image: List[UploadFile] = File(..., description="The image(s) to edit"),
+    image: Optional[UploadFile] = File(None, description="Single image to edit (legacy format)"),
+    image_array: Optional[List[UploadFile]] = File(None, alias="image[]", description="Image(s) to edit (OpenAI/OpenWebUI format)"),
     mask: Optional[UploadFile] = File(None, description="An additional image to be used as a mask"),
     prompt: str = Form(..., max_length=1000, description="A text description of the desired image(s)."),
     background: Optional[str] = Form(None, description="Allows to set transparency for the background"),
@@ -450,18 +451,36 @@ async def create_image_edit(
     quality: Optional[str] = Form("auto", description="The quality of the image that will be generated")
 ):
 
+    if image is None and image_array is None:
+        raise HTTPException(
+            status_code=422, 
+            detail="X At least one image is required. Use 'image' or 'image[]' parameter."
+        )
+
+    images_list: List[UploadFile] = []
+    
+    if image is not None:
+        images_list.append(image)
+        logger.info("Received image via 'image' parameter (single)")
+    
+    if image_array is not None:
+        images_list.extend(image_array)
+        logger.info(f"Received {len(image_array)} image(s) via 'image[]' parameter (array)")
+    
+    logger.info(f"Total images to process: {len(images_list)}")
+
     single_image_models = [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.QWEN_IMAGE_EDIT_BASE]
 
-    if len(image) > 1 and model in single_image_models:
+    if len(images_list) > 1 and model in single_image_models:
         raise HTTPException(
             status_code=400, 
-            detail=f"X Model {model} only supports a single input image. Received {len(image)} images."
+            detail=f"X Model {model} only supports a single input image. Received {len(images_list)} images."
         )
-    
-    if len(image) > 10:
+
+    if len(images_list) > 16:
         raise HTTPException(
             status_code=400, 
-            detail="X Maximum 10 images allowed"
+            detail="X Maximum 16 images allowed"
         )
 
     if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, 
@@ -503,7 +522,7 @@ async def create_image_edit(
 
     if n is None:
         n = 1
-
+    
     if size == "1024x1024":
         h, w = 1024, 1024
     elif size == "1536x1024":
@@ -521,47 +540,31 @@ async def create_image_edit(
     else:
         h, w = 1024, 1024
         size = "1024x1024"
-    
+
     from PIL import Image as PILImage
-
-    if len(image) == 1:
-        try:
-            image_content = await image[0].read()
-            image_pil = PILImage.open(io.BytesIO(image_content))
-
-            if image_pil.mode != 'RGB':
-                image_pil = image_pil.convert('RGB')
-
-            w, h = image_pil.size
-            logger.info(f"Single image received: {w}x{h}, mode: {image_pil.mode}")
-
-            if model in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB]:
-                logger.info(f"Flux Kontext: Using original image without resizing: {image_pil.size}")
-                image_to_use = image_pil
-            else:
-                image_to_use = image_pil
+    
+    try:
+        images_pil = []
+        for idx, img_file in enumerate(images_list):
+            img_content = await img_file.read()
+            img_pil = PILImage.open(io.BytesIO(img_content))
             
-        except Exception as e:
-            raise HTTPException(400, f"X Invalid image file: {str(e)}")
-
-    else:
-        try:
-            images_pil = []
-            for idx, img_file in enumerate(image):
-                img_content = await img_file.read()
-                img_pil = PILImage.open(io.BytesIO(img_content))
-                
-                if img_pil.mode != 'RGB':
-                    img_pil = img_pil.convert('RGB')
-                
-                images_pil.append(img_pil)
-                logger.info(f"Image {idx+1}/{len(image)}: {img_pil.size}, mode: {img_pil.mode}")
+            if img_pil.mode != 'RGB':
+                img_pil = img_pil.convert('RGB')
             
+            images_pil.append(img_pil)
+            logger.info(f"Image {idx+1}/{len(images_list)}: {img_pil.size}, mode: {img_pil.mode}")
+
+        if len(images_pil) == 1:
+            image_to_use = images_pil[0]
+            logger.info(f"Processing single image: {images_pil[0].size}")
+        else:
             image_to_use = images_pil
-            logger.info(f"Multiple images received: {len(images_pil)} images")
+            logger.info(f"Processing multiple images: {len(images_pil)} images")
             
-        except Exception as e:
-            raise HTTPException(400, f"X Invalid image file: {str(e)}")
+    except Exception as e:
+        raise HTTPException(400, f"X Invalid image file: {str(e)}")
+
     
     if input_fidelity == "high":
         gd = 5.0
