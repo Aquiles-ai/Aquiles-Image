@@ -189,13 +189,21 @@ class VideoTaskGeneration:
             negative_prompt="No deformities",
         )
 
-    def get_stats(self) -> dict:
+    async def get_stats(self) -> dict:
+        async with self.lock:
+            total_tasks = len(self.tasks)
+            queued = len(self.queue)
+            processing = len(self.active_tasks)
+            completed = sum(1 for t in self.tasks.values() if t.status == VideoStatus.completed)
+            failed = sum(1 for t in self.tasks.values() if t.status == VideoStatus.failed)
+            available = self.enable_queue or len(self.active_tasks) < self.max_concurrent_tasks
         return {
-            "total_tasks": len(self.tasks),
-            "queued": len(self.queue),
-            "processing": len(self.active_tasks),
-            "completed": sum(1 for t in self.tasks.values() if t.status == VideoStatus.completed),
-            "failed": sum(1 for t in self.tasks.values() if t.status == VideoStatus.failed),
+            "total_tasks": total_tasks,
+            "queued": queued,
+            "processing": processing,
+            "completed": completed,
+            "failed": failed,
+            "available": available,
             "max_concurrent": self.max_concurrent_tasks
         }
 

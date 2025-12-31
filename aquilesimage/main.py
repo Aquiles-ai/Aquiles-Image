@@ -718,7 +718,7 @@ async def get_video(video_id: str):
     else:
         raise HTTPException(status_code=503, detail=f"You are running the model: {app.state.model}. This model does not generate videos.")
 
-@app.get("/videos", response_model=VideoListResource, dependencies=[Depends(verify_api_key)])
+@app.get("/videos", response_model=VideoListResource, dependencies=[Depends(verify_api_key)], tags=["Video APIs"])
 async def list_videos(
     limit: int = 20,
     after: Optional[str] = None
@@ -784,6 +784,15 @@ async def get_video(video_id):
         return FileResponse(path, media_type="video/mp4")
     else:
         raise HTTPException(status_code=503, detail=f"You are running the model: {app.state.model}. This model does not generate videos.")
+
+@app.get("/stats", dependencies=[Depends(verify_api_key)], tags=["Stats APIs"])
+async def get_stats():
+    if model_name in Videomodel:
+        stats = await video_task_gen.get_stats()
+        return stats
+    else:
+        stats = await batch_pipeline.get_stats()
+        return stats
 
 
 app.add_middleware(

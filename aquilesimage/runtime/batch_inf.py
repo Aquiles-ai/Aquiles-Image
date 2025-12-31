@@ -44,11 +44,13 @@ class BatchPipeline:
         max_batch_size: int = 4,
         batch_timeout: float = 0.5,
         worker_sleep: float = 0.05,
+        is_dist: bool = False
     ):
         self.pipeline = request_scoped_pipeline
         self.max_batch_size = max_batch_size
         self.batch_timeout = batch_timeout
         self.worker_sleep = worker_sleep
+        self.is_dist = is_dist
 
         self.pending: deque[PendingRequest] = deque()
         self.lock = asyncio.Lock()
@@ -60,6 +62,8 @@ class BatchPipeline:
         self.total_requests = 0
         self.total_batches = 0
         self.total_images = 0
+        self.total_complete = 0
+        self.total_failed = 0
         
         logger.info(f"BatchCoordinator initialized:")
         logger.info(f"  max_batch_size={max_batch_size}")
@@ -284,6 +288,7 @@ class BatchPipeline:
 
             self.total_batches += 1
             self.total_images += total_expected_images
+            self.total_complete += 1
             
             logger.info(
                 f"Group completed: {total_expected_images} images "
@@ -295,6 +300,7 @@ class BatchPipeline:
             logger.error(f"X Batch inference failed: {e}")
             logger.error(f"  Params: {params}")
             logger.error(f"  Group size: {len(group)}")
+            self.total_failed += 1 
 
             for i, req in enumerate(group):
                 logger.error(f"  [{i}] {req.id} → FAILED")
@@ -310,3 +316,24 @@ class BatchPipeline:
             except asyncio.CancelledError:
                 pass
             logger.info("Batch worker stopped")
+
+    async def get_stats(self) -> dict:
+        if self.is_dist:
+            return {"Status": "Ok"} # This is only temporary while I implement distributed inference
+        else:
+            async with self.lock:
+                queued = len(self.pending)
+                total_requests = self.total_requests
+                processing = self.processing
+
+            return {
+                "total_requests": total_requests,
+                "total_batches": self.total_batches,
+                "total_images": self.total_images,
+                "queued": queued,
+                "completed": self.total_complete,
+                "failed": self.total_failed,
+                "processing": self.processing,
+                "available": not processing
+            }
+        
