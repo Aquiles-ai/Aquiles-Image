@@ -123,6 +123,24 @@ class PipelineSD3:
                     logger_p.warning(f"No optimized attention available, using default SDPA: {str(e3)}")
 
     def start_multi_gpu(self):
+        torch.set_float32_matmul_precision("high")
+
+        if hasattr(torch._inductor, 'config'):
+            if hasattr(torch._inductor.config, 'conv_1x1_as_mm'):
+                torch._inductor.config.conv_1x1_as_mm = True
+            if hasattr(torch._inductor.config, 'coordinate_descent_tuning'):
+                torch._inductor.config.coordinate_descent_tuning = True
+            if hasattr(torch._inductor.config, 'epilogue_fusion'):
+                torch._inductor.config.epilogue_fusion = False
+            if hasattr(torch._inductor.config, 'coordinate_descent_check_all_directions'):
+                torch._inductor.config.coordinate_descent_check_all_directions = True
+
+        if torch.cuda.is_available():
+            torch.backends.cudnn.benchmark = True
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.deterministic = False
+            torch.backends.cudnn.allow_tf32 = True
+
         device_count = get_device_count()
 
         for gpu_id in range(device_count):
