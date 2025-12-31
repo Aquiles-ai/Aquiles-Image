@@ -477,10 +477,10 @@ async def create_image_edit(
             detail=f"X Model {model} only supports a single input image. Received {len(images_list)} images."
         )
 
-    if len(images_list) > 16:
+    if len(images_list) > 10:
         raise HTTPException(
             status_code=400, 
-            detail="X Maximum 16 images allowed"
+            detail="X Maximum 10 images allowed"
         )
 
     if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, 

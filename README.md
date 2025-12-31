@@ -97,8 +97,11 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 ### Image-to-Image (`/images/edits`)
 
 - `black-forest-labs/FLUX.1-Kontext-dev`
-- `diffusers/FLUX.2-dev-bnb-4bit`
-- `black-forest-labs/FLUX.2-dev` * 
+- `diffusers/FLUX.2-dev-bnb-4bit` - Supports multi-image editing. Maximum 10 input images.
+- `black-forest-labs/FLUX.2-dev` * - Supports multi-image editing. Maximum 10 input images.
+- `Qwen/Qwen-Image-Edit` 
+- `Qwen/Qwen-Image-Edit-2509` - Supports multi-image editing. Maximum 3 input images.
+- `Qwen/Qwen-Image-Edit-2511` - Supports multi-image editing. Maximum 3 input images.
 
 > **\* Note on FLUX.2-dev**: Requires NVIDIA H200 with 64GB RAM minimum. Inference times are variable (17s-2min) and may be unpredictable.
 
