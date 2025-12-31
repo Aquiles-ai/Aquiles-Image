@@ -21,12 +21,19 @@ class PendingRequest:
     
     def params_key(self) -> Tuple:
         has_image = self.image is not None
+        num_input_images = 0
+        if self.image is not None:
+            if isinstance(self.image, list):
+                num_input_images = len(self.image)
+            else:
+                num_input_images = 1
         return (
             self.params.get('height', 1024),
             self.params.get('width', 1024),
             self.params.get('num_inference_steps', 30),
             self.params.get('device', 'cuda'),
             has_image,
+            num_input_images,
             self.num_images,
         )
 
@@ -208,7 +215,17 @@ class BatchPipeline:
 
         prompts = [r.prompt for r in group]
 
-        images = [r.image for r in group] if has_images else None
+        images = None
+        if has_images:
+            images = []
+            for r in group:
+                if isinstance(r.image, list):
+                    images.extend(r.image)
+                else:
+                    images.append(r.image)
+
+            if len(images) == 1:
+                images = images[0]
         
         params = group[0].params
 

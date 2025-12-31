@@ -23,7 +23,7 @@ import gc
 import time
 import base64
 import io
-from typing import Optional, Any
+from typing import Optional, Any, List
 from datetime import datetime
 from aquilesimage.runtime.batch_inf import BatchPipeline
 
@@ -433,7 +433,7 @@ async def create_image(input_r: CreateImageRequest):
 
 @app.post("/images/edits", response_model=ImagesResponse, tags=["Edit"], dependencies=[Depends(verify_api_key)])  
 async def create_image_edit(
-    image: UploadFile = File(..., description="The image to edit"),
+    image: List[UploadFile] = File(..., description="The image(s) to edit"),
     mask: Optional[UploadFile] = File(None, description="An additional image to be used as a mask"),
     prompt: str = Form(..., max_length=1000, description="A text description of the desired image(s)."),
     background: Optional[str] = Form(None, description="Allows to set transparency for the background"),
@@ -450,6 +450,25 @@ async def create_image_edit(
     quality: Optional[str] = Form("auto", description="The quality of the image that will be generated")
 ):
 
+    single_image_models = [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.QWEN_IMAGE_EDIT_BASE]
+
+    if len(image) > 1 and model in single_image_models:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"X Model {model} only supports a single input image. Received {len(image)} images."
+        )
+    
+    if len(image) > 10:
+        raise HTTPException(
+            status_code=400, 
+            detail="X Maximum 10 images allowed"
+        )
+
+    if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, 
+                     ImageModel.QWEN_IMAGE_EDIT_BASE, ImageModel.QWEN_IMAGE_EDIT_2511, ImageModel.QWEN_IMAGE_EDIT_2509]:
+        raise HTTPException(500, f"X Model not available")
+
+    
     if app.state.load_model is False:
         logger.info("[DEV MODE] Generating mock edit response")
         utils_app = app.state.utils_app
@@ -474,37 +493,16 @@ async def create_image_edit(
         
         except Exception as e:
             logger.error(f"X Error in dev mode: {e}")
-            raise HTTPException(500, f"Error in dev mode: {e}")
-
-
+            raise HTTPException(500, f"X Error in dev mode: {e}")
+    
     if app.state.active_inferences >= max_concurrent_infer:
         raise HTTPException(429)
 
     req_pipe = app.state.REQUEST_PIPE
     utils_app = app.state.utils_app
 
-    if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, ImageModel.QWEN_IMAGE_EDIT_BASE, ImageModel.QWEN_IMAGE_EDIT_2511, ImageModel.QWEN_IMAGE_EDIT_2509]:
-        raise HTTPException(500, f"Model not available")
-
     if n is None:
         n = 1
-    else:
-        n = n
-
-    try:
-        image_content = await image.read()
-
-        from PIL import Image as PILImage
-        image_pil = PILImage.open(io.BytesIO(image_content))
-
-        if image_pil.mode != 'RGB':
-            image_pil = image_pil.convert('RGB')
-
-        width, height = image_pil.size
-        logger.info(f"Original image: {width}x{height}, mode: {image_pil.mode}")
-        
-    except Exception as e:
-        raise HTTPException(400, f"Invalid image file: {str(e)}")
 
     if size == "1024x1024":
         h, w = 1024, 1024
@@ -523,13 +521,48 @@ async def create_image_edit(
     else:
         h, w = 1024, 1024
         size = "1024x1024"
-
-    image_to_use = image_pil  
     
-    if model in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB]:
-        logger.info(f"Flux Kontext: Using original image without resizing: {image_pil.size}")
-        image_to_use = image_pil
+    from PIL import Image as PILImage
 
+    if len(image) == 1:
+        try:
+            image_content = await image[0].read()
+            image_pil = PILImage.open(io.BytesIO(image_content))
+
+            if image_pil.mode != 'RGB':
+                image_pil = image_pil.convert('RGB')
+
+            w, h = image_pil.size
+            logger.info(f"Single image received: {w}x{h}, mode: {image_pil.mode}")
+
+            if model in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB]:
+                logger.info(f"Flux Kontext: Using original image without resizing: {image_pil.size}")
+                image_to_use = image_pil
+            else:
+                image_to_use = image_pil
+            
+        except Exception as e:
+            raise HTTPException(400, f"X Invalid image file: {str(e)}")
+
+    else:
+        try:
+            images_pil = []
+            for idx, img_file in enumerate(image):
+                img_content = await img_file.read()
+                img_pil = PILImage.open(io.BytesIO(img_content))
+                
+                if img_pil.mode != 'RGB':
+                    img_pil = img_pil.convert('RGB')
+                
+                images_pil.append(img_pil)
+                logger.info(f"Image {idx+1}/{len(image)}: {img_pil.size}, mode: {img_pil.mode}")
+            
+            image_to_use = images_pil
+            logger.info(f"Multiple images received: {len(images_pil)} images")
+            
+        except Exception as e:
+            raise HTTPException(400, f"X Invalid image file: {str(e)}")
+    
     if input_fidelity == "high":
         gd = 5.0
     elif input_fidelity == "low":
@@ -538,18 +571,18 @@ async def create_image_edit(
         if model in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB]:
             gd = 2.5 
         else:
-            gd = 7.5  
-
+            gd = 7.5
+    
     try:
         async with app.state.metrics_lock:
             app.state.active_inferences += 1
 
 
-        image = await batch_pipeline.submit(
+        image_result = await batch_pipeline.submit(
             prompt=prompt,
             image=image_to_use,
-            height=height,
-            width=width,
+            height=h,
+            width=w,
             num_inference_steps=steps if steps is not None else 30,
             device=initializer.device,
             timeout=600.0,
@@ -557,12 +590,11 @@ async def create_image_edit(
             output_type="pil",
             num_images_per_prompt=n or 1,  
         )
-            
 
-        if isinstance(image, list):
-            output = DummyOutput(image)
+        if isinstance(image_result, list):
+            output = DummyOutput(image_result)
         else:
-            output = DummyOutput([image])
+            output = DummyOutput([image_result])
 
         async with app.state.metrics_lock:
             app.state.active_inferences = max(0, app.state.active_inferences - 1)
@@ -602,8 +634,8 @@ async def create_image_edit(
     except Exception as e:
         async with app.state.metrics_lock:
             app.state.active_inferences = max(0, app.state.active_inferences - 1)
-        logger.error(f"Error during inference: {e}")
-        raise HTTPException(500, f"Error in processing: {e}")
+        logger.error(f"X Error during inference: {e}")
+        raise HTTPException(500, f"X Error in processing: {e}")
 
     finally:
         if torch.cuda.is_available():
