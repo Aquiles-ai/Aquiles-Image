@@ -333,7 +333,7 @@ class BatchPipeline:
                 "queued": queued,
                 "completed": self.total_complete,
                 "failed": self.total_failed,
-                "processing": self.processing,
+                "processing": processing,
                 "available": not processing
             }
         

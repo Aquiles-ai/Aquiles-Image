@@ -175,6 +175,36 @@ aquiles-image serve --no-load-model
 - All endpoints functional with realistic formats
 - Same API structure as production
 
+## 📊 Monitoring & Stats
+
+Aquiles-Image provides a custom `/stats` endpoint for monitoring:
+
+```python
+import requests
+
+# Get server statistics
+stats = requests.get("http://localhost:5500/stats", 
+                    headers={"Authorization": "Bearer YOUR_API_KEY"}).json()
+
+print(f"Available: {stats['available']}")
+print(f"Total number of images generated: {stats['total_images']}")
+print(f"Queue size: {stats['queued']}")
+print(f"Completed: {stats['completed']}")
+```
+
+**Response format:**
+```json
+{
+  "total_requests": 150,
+  "total_batches": 42,
+  "total_images": 180, 
+  "queued": 3,
+  "completed": 147,
+  "failed": 0,
+  "processing": true,
+  "available": false
+}
+```
 
 ## 🎯 Use Cases
 
