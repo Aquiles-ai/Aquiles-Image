@@ -175,13 +175,6 @@ class PipelineSD3:
                 print("xformers not available:", ea)
 
             try:
-                pipeline.transformer.fuse_qkv_projections()
-                print("fuse_qkv_projections enabled")
-            except Exception as ea2:
-                print("fuse_qkv_projections not available:", ea2)
-                pass
-
-            try:
                 pipeline = self.enable_flash_attn_multi_gpu(pipeline)
             except Exception as ea3:
                 print("flash_attn not available:", ea3)
