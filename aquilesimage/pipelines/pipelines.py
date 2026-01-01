@@ -47,7 +47,7 @@ class PipelineSD3:
         self.pipeline: StableDiffusion3Pipeline | None = None
         self.device: str | None = None
         self.dist_inf = dist_inf
-        self.pipelines = []
+        self.pipelines = {}
 
     def start(self):
         torch.set_float32_matmul_precision("high")
@@ -157,7 +157,7 @@ class PipelineSD3:
 
             pipeline = self.opt_multi_gpu(pipeline)
 
-            self.pipelines.append(pipeline)
+            self.pipelines[device] = pipeline
 
             torch.cuda.empty_cache()
 

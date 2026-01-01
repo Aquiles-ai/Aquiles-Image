@@ -46,15 +46,26 @@ class BatchPipeline:
         batch_timeout: float = 0.5,
         worker_sleep: float = 0.05,
         is_dist: bool = False,
-        device_ids: Optional[List[str]] = None
+        device_ids: Optional[List[str]] = None,
+        max_batch_sizes: Optional[List[int]] = None,
     ):
         self.pipeline = request_scoped_pipeline
         self.max_batch_size = max_batch_size
         self.batch_timeout = batch_timeout
         self.worker_sleep = worker_sleep
         self.is_dist = is_dist
-        if self.is_dist and device_ids is not None:
-            self.dist_cor = DistributedCoordinator(device_ids)
+        
+        if self.is_dist:
+            if device_ids is None or len(device_ids) == 0:
+                raise ValueError("device_ids required for distributed mode")
+            self.dist_cor = DistributedCoordinator(
+                device_ids=device_ids,
+                max_batch_sizes=max_batch_sizes
+            )
+            logger.info(f"BatchPipeline initialized in DISTRIBUTED mode with {len(device_ids)} devices")
+        else:
+            self.dist_cor = None
+            logger.info("BatchPipeline initialized in SINGLE-DEVICE mode")
 
         self.pending: deque[PendingRequest] = deque()
         self.lock = asyncio.Lock()
@@ -69,9 +80,10 @@ class BatchPipeline:
         self.total_complete = 0
         self.total_failed = 0
         
-        logger.info(f"BatchCoordinator initialized:")
+        logger.info(f"BatchCoordinator configuration:")
         logger.info(f"  max_batch_size={max_batch_size}")
         logger.info(f"  batch_timeout={batch_timeout}s")
+        logger.info(f"  worker_sleep={worker_sleep}s")
 
     async def start(self):
         if self.worker_task is None:
@@ -119,7 +131,7 @@ class BatchPipeline:
         request_type = "I2I" if image is not None else "T2I"
         logger.info(
             f"Request {req_id} queued ({request_type}, "
-            f"(queue_size={queue_size}, prompt='{prompt[:50]}...')"
+            f"queue_size={queue_size}, prompt='{prompt[:50]}...')"
         )
 
         try:
@@ -214,12 +226,35 @@ class BatchPipeline:
         if not group:
             return
 
+        device_to_use = None
+        device_stats = None
+        
+        if self.is_dist:
+                device_stats = await self.dist_cor.wait_for_available_device(timeout=30.0)
+                device_to_use = device_stats.id
+
+                total_images = sum(req.num_images for req in group)
+                device_stats.start_batch(total_images)
+                
+                logger.info(f"Assigned device {device_to_use} for batch of {len(group)} requests ({total_images} images)")
+                
+            except TimeoutError as e:
+                logger.error(f"X No devices available after timeout")
+                for req in group:
+                    if not req.future.done():
+                        req.future.set_exception(e)
+                self.total_failed += 1
+                return
+        else:
+            device_to_use = group[0].params.get('device', 'cuda')
+
+        # Preparar datos
         has_images = group[0].image is not None
         batch_type = "Image-to-Image" if has_images else "Text-to-Image"
 
-        logger.info(f"Processing {batch_type} group with params {params_key}:")
+        logger.info(f"Processing {batch_type} group on device {device_to_use} with params {params_key}:")
         for i, req in enumerate(group):
-            logger.info(f"  [{i}] {req.id}: '{req.prompt[:50]}...' params: {req.params}")
+            logger.info(f"  [{i}] {req.id}: '{req.prompt[:50]}...'")
 
         prompts = [r.prompt for r in group]
 
@@ -235,11 +270,11 @@ class BatchPipeline:
             if len(images) == 1:
                 images = images[0]
         
-        params = group[0].params
+        params = group[0].params.copy()
+        params['device'] = device_to_use
 
         total_expected_images = sum(req.num_images for req in group)
-        logger.info(f"DEBUG: Group requests num_images: {[req.num_images for req in group]}")
-        logger.info(f"DEBUG: total_expected_images calculated: {total_expected_images}")
+        logger.info(f"Group expects {total_expected_images} total images")
         
         try:
             from fastapi.concurrency import run_in_threadpool
@@ -252,7 +287,7 @@ class BatchPipeline:
                         height=params['height'],
                         width=params['width'],
                         num_inference_steps=params['num_inference_steps'],
-                        device=params['device'],
+                        device=device_to_use,
                         num_images_per_prompt=params['num_images_per_prompt'],
                         **{k: v for k, v in params.items() 
                             if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images', 'num_images_per_prompt']}
@@ -263,7 +298,7 @@ class BatchPipeline:
                         height=params['height'],
                         width=params['width'],
                         num_inference_steps=params['num_inference_steps'],
-                        device=params['device'],
+                        device=device_to_use,
                         num_images_per_prompt=params['num_images_per_prompt'],
                         **{k: v for k, v in params.items() 
                             if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images', 'num_images_per_prompt']}
@@ -290,20 +325,29 @@ class BatchPipeline:
             
                 image_idx += req.num_images
 
+            if self.is_dist and device_stats:
+                device_stats.complete_batch(total_expected_images)
+                logger.info(f"Device {device_to_use} stats updated - completed {total_expected_images} images")
+            
             self.total_batches += 1
             self.total_images += total_expected_images
             self.total_complete += 1
             
             logger.info(
-                f"Group completed: {total_expected_images} images "
+                f"Group completed on {device_to_use}: {total_expected_images} images "
                 f"(total_batches={self.total_batches}, "
                 f"total_images={self.total_images})"
             )
         
         except Exception as e:
-            logger.error(f"X Batch inference failed: {e}")
+            logger.error(f"X Batch inference failed on {device_to_use}: {e}")
             logger.error(f"  Params: {params}")
             logger.error(f"  Group size: {len(group)}")
+
+            if self.is_dist and device_stats:
+                device_stats.register_error(str(e))
+                logger.info(f"Device {device_to_use} error registered")
+            
             self.total_failed += 1 
 
             for i, req in enumerate(group):
@@ -323,7 +367,24 @@ class BatchPipeline:
 
     async def get_stats(self) -> dict:
         if self.is_dist:
-            return self.dist_cor.get_stats_summary()
+            dist_stats = self.dist_cor.get_stats_summary()
+
+            async with self.lock:
+                queued = len(self.pending)
+            
+            return {
+                "mode": "distributed",
+                "devices": dist_stats,
+                "global": {
+                    "total_requests": self.total_requests,
+                    "total_batches": self.total_batches,
+                    "total_images": self.total_images,
+                    "queued": queued,
+                    "completed": self.total_complete,
+                    "failed": self.total_failed,
+                    "processing": self.processing
+                }
+            }
         else:
             async with self.lock:
                 queued = len(self.pending)
@@ -331,6 +392,7 @@ class BatchPipeline:
                 processing = self.processing
 
             return {
+                "mode": "single-device",
                 "total_requests": total_requests,
                 "total_batches": self.total_batches,
                 "total_images": self.total_images,
@@ -340,4 +402,18 @@ class BatchPipeline:
                 "processing": processing,
                 "available": not processing
             }
-        
+    
+    def get_stats_text(self) -> str:
+        if self.is_dist:
+            return self.dist_cor.get_stats_text()
+        else:
+            return (
+                f"\nBatch Pipeline Status (Single-Device):\n"
+                f"  Total Requests: {self.total_requests}\n"
+                f"  Total Batches: {self.total_batches}\n"
+                f"  Total Images: {self.total_images}\n"
+                f"  Queued: {len(self.pending)}\n"
+                f"  Completed: {self.total_complete}\n"
+                f"  Failed: {self.total_failed}\n"
+                f"  Processing: {self.processing}"
+            )
