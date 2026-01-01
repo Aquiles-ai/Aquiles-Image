@@ -946,7 +946,7 @@ class ModelPipelineInit:
 
         # Base Models
         if self.model in self.stablediff3:
-            self.pipeline = PipelineSD3(self.model)
+            self.pipeline = PipelineSD3(self.model, self.dist_inf)
         elif self.model in self.flux:
             self.pipeline = PipelineFlux(self.model, self.low_vram)
         elif self.model in self.z_image:
