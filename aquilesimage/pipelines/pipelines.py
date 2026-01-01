@@ -19,7 +19,11 @@ from transformers import Mistral3ForConditionalGeneration, AutoModelForCausalLM,
 from diffusers.pipelines.flux.pipeline_flux_kontext import FluxKontextPipeline
 from diffusers.pipelines.qwenimage.pipeline_qwenimage import QwenImagePipeline
 from diffusers.pipelines.qwenimage.pipeline_qwenimage_edit import QwenImageEditPipeline
-from diffusers.pipelines.qwenimage.pipeline_qwenimage_edit_plus import QwenImageEditPlusPipeline
+try:
+    from diffusers.pipelines.qwenimage.pipeline_qwenimage_edit_plus import QwenImageEditPlusPipeline
+except ImportError as e:
+    print("Error import QwenImageEditPlusPipeline")
+    pass
 import torch
 import os
 import logging
@@ -920,7 +924,8 @@ class ModelPipelineInit:
         ]
 
         self.qwen_image = [
-            self.models.QWEN_IMAGE
+            self.models.QWEN_IMAGE,
+            self.models.QWEN_IMAGE_2512
         ]
 
         self.qwen_image_edit = [

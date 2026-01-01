@@ -32,6 +32,8 @@ class ImageModel(str, Enum):
 
     QWEN_IMAGE = 'Qwen/Qwen-Image'
 
+    QWEN_IMAGE_2512 = 'Qwen/Qwen-Image-2512'
+
     QWEN_IMAGE_EDIT_BASE = 'Qwen/Qwen-Image-Edit'
 
     QWEN_IMAGE_EDIT_2511 = 'Qwen/Qwen-Image-Edit-2511'
