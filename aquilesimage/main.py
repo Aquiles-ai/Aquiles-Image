@@ -224,9 +224,9 @@ async def lifespan(app: FastAPI):
     if model_name in Videomodel:
         logger.info("Video task manager started")
 
-
-    await batch_pipeline.start()
-    logger.info("batch_pipeline started")
+    if batch_pipeline is not None:
+        await batch_pipeline.start()
+        logger.info("batch_pipeline started")
 
     async def metrics_loop():
             try:
@@ -242,7 +242,7 @@ async def lifespan(app: FastAPI):
                                     reserved = torch.cuda.memory_reserved(i) / 1024**3
                                     total_memory = torch.cuda.get_device_properties(i).total_memory / 1024**3
                         
-                                    if i == 0:
+                                    if dist_inference is False or None:
                                         vram_info = f" vram_allocated={allocated:.2f}GB vram_reserved={reserved:.2f}GB vram_total={total_memory:.2f}GB"
                                     else:
                                         vram_info += f" gpu{i}_allocated={allocated:.2f}GB gpu{i}_reserved={reserved:.2f}GB"
@@ -253,6 +253,8 @@ async def lifespan(app: FastAPI):
                             vram_info = " vram=no_gpu"
 
                     logger.info(f"[METRICS] total_requests={total} active_inferences={active}{vram_info}")
+                    if batch_pipeline is not None:
+                        logger.info(f"\n [STATS] {batch_pipeline.get_stats()}")
                     await asyncio.sleep(5)
             except asyncio.CancelledError:
                 logger.info("Metrics loop cancelled")
