@@ -3,10 +3,10 @@ import base64
 
 client = OpenAI(base_url="https://f4k3r22--aquiles-image-server-serve.modal.run", api_key="dummy-api-key")
 
-prompt = "A vast futuristic city curving upward into the sky, its buildings bending and connecting overhead in a continuous loop. Gravity shifts seamlessly along the curve, with sunlight streaming across inverted skyscrapers. The scene feels serene and awe-inspiring—earthlike fields and rivers running along the inner surface of a colossal rotating structure."
+prompt = "A realistic photo of a small European kitchen in the morning, natural light entering through a window, slightly cluttered countertop, everyday objects, realistic shadows, imperfect alignment, shot at eye level, wide-angle 24mm lens"
 
 result = client.images.generate(
-    model="black-forest-labs/FLUX.1-Krea-dev",
+    model="stabilityai/stable-diffusion-3.5-medium",
     prompt=prompt,
     size="1024x1024",
     response_format="b64_json"

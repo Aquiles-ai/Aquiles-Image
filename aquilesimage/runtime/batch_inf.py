@@ -230,6 +230,7 @@ class BatchPipeline:
         device_stats = None
         
         if self.is_dist:
+            try:
                 device_stats = await self.dist_cor.wait_for_available_device(timeout=30.0)
                 device_to_use = device_stats.id
 
@@ -248,7 +249,6 @@ class BatchPipeline:
         else:
             device_to_use = group[0].params.get('device', 'cuda')
 
-        # Preparar datos
         has_images = group[0].image is not None
         batch_type = "Image-to-Image" if has_images else "Text-to-Image"
 
