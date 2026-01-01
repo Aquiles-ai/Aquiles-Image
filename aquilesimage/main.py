@@ -254,7 +254,7 @@ async def lifespan(app: FastAPI):
 
                     logger.info(f"[METRICS] total_requests={total} active_inferences={active}{vram_info}")
                     if batch_pipeline is not None:
-                        logger.info(f"\n [STATS] {batch_pipeline.get_stats()}")
+                        logger.info(f"\n [STATS] {batch_pipeline.get_stats_text()}")
                     await asyncio.sleep(5)
             except asyncio.CancelledError:
                 logger.info("Metrics loop cancelled")
