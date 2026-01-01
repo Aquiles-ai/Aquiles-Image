@@ -178,7 +178,7 @@ aquiles-image serve --no-load-model
 
 ## 📊 Monitoring & Stats
 
-Aquiles-Image provides a custom `/stats` endpoint for monitoring:
+Aquiles-Image provides a custom `/stats` endpoint for real-time monitoring:
 
 ```python
 import requests
@@ -187,18 +187,24 @@ import requests
 stats = requests.get("http://localhost:5500/stats", 
                     headers={"Authorization": "Bearer YOUR_API_KEY"}).json()
 
-print(f"Available: {stats['available']}")
-print(f"Total number of images generated: {stats['total_images']}")
-print(f"Queue size: {stats['queued']}")
+print(f"Total requests: {stats['total_requests']}")
+print(f"Total images generated: {stats['total_images']}")
+print(f"Queued: {stats['queued']}")
 print(f"Completed: {stats['completed']}")
 ```
 
-**Response format:**
+### Response Formats
+
+The response varies depending on the model type and configuration:
+
+#### Image Models - Single-Device Mode
+
 ```json
 {
+  "mode": "single-device",
   "total_requests": 150,
   "total_batches": 42,
-  "total_images": 180, 
+  "total_images": 180,
   "queued": 3,
   "completed": 147,
   "failed": 0,
@@ -206,6 +212,80 @@ print(f"Completed: {stats['completed']}")
   "available": false
 }
 ```
+
+#### Image Models - Distributed Mode (Multi-GPU)
+
+```json
+{
+  "mode": "distributed",
+  "devices": {
+    "cuda:0": {
+      "id": "cuda:0",
+      "available": true,
+      "processing": false,
+      "can_accept_batch": true,
+      "batch_size": 4,
+      "max_batch_size": 8,
+      "images_processing": 0,
+      "images_completed": 45,
+      "total_batches_processed": 12,
+      "avg_batch_time": 2.5,
+      "estimated_load": 0.3,
+      "error_count": 0,
+      "last_error": null
+    },
+    "cuda:1": {
+      "id": "cuda:1",
+      "available": true,
+      "processing": true,
+      "can_accept_batch": false,
+      "batch_size": 2,
+      "max_batch_size": 8,
+      "images_processing": 2,
+      "images_completed": 38,
+      "total_batches_processed": 10,
+      "avg_batch_time": 2.8,
+      "estimated_load": 0.7,
+      "error_count": 0,
+      "last_error": null
+    }
+  },
+  "global": {
+    "total_requests": 150,
+    "total_batches": 42,
+    "total_images": 180,
+    "queued": 3,
+    "active_batches": 1,
+    "completed": 147,
+    "failed": 0,
+    "processing": true
+  }
+}
+```
+
+#### Video Models
+
+```json
+{
+  "total_tasks": 25,
+  "queued": 2,
+  "processing": 1,
+  "completed": 20,
+  "failed": 2,
+  "available": false,
+  "max_concurrent": 1
+}
+```
+
+**Key Metrics:**
+- `total_requests/tasks` - Total number of generation requests received
+- `total_images` - Total images generated (image models only)
+- `queued` - Requests waiting to be processed
+- `processing` - Currently processing requests
+- `completed` - Successfully completed requests
+- `failed` - Failed requests
+- `available` - Whether server can accept new requests
+- `mode` - Operation mode for image models: `single-device` or `distributed`
 
 ## 🎯 Use Cases
 
