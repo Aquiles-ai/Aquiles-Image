@@ -138,8 +138,7 @@ def load_models():
                 else:
                     if dist_inference is True:
                         request_pipe = RequestScopedPipeline(pipelines=model_pipeline.pipelines, is_dist=dist_inference)
-                        for device, _ in model_pipeline.pipelines:
-                            device_ids.append(device)
+                        device_ids = list(model_pipeline.pipelines.keys())
                     else:
                         request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
 
