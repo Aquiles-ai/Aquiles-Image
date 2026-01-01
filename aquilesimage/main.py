@@ -52,9 +52,7 @@ max_batch_size: int | None = None
 batch_timeout: float | None = None
 worker_sleep: float | None = None
 dist_inference: bool | None = None
-Videomodel = [VideoModels.WAN2_2_API, VideoModels.HY1_5_480_API, VideoModels.WAN2_2_TURBO, VideoModels.HY1_5_720_API, 
-                                VideoModels.HY1_5_480_API_FP8, VideoModels.HY1_5_720_API_FP8, VideoModels.HY1_5_480_API_TURBO, VideoModels.HY1_5_480_API_TURBO_FP8, 
-                                VideoModels.WAN_2_1, VideoModels.WAN_2_1_TURBO, VideoModels.WAN_2_1_3B, VideoModels.WAN_2_1_TURBO_FP8]
+Videomodel = [model for model in VideoModels]
 
 def load_models():
     global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout, dist_inference
