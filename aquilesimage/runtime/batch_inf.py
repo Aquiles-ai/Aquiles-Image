@@ -15,7 +15,7 @@ class PendingRequest:
     id: str
     prompt: str
     image: Optional[Any] = None
-    params: Dict[str, Any] = field(default_factory=dict)  # height, width, steps, device, etc.
+    params: Dict[str, Any] = field(default_factory=dict)
     timestamp: float = field(default_factory=time.time)
     future: asyncio.Future = field(default_factory=asyncio.Future)
     num_images: int = 1 
@@ -71,6 +71,9 @@ class BatchPipeline:
         self.lock = asyncio.Lock()
 
         self.processing = False
+        self.active_batches = 0
+        self.active_batches_lock = asyncio.Lock()
+        
         self.worker_task: Optional[asyncio.Task] = None
         self.shutdown = False
 
@@ -148,8 +151,7 @@ class BatchPipeline:
         while not self.shutdown:
             try:
                 await asyncio.sleep(self.worker_sleep)
-                
-                if self.processing:
+                if not self.is_dist and self.processing:
                     continue
 
                 async with self.lock:
@@ -174,20 +176,38 @@ class BatchPipeline:
                     while extracted < max_extract:
                         batch.append(self.pending.popleft())
                         extracted += 1
-                    
-                    self.processing = True
+                    if not self.is_dist:
+                        self.processing = True
 
-                try:
-                    await self._process_batch(batch)
-                finally:
-                    self.processing = False
+                if self.is_dist:
+                    asyncio.create_task(self._process_batch_async(batch))
+                else:
+                    try:
+                        await self._process_batch(batch)
+                    finally:
+                        self.processing = False
                     
             except asyncio.CancelledError:
                 logger.info("Worker loop cancelled")
                 break
             except Exception as e:
                 logger.error(f"X Error in worker loop: {e}")
-                self.processing = False
+                if not self.is_dist:
+                    self.processing = False
+
+    async def _process_batch_async(self, batch: List[PendingRequest]):
+        async with self.active_batches_lock:
+            self.active_batches += 1
+            logger.info(f"[DIST] Starting batch processing (active_batches={self.active_batches})")
+        
+        try:
+            await self._process_batch(batch)
+        except Exception as e:
+            logger.error(f"X Error in async batch processing: {e}")
+        finally:
+            async with self.active_batches_lock:
+                self.active_batches -= 1
+                logger.info(f"[DIST] Finished batch processing (active_batches={self.active_batches})")
 
     async def _process_batch(self, batch: List[PendingRequest]):
         if not batch:
@@ -372,6 +392,9 @@ class BatchPipeline:
             async with self.lock:
                 queued = len(self.pending)
             
+            async with self.active_batches_lock:
+                active = self.active_batches
+            
             return {
                 "mode": "distributed",
                 "devices": dist_stats,
@@ -380,6 +403,7 @@ class BatchPipeline:
                     "total_batches": self.total_batches,
                     "total_images": self.total_images,
                     "queued": queued,
+                    "active_batches": active,
                     "completed": self.total_complete,
                     "failed": self.total_failed,
                     "processing": self.processing
