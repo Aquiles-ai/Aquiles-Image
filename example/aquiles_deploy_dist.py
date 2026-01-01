@@ -1,3 +1,5 @@
+# Okay, this is still experimental, so it might not work for now
+
 import modal
 import os
 
@@ -30,7 +32,7 @@ aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=T
 
 app = modal.App("aquiles-image-server")
 
-N_GPU = 1
+N_GPU = 2 # minimum viable example
 MINUTES = 60
 AQUILES_PORT = 5500
 
@@ -60,7 +62,8 @@ def serve():
         "--model",
         MODEL_NAME,
         "--set-steps", "30",
-        "--api-key", "dummy-api-key"
+        "--api-key", "dummy-api-key",
+        "--dist-inference"
     ]
 
     print(f"Starting Aquiles-Image with the model:{MODEL_NAME}")
