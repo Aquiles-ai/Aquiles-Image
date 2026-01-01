@@ -1,5 +1,3 @@
-# Okay, this is still experimental, so it might not work for now
-
 import modal
 import os
 
