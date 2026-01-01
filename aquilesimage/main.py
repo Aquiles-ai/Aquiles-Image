@@ -51,12 +51,13 @@ batch_pipeline: BatchPipeline | None = None
 max_batch_size: int | None = None
 batch_timeout: float | None = None
 worker_sleep: float | None = None
+dist_inference: bool | None = None
 Videomodel = [VideoModels.WAN2_2_API, VideoModels.HY1_5_480_API, VideoModels.WAN2_2_TURBO, VideoModels.HY1_5_720_API, 
                                 VideoModels.HY1_5_480_API_FP8, VideoModels.HY1_5_720_API_FP8, VideoModels.HY1_5_480_API_TURBO, VideoModels.HY1_5_480_API_TURBO_FP8, 
                                 VideoModels.WAN_2_1, VideoModels.WAN_2_1_TURBO, VideoModels.WAN_2_1_3B, VideoModels.WAN_2_1_TURBO_FP8]
 
 def load_models():
-    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout
+    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout, dist_inference
 
     logger.info("Loading configuration...")
     
@@ -65,6 +66,8 @@ def load_models():
     load_model = config.get("load_model")
     auto_pipeline = config.get("auto_pipeline")
     device_map_flux2 = config.get("device_map")
+    dist_inference = config.get("dist_inference")
+    device_ids = []
 
     flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2]
 
@@ -122,7 +125,10 @@ def load_models():
                 elif device_map_flux2 == 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
                     initializer = ModelPipelineInit(model=model_name, device_map_flux2='cuda')
                 else:
-                    initializer = ModelPipelineInit(model=model_name)
+                    if dist_inference is True:
+                        initializer = ModelPipelineInit(model=model_name, dist_inf=dist_inference)
+                    else:
+                        initializer = ModelPipelineInit(model=model_name)
 
                 model_pipeline = initializer.initialize_pipeline()
                 model_pipeline.start()
@@ -132,7 +138,12 @@ def load_models():
                 elif model_name in flux_models:
                     request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
                 else:
-                    request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
+                    if dist_inference is True:
+                        request_pipe = RequestScopedPipeline(pipelines=model_pipeline.pipelines, is_dist=dist_inference)
+                        for device, _ in model_pipeline.pipelines:
+                            device_ids.append(device)
+                    else:
+                        request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
 
                 logger.info(f"Model '{model_name}' loaded successfully")
 
@@ -141,6 +152,8 @@ def load_models():
                     max_batch_size=max_batch_size if max_batch_size is not None else 4,
                     batch_timeout=batch_timeout if batch_timeout is not None else 0.5,
                     worker_sleep=worker_sleep if worker_sleep is not None else 0.05,
+                    is_dist=dist_inference if dist_inference is True else False,
+                    device_ids=device_ids if device_ids is not None or len(device_ids) > 0 else None
                 )
 
             except Exception as e:

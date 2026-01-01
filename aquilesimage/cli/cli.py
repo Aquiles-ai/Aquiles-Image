@@ -24,7 +24,7 @@ def greet(name):
 @click.option("--set-steps", type=int, default=None, help="Set the steps that the model will use")
 @click.option("--auto-pipeline/--no-auto-pipeline", default=None, help="Load a model that is compatible with diffusers but is not mentioned in the Aquiles-Image documentation")
 @click.option("--device-map", type=str, default=None, help="Device map option in which to load the model (Only compatible with diffusers/FLUX.2-dev-bnb-4bit)")
-@click.option("--dist-inference/--no-dist-inference", default=None, help="Use distributed inference (Not yet implemented)")
+@click.option("--dist-inference/--no-dist-inference", default=None, help="Use distributed inference")
 @click.option("--max-batch-size", type=int, default=None, help="Maximum number of requests to group in a single batch for inference")
 @click.option("--batch-timeout", type=float, default=None, help="Maximum time (in seconds) to wait before processing a batch even if not full")
 @click.option("--worker-sleep", type=float, default=None, help="Time (in seconds) the worker sleeps between checking for new batch requests")
