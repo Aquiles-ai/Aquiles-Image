@@ -119,9 +119,15 @@ def load_models():
                 from aquilesimage.runtime import RequestScopedPipeline
                 from aquilesimage.pipelines import ModelPipelineInit
                 if auto_pipeline is True:
-                    initializer = ModelPipelineInit(model=model_name, auto_pipeline=True)
+                    if dist_inference is True:
+                        initializer = ModelPipelineInit(model=model_name, auto_pipeline=True, dist_inf=dist_inference)
+                    else:
+                        initializer = ModelPipelineInit(model=model_name, auto_pipeline=True)
                 elif device_map_flux2 == 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
-                    initializer = ModelPipelineInit(model=model_name, device_map_flux2='cuda')
+                    if dist_inference is True:
+                        initializer = ModelPipelineInit(model=model_name, device_map_flux2='cuda', dist_inf=dist_inference)
+                    else:
+                        initializer = ModelPipelineInit(model=model_name, device_map_flux2='cuda')
                 else:
                     if dist_inference is True:
                         initializer = ModelPipelineInit(model=model_name, dist_inf=dist_inference)
@@ -132,9 +138,17 @@ def load_models():
                 model_pipeline.start()
         
                 if model_name == ImageModel.FLUX_1_KONTEXT_DEV:
-                    request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_kontext=True)
+                    if dist_inference is True:
+                        request_pipe = RequestScopedPipeline(pipelines=model_pipeline.pipelines, use_kontext=True, is_dist=dist_inference)
+                        device_ids = list(model_pipeline.pipelines.keys())
+                    else:
+                        request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_kontext=True)
                 elif model_name in flux_models:
-                    request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
+                    if dist_inference is True:
+                        request_pipe = RequestScopedPipeline(pipelines=model_pipeline.pipelines, use_flux=True, is_dist=dist_inference)
+                        device_ids = list(model_pipeline.pipelines.keys())
+                    else:
+                        request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
                 else:
                     if dist_inference is True:
                         request_pipe = RequestScopedPipeline(pipelines=model_pipeline.pipelines, is_dist=dist_inference)
