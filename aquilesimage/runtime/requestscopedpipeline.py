@@ -1,4 +1,4 @@
-from typing import Optional, Any, Iterable, List
+from typing import Optional, Any, Iterable, List, Dict
 import copy
 import threading
 import torch
@@ -38,7 +38,8 @@ class RequestScopedPipeline:
 
     def __init__(
         self,
-        pipeline: Any,
+        pipeline: Optional[Any] = None,
+        pipelies: Optional[Dict[Any, str]] = None,
         mutable_attrs: Optional[Iterable[str]] = None,
         auto_detect_mutables: bool = True,
         tensor_numel_threshold: int = 1_000_000,
@@ -46,8 +47,16 @@ class RequestScopedPipeline:
         wrap_scheduler: bool = True,
         use_flux: bool = False,
         use_kontext: bool = False,
+        is_dist: bool = False,
     ):
+
+        if is_dist is False and pipeline is None:
+            raise ValueError("The pipeline cannot be None if the inference is not distributed")
+
         self._base = pipeline
+
+        if is_dist and pipelies is not None:
+            self.pipelines = pipelies
 
         self._is_auto_pipeline = 'AutoPipeline' in pipeline.__class__.__name__
     
