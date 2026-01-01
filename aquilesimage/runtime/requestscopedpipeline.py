@@ -336,8 +336,7 @@ class RequestScopedPipeline:
     
         return False
 
-    def _clone_mutable_attrs(self, base, local):
-        reference_pipeline=None
+    def _clone_mutable_attrs(self, base, local, reference_pipeline=None):
         if reference_pipeline is None:
             reference_pipeline = base
         attrs_to_clone = list(self._mutable_attrs)
