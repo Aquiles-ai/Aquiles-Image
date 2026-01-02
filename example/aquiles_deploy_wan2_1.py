@@ -47,7 +47,7 @@ AQUILES_PORT = 5500
     },
 )
 @modal.concurrent(max_inputs=1)
-@modal.web_server(port=AQUILES_PORT, startup_timeout=10 * MINUTES)
+@modal.web_server(port=AQUILES_PORT, startup_timeout=20 * MINUTES)
 def serve():
     import subprocess
 
