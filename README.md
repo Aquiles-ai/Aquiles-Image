@@ -34,11 +34,11 @@
 ### Key Features
 
 - **🔌 OpenAI Compatible** - Use the official OpenAI client with zero code changes
-- **⚡ 3x Faster** - Advanced inference optimizations out of the box
-- **🎨 10+ Models** - FLUX.1, FLUX.2, SD3.5, and more preconfigured
+- **⚡ Intelligent Batching** - Automatic request grouping by shared parameters for maximum throughput on single or multi-GPU setups
+- **🎨 30+ Optimized Models** - 18 image (FLUX, SD3.5, Qwen) + 12 video models (Wan2.x, HunyuanVideo) + unlimited via AutoPipeline (Only T2I)
+- **🚀 Multi-GPU Support** - Distributed inference with dynamic load balancing across GPUs (image models) for horizontal scaling
 - **🛠️ Superior DevX** - Simple CLI, dev mode for testing, built-in monitoring
-- **🎬 Experimental Video** - Text-to-video generation support (Wan2.2)
-
+- **🎬 Advanced Video** - Text-to-video with Wan2.x and HunyuanVideo series (+ Turbo variants)
 
 ## 🚀 Quick Start
 
@@ -56,9 +56,17 @@ pip install .
 
 ### Launch Server
 
+**Single-Device Mode (Default)**
 ```bash
 aquiles-image serve --model "stabilityai/stable-diffusion-3.5-medium"
 ```
+
+**Multi-GPU Distributed Mode (Image Models Only)**
+```bash
+aquiles-image serve --model "stabilityai/stable-diffusion-3.5-medium" --dist-inference
+```
+
+> **Distributed Inference Note**: Enable multi-GPU mode by adding the `--dist-inference` flag. Each GPU will load a copy of the model, so ensure each GPU has sufficient VRAM. The system automatically balances load across GPUs and groups requests with shared parameters for maximum throughput.
 
 ### Generate Your First Image
 
