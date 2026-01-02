@@ -106,12 +106,31 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 
 > **\* Note on FLUX.2-dev**: Requires NVIDIA H200 with 64GB RAM minimum. Inference times are variable (17s-2min) and may be unpredictable.
 
-### Text-to-Video (`/videos`) - Experimental
+### Text-to-Video (`/videos`)
 
-- `Wan-AI/Wan2.2-T2V-A14B` (High quality, 40 steps - requires H100/A100-80G, start with `--model "wan2.2"`)
-- `Aquiles-ai/Wan2.2-Turbo` ⚡ **9.5x faster** - Same quality in 4 steps! (requires H100/A100-80G, start with `--model "wan2.2-turbo"`)
+#### Wan2.2 Series
+- `Wan-AI/Wan2.2-T2V-A14B` (High quality, 40 steps - start with `--model "wan2.2"`)
+- `Aquiles-ai/Wan2.2-Turbo` ⚡ **9.5x faster** - Same quality in 4 steps! (start with `--model "wan2.2-turbo"`)
 
-> **VRAM Requirements**: Most models need 24GB+ VRAM. Video generation requires 80GB+ (H100/A100-80G).
+#### Wan2.1 Series
+- `Wan-AI/Wan2.1-T2V-14B` (High quality, 40 steps - start with `--model "wan2.1"`)
+- `Aquiles-ai/Wan2.1-Turbo` ⚡ **9.5x faster** - Same quality in 4 steps! (start with `--model "wan2.1-turbo"`)
+- `Wan-AI/Wan2.1-T2V-1.3B` (Lightweight version, 40 steps - start with `--model "wan2.1-3B"`)
+- `Aquiles-ai/Wan2.1-Turbo-fp8` ⚡ **9.5x faster + FP8 optimized** - 4 steps (start with `--model "wan2.1-turbo-fp8"`)
+
+#### HunyuanVideo-1.5 Series
+
+**Standard Resolution (480p)**
+- `Aquiles-ai/HunyuanVideo-1.5-480p` (50 steps - start with `--model "hunyuanVideo-1.5-480p"`)
+- `Aquiles-ai/HunyuanVideo-1.5-480p-fp8` (50 steps, FP8 optimized - start with `--model "hunyuanVideo-1.5-480p-fp8"`)
+- `Aquiles-ai/HunyuanVideo-1.5-480p-Turbo` ⚡ **12.5x faster** - 4 steps! (start with `--model "hunyuanVideo-1.5-480p-turbo"`)
+- `Aquiles-ai/HunyuanVideo-1.5-480p-Turbo-fp8` ⚡ **12.5x faster + FP8 optimized** - 4 steps (start with `--model "hunyuanVideo-1.5-480p-turbo-fp8"`)
+
+**High Resolution (720p)**
+- `Aquiles-ai/HunyuanVideo-1.5-720p` (50 steps - start with `--model "hunyuanVideo-1.5-720p"`)
+- `Aquiles-ai/HunyuanVideo-1.5-720p-fp8` (50 steps, FP8 optimized - start with `--model "hunyuanVideo-1.5-720p-fp8"`)
+
+> **VRAM Requirements**: Most models need 24GB+ VRAM. All video models require H100/A100-80GB. FP8 optimized versions offer better memory efficiency.
 
 [**📖 Full models documentation**](https://aquiles-ai.github.io/aquiles-image-docs/#models) and more models in [**🎬 Aquiles-Studio**](https://huggingface.co/collections/Aquiles-ai/aquiles-studio)
 
