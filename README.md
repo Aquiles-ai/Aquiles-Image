@@ -4,7 +4,7 @@
 
 <img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1763763684/aquiles_image_m6ej7u.png" alt="Aquiles-Image Logo" width="800"/>
 
-### **Self-hosted image generation with OpenAI-compatible APIs**
+### **Self-hosted image/video generation with OpenAI-compatible APIs**
 
 *🚀 FastAPI • Diffusers • Drop-in replacement for OpenAI*
 
