@@ -112,7 +112,7 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `Qwen/Qwen-Image-Edit-2509` - Supports multi-image editing. Maximum 3 input images.
 - `Qwen/Qwen-Image-Edit-2511` - Supports multi-image editing. Maximum 3 input images.
 
-> **\* Note on FLUX.2-dev**: Requires NVIDIA H200 with 64GB RAM minimum. Inference times are variable (17s-2min) and may be unpredictable.
+> **\* Note on FLUX.2-dev**: Requires NVIDIA H200.
 
 ### Text-to-Video (`/videos`)
 

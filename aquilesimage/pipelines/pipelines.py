@@ -576,9 +576,7 @@ class PipelineFlux2:
 
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.dist_inf = dist_inf
-        if self.dist_inf and self.model_path == "black-forest-labs/FLUX.2-dev":
-            raise ValueError("black-forest-labs/FLUX.2-dev does not support distributed inference")
-        if self.dist_inf and device_map is None:
+        if self.dist_inf and device_map == "cpu":
             raise ValueError("Distributed inference is only available for full CUDA loading; CPU loading cannot be used.")
         try:
             self.pipeline: Flux2Pipeline | None = None
@@ -652,7 +650,7 @@ class PipelineFlux2:
             logger_p.info(f"Loading FLUX.2 on {device}...")
 
             text_encoder = Mistral3ForConditionalGeneration.from_pretrained(
-                self.model_path, subfolder="text_encoder", torch_dtype=torch.bfloat16, device_map="cpu"
+                self.model_path, subfolder="text_encoder", torch_dtype=torch.bfloat16, device_map=device
             )
 
             dit = Flux2Transformer2DModel.from_pretrained(
@@ -737,7 +735,7 @@ class PipelineFlux2:
 
         logger_p.info("Loading quantized DiT transformer...")
         self.dit = AutoModel.from_pretrained(
-            self.model_path, subfolder="transformer", torch_dtype=torch.bfloat16, device_map="cpu"
+            self.model_path, subfolder="transformer", torch_dtype=torch.bfloat16, device_map="cuda"
         )
 
         logger_p.info("Creating FLUX.2 pipeline...")
