@@ -605,9 +605,9 @@ class PipelineFlux2:
             else:  
                 logger_p.info(f"Loading FLUX.2 from {self.model_path}...")
 
-                logger_p.info("Loading text encoder... (CPU)")
+                logger_p.info("Loading text encoder... (CUDA)")
                 self.text_encoder = Mistral3ForConditionalGeneration.from_pretrained(
-                    self.model_path, subfolder="text_encoder", torch_dtype=torch.bfloat16, device_map="cpu"
+                    self.model_path, subfolder="text_encoder", torch_dtype=torch.bfloat16, device_map="cuda"
                 )
 
                 logger_p.info("Loading DiT transformer... (CUDA)")
