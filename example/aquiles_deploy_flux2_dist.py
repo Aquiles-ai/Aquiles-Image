@@ -29,7 +29,7 @@ aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=T
 
 app = modal.App("aquiles-image-server")
 
-N_GPU = 1
+N_GPU = 2
 MINUTES = 60
 AQUILES_PORT = 5500
 
@@ -61,7 +61,7 @@ def serve():
         "--set-steps", "50",
         "--api-key", "dummy-api-key",
         "--device-map", "cuda",
-        
+        "--dist-inference"
     ]
 
     print(f"Starting Aquiles-Image with the model:{MODEL_NAME}")
