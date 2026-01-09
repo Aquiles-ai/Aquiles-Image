@@ -1,5 +1,6 @@
 import torch
 
+torch.backends.cuda.matmul.allow_tf32 = True
 torch.set_grad_enabled(False)
 
 from lightx2v.models.runners.hunyuan_video.hunyuan_video_15_runner import HunyuanVideo15Runner
