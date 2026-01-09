@@ -1,10 +1,13 @@
 import torch
 
-torch.backends.cuda.matmul.allow_tf32 = True
 torch.set_grad_enabled(False)
 
-from lightx2v.models.runners.hunyuan_video.hunyuan_video_15_runner import HunyuanVideo15Runner
-from lightx2v import LightX2VPipeline
+try:
+    from lightx2v.models.runners.hunyuan_video.hunyuan_video_15_runner import HunyuanVideo15Runner
+    from lightx2v import LightX2VPipeline
+except ImportError as e:
+    print("Error importing components for LightX2VPipeline")
+    pass
 from aquilesimage.utils.utils_video import get_path_file_video_model, file_exists, download_base_wan_2_2, download_wan_2_2_turbo, download_hy, download_wan2_1, download_ltx_2
 from typing import Literal
 try:
