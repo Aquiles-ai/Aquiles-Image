@@ -1,4 +1,5 @@
 import torch
+import gc
 try:
     from lightx2v.models.runners.hunyuan_video.hunyuan_video_15_runner import HunyuanVideo15Runner
     from lightx2v import LightX2VPipeline
@@ -525,6 +526,14 @@ class LTX_2_Pipeline:
             print(f"X Error: {e}")
             import traceback
             traceback.print_exc()
+
+        finally:
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+                torch.cuda.empty_cache()
+                torch.cuda.reset_peak_memory_stats()
+                torch.cuda.ipc_collect()
+            gc.collect()
 
     def verify_model(self):
         model_path = get_path_file_video_model(self.model_name)
