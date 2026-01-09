@@ -176,6 +176,10 @@ https://github.com/user-attachments/assets/7b1270c3-b77b-48df-a0fe-ac39b2320143
 
 
 
+https://github.com/user-attachments/assets/b7104dc3-5306-4e6a-97e5-93a6c1e73f54
+
+
+
 ## 🧪 Advanced Features
 
 ### AutoPipeline - Run Any Diffusers Model
