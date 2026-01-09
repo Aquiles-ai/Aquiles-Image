@@ -487,6 +487,10 @@ class LTX_2_Pipeline:
 
     def generate(self, seed: int, prompt: str, save_result_path: str, negative_prompt: str):
         try:
+            import os
+            output_dir = os.path.dirname(save_result_path)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
             with torch.no_grad():
                 tiling_config = TilingConfig.default()
                 video_chunks_number = get_video_chunks_number(121, tiling_config)
