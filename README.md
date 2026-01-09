@@ -138,6 +138,12 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `Aquiles-ai/HunyuanVideo-1.5-720p` (50 steps - start with `--model "hunyuanVideo-1.5-720p"`)
 - `Aquiles-ai/HunyuanVideo-1.5-720p-fp8` (50 steps, FP8 optimized - start with `--model "hunyuanVideo-1.5-720p-fp8"`)
 
+#### LTX-2 (Joint Audio-Visual Generation - Experimental)
+
+- `Lightricks/ltx-2-19b-dev` (40 steps - start with `--model "ltx-2"`)
+
+> **Special Features**: LTX-2 is the first **open-source** model supporting synchronized audio-video generation in a single model, comparable to closed models like [Sora-2](https://openai.com/index/sora-2/) and [Veo 3.1](https://gemini.google/cl/overview/video-generation/). For best results with this model, please follow the [prompts guide](https://ltx.io/model/model-blog/prompting-guide-for-ltx-2) provided by the Lightricks team.
+
 > **VRAM Requirements**: Most models need 24GB+ VRAM. All video models require H100/A100-80GB. FP8 optimized versions offer better memory efficiency.
 
 [**📖 Full models documentation**](https://aquiles-ai.github.io/aquiles-image-docs/#models) and more models in [**🎬 Aquiles-Studio**](https://huggingface.co/collections/Aquiles-ai/aquiles-studio)
@@ -160,11 +166,15 @@ https://github.com/user-attachments/assets/00d4235c-e49c-435e-a71a-72c36040a8d7
 
 </div>
 
-### Generating Videos (Experimental)
+### Generating Videos
 
 https://github.com/user-attachments/assets/7b1270c3-b77b-48df-a0fe-ac39b2320143
 
 > **Note**: Video generation with `wan2.2` takes ~30 minutes on H100. With `wan2.2-turbo`, it takes only ~3 minutes! Only one video can be generated at a time.
+
+**Video and audio generation**
+
+
 
 ## 🧪 Advanced Features
 
