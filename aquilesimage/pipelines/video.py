@@ -1,7 +1,4 @@
 import torch
-
-torch.set_grad_enabled(False)
-
 try:
     from lightx2v.models.runners.hunyuan_video.hunyuan_video_15_runner import HunyuanVideo15Runner
     from lightx2v import LightX2VPipeline

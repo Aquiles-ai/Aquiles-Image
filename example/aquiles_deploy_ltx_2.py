@@ -2,7 +2,19 @@ import modal
 
 aquiles_image = (
     modal.Image.from_registry("nvidia/cuda:12.8.0-devel-ubuntu22.04", add_python="3.12")
-    .apt_install("git", "curl", "build-essential", "wget", "libgl1", "libglib2.0-0")
+    .apt_install("git", 
+        "curl", 
+        "build-essential", 
+        "wget", 
+        "libgl1", 
+        "libglib2.0-0", 
+        "ffmpeg",
+        "libavcodec-dev",  
+        "libavformat-dev",  
+        "libavutil-dev",
+        "libswscale-dev",
+        "libavfilter-dev",
+        "libavdevice-dev", )
     .entrypoint([])
     .run_commands(
         "python -m pip install --upgrade pip",
@@ -19,6 +31,7 @@ aquiles_image = (
         "accelerate==1.12.0",
         "git+https://github.com/Lightricks/LTX-2.git#subdirectory=packages/ltx-core",
         "git+https://github.com/Lightricks/LTX-2.git#subdirectory=packages/ltx-pipelines",
+        "av==16.0.1"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1",
         "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"})  
