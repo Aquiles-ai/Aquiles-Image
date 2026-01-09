@@ -19,7 +19,6 @@ aquiles_image = (
         "accelerate==1.12.0",
         "git+https://github.com/Lightricks/LTX-2.git#subdirectory=packages/ltx-core",
         "git+https://github.com/Lightricks/LTX-2.git#subdirectory=packages/ltx-pipelines",
-        "kernels"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
 )
