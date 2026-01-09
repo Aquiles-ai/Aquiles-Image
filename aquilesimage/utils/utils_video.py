@@ -77,7 +77,28 @@ def download_wan2_1(name: Literal["wan2.1", "wan2.1-turbo", "wan2.1-turbo-fp8", 
     else:
         raise ValueError("Model not available")
 
-def get_path_file_video_model(name: Literal["wan2.2", "wan2.2-turbo", "wan2.1", "wan2.1-turbo", "wan2.1-turbo-fp8", "wan2.1-3B", "hunyuanVideo-1.5-480p", "hunyuanVideo-1.5-720p", "hunyuanVideo-1.5-480p-fp8", "hunyuanVideo-1.5-720p-fp8", "hunyuanVideo-1.5-480p-turbo", "hunyuanVideo-1.5-480p-turbo-fp8"] = "wan2.2"):
+def download_ltx_2():
+    print(f"PATH: {AQUILES_VIDEO_BASE_PATH}/ltx_2")
+    snapshot_download("google/gemma-3-12b-it", local_dir=f"{AQUILES_VIDEO_BASE_PATH}/ltx_2/gemma")
+    hf_hub_download(
+        "Lightricks/LTX-2", 
+        "ltx-2-19b-dev.safetensors",
+        local_dir=f"{AQUILES_VIDEO_BASE_PATH}/ltx_2"
+    )
+
+    hf_hub_download(
+        "Lightricks/LTX-2", 
+        "ltx-2-spatial-upscaler-x2-1.0.safetensors",
+        local_dir=f"{AQUILES_VIDEO_BASE_PATH}/ltx_2"
+    )
+
+    hf_hub_download(
+        "Lightricks/LTX-2", 
+        "ltx-2-19b-distilled-lora-384.safetensors",
+        local_dir=f"{AQUILES_VIDEO_BASE_PATH}/ltx_2"
+    )
+
+def get_path_file_video_model(name: Literal["wan2.2", "wan2.2-turbo", "wan2.1", "wan2.1-turbo", "wan2.1-turbo-fp8", "wan2.1-3B", "hunyuanVideo-1.5-480p", "hunyuanVideo-1.5-720p", "hunyuanVideo-1.5-480p-fp8", "hunyuanVideo-1.5-720p-fp8", "hunyuanVideo-1.5-480p-turbo", "hunyuanVideo-1.5-480p-turbo-fp8", "ltx-2"] = "wan2.2"):
     if name == "wan2.2":
         return f"{AQUILES_VIDEO_BASE_PATH}/wan_2_2"
     elif name == "wan2.2-turbo":
@@ -102,6 +123,8 @@ def get_path_file_video_model(name: Literal["wan2.2", "wan2.2-turbo", "wan2.1", 
         return f"{AQUILES_VIDEO_BASE_PATH}/wan2_1_turbo_fp8"
     elif name == "wan2.1-3B":
         return f"{AQUILES_VIDEO_BASE_PATH}/wan2_1_3b"
+    elif name == "ltx-2":
+        return f"{AQUILES_VIDEO_BASE_PATH}/ltx_2"
     else:
         return None
 
