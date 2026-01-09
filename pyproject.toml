@@ -44,10 +44,8 @@ dependencies = [
     "aiofiles",
     "python-multipart",
     "openai",
-    "ray[tune]",
     "dm-tree",
-    "pymongo",
-    "hf_transfer"
+    "pymongo"
 ]
 
 [project.optional-dependencies]
