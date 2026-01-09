@@ -20,7 +20,8 @@ aquiles_image = (
         "git+https://github.com/Lightricks/LTX-2.git#subdirectory=packages/ltx-core",
         "git+https://github.com/Lightricks/LTX-2.git#subdirectory=packages/ltx-pipelines",
     )
-    .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
+    .env({"HF_XET_HIGH_PERFORMANCE": "1",
+        "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"})  
 )
 
 MODEL_NAME = "ltx-2"

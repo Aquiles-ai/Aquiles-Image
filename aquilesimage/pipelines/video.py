@@ -481,37 +481,41 @@ class LTX_2_Pipeline:
 
     # This is experimental
     def generate(self, seed: int, prompt: str, save_result_path: str, negative_prompt: str):
+        try:
 
-        tiling_config = TilingConfig.default()
+            tiling_config = TilingConfig.default()
 
-        video_chunks_number = get_video_chunks_number(121, tiling_config)
+            video_chunks_number = get_video_chunks_number(121, tiling_config)
 
-        video, audio = self.pipeline(
-            prompt=prompt,
-            negative_prompt=negative_prompt,
-            seed=seed,
-            height=768,
-            width=1280,
-            num_frames=121,
-            frame_rate=25.0,
-            num_inference_steps=40,
-            cfg_guidance_scale=3.0,
-            images=[],
-            enhance_prompt=False,
-            tiling_config=tiling_config
-        )
+            video, audio = self.pipeline(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                seed=seed,
+                height=768,
+                width=1280,
+                num_frames=121,
+                frame_rate=25.0,
+                num_inference_steps=40,
+                cfg_guidance_scale=3.0,
+                images=[],
+                enhance_prompt=False,
+                tiling_config=tiling_config
+            )
 
-        encode_video(
-            video=video,
-            fps=25.0,
-            audio=audio,
-            audio_sample_rate=AUDIO_SAMPLE_RATE,
-            output_path=save_result_path,
-            video_chunks_number=video_chunks_number,
-        )
+            encode_video(
+                video=video,
+                fps=25.0,
+                audio=audio,
+                audio_sample_rate=AUDIO_SAMPLE_RATE,
+                output_path=save_result_path,
+                video_chunks_number=video_chunks_number,
+            )
 
-        print(f"Saved video in... {save_result_path}")
-
+            print(f"Saved video in... {save_result_path}")
+        except Exception as e:
+            print(f"Error: {e}")
+            import traceback
+            traceback.print_exc()
 
     def verify_model(self):
         model_path = get_path_file_video_model(self.model_name)
