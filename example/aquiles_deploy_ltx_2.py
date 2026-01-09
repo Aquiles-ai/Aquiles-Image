@@ -32,7 +32,7 @@ aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=T
 aquiles_video_vol = modal.Volume.from_name("aquiles-video-cache", create_if_missing=True)
 
 app = modal.App("aquiles-image-server-ltx-2")
-
+ 
 N_GPU = 1
 MINUTES = 60
 AQUILES_PORT = 5500
