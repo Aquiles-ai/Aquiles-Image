@@ -494,7 +494,7 @@ class LTX_2_Pipeline:
                 os.makedirs(output_dir, exist_ok=True)
             with torch.no_grad():
                 tiling_config = TilingConfig.default()
-                video_chunks_number = get_video_chunks_number(121, tiling_config)
+                video_chunks_number = get_video_chunks_number(300, tiling_config)
 
                 video, audio = self.pipeline(
                     prompt=prompt,
@@ -502,7 +502,7 @@ class LTX_2_Pipeline:
                     seed=seed,
                     height=1088,
                     width=1920,
-                    num_frames=500,
+                    num_frames=300,
                     frame_rate=25.0,
                     num_inference_steps=40,
                     cfg_guidance_scale=3.0,
