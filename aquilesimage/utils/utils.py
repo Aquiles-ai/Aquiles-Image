@@ -14,6 +14,17 @@ from PIL import Image as PILImage
 import io
 import base64
 import time
+from aquilesimage.models import VideoModels, ImageModelBase, ImageModelEdit, ImageModelHybrid
+
+async def getTypeModel(name: str):
+    if name in VideoModels:
+        return "Video"
+    elif name in ImageModelBase:
+        return "Image"
+    elif name in ImageModelEdit:
+        return "Edit"
+    elif name in ImageModelHybrid:
+        return "Hybrid"
 
 class ColoredFormatter(logging.Formatter):
     COLORS = {

@@ -40,6 +40,31 @@ class ImageModel(str, Enum):
 
     QWEN_IMAGE_EDIT_2509 = 'Qwen/Qwen-Image-Edit-2509'
 
+class ImageModelBase(str, Enum):
+    SD3_MEDIUM = 'stabilityai/stable-diffusion-3-medium'
+    SD3_5_LARGE = 'stabilityai/stable-diffusion-3.5-large'
+    SD3_5_LARGE_TURBO = 'stabilityai/stable-diffusion-3.5-large-turbo'
+    SD3_5_MEDIUM = 'stabilityai/stable-diffusion-3.5-medium'
+    FLUX_1_DEV = 'black-forest-labs/FLUX.1-dev'
+    FLUX_1_SCHNELL = 'black-forest-labs/FLUX.1-schnell'
+    FLUX_1_KREA_DEV = 'black-forest-labs/FLUX.1-Krea-dev'
+    Z_IMAGE_TURBO = 'Tongyi-MAI/Z-Image-Turbo'
+    QWEN_IMAGE = 'Qwen/Qwen-Image'
+    QWEN_IMAGE_2512 = 'Qwen/Qwen-Image-2512'
+
+class ImageModelEdit(str, Enum):
+    QWEN_IMAGE_EDIT_BASE = 'Qwen/Qwen-Image-Edit'
+
+    QWEN_IMAGE_EDIT_2511 = 'Qwen/Qwen-Image-Edit-2511'
+
+    QWEN_IMAGE_EDIT_2509 = 'Qwen/Qwen-Image-Edit-2509'
+
+    FLUX_1_KONTEXT_DEV = 'black-forest-labs/FLUX.1-Kontext-dev'
+
+class ImageModelHybrid(str, Enum):
+    FLUX_2_4BNB = 'diffusers/FLUX.2-dev-bnb-4bit'
+    FLUX_2 = 'black-forest-labs/FLUX.2-dev'
+
 class VideoModels(str, Enum):
     """I plan to have all of these models optimized for the Aquiles-Image runtime"""
     WAN2_2_API = 'wan2.2'

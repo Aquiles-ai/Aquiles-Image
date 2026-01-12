@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
 from aquilesimage.models import CreateImageRequest, ImagesResponse, Image, ImageModel, ListModelsResponse, Model, CreateVideoBody, VideoResource, VideoModels, VideoListResource, DeletedVideoResource
-from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key, create_dev_mode_response, create_dev_mode_video_response, VideoTaskGeneration
+from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key, create_dev_mode_response, create_dev_mode_video_response, VideoTaskGeneration, getTypeModel
 from aquilesimage.configs import load_config_app, load_config_cli
 import asyncio
 import logging
@@ -44,7 +44,7 @@ load_model: bool | None = None
 steps: int | None = None
 model_name: str | None = None
 video_task_gen: VideoTaskGeneration | None = None
-auto_pipeline: str | None = None
+auto_pipeline: bool | None = None ## Because it was a string and because it worked???
 device_map_flux2: str | None = None
 batch_mode: bool | None = None
 batch_pipeline: BatchPipeline | None = None
@@ -693,16 +693,23 @@ async def serve_image(filename: str):
 
 @app.get("/models", response_model=ListModelsResponse, dependencies=[Depends(verify_api_key)], tags=["Models"])
 async def get_models():
+
+    type_model = None
+
+    if auto_pipeline is True:
+        type_model = "Image"
+    else:
+        type_model = await getTypeModel(model_name)
+
     models_data = [
         Model(
-            id=f"{model.value} | [LOADED]" if model.value == model_name else f"{model.value}",
+            id=f"{model_name} | {type_model}",
             object="model",
             created=int(datetime.now().timestamp()),
             owned_by="custom"
         )
-        for model in ImageModel
     ]
-    
+
     return ListModelsResponse(
         object="list",
         data=models_data
