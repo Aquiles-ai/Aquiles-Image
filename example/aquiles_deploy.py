@@ -12,7 +12,7 @@ aquiles_image = (
     .env({"UV_HTTP_TIMEOUT": "600"})
     .uv_pip_install(
         "torch==2.8",
-        "diffusers==0.36.0",
+        "git+https://github.com/huggingface/diffusers.git",
         "transformers==4.57.3",
         "tokenizers==0.22.1",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",

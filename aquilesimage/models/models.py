@@ -276,7 +276,7 @@ class CreateImageEditRequest(BaseModel):
 class ConfigsServe(BaseModel):
     model: Union[ImageModel, str] = Field(default="stabilityai/stable-diffusion-3.5-medium", description="The model to use for image generation.")
     allows_api_keys: List[str] | None = Field( default_factory=lambda: [""], description="API KEYS allowed to make requests")
-    max_concurrent_infer: int | None = Field(default=10, description="Maximum number of inferences running at the same time")
+    max_concurrent_infer: int | None = Field(default=50, description="Maximum number of inferences running at the same time")
     block_request: bool | None = Field(default=False, description="Block requests during the maximum concurrent inferences")
     load_model: bool | None = Field(default=True, description="Loading the model or not simply allows for faster development without having to load the model constantly.")
     steps_n: int | None = Field(default=None, description="Loading the model or not simply allows for faster development without having to load the model constantly.")
