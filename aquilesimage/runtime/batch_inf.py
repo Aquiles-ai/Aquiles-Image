@@ -44,7 +44,7 @@ class BatchPipeline:
         request_scoped_pipeline: Any,
         max_batch_size: int = 4,
         batch_timeout: float = 0.5,
-        worker_sleep: float = 0.05,
+        worker_sleep: float = 0.001,
         is_dist: bool = False,
         device_ids: Optional[List[str]] = None,
         max_batch_sizes: Optional[List[int]] = None,
@@ -69,6 +69,7 @@ class BatchPipeline:
 
         self.pending: deque[PendingRequest] = deque()
         self.lock = asyncio.Lock()
+        self.new_request_event = asyncio.Event()
 
         self.processing = False
         self.active_batches = 0
@@ -130,6 +131,7 @@ class BatchPipeline:
             self.pending.append(request)
             queue_size = len(self.pending)
             self.total_requests += 1
+        self.new_request_event.set()
         
         request_type = "I2I" if image is not None else "T2I"
         logger.info(
@@ -150,7 +152,16 @@ class BatchPipeline:
         
         while not self.shutdown:
             try:
-                await asyncio.sleep(self.worker_sleep)
+                try:
+                    await asyncio.wait_for(
+                        self.new_request_event.wait(), 
+                        timeout=self.worker_sleep
+                    )
+                except asyncio.TimeoutError:
+                    pass
+                
+                self.new_request_event.clear()
+
                 if not self.is_dist and self.processing:
                     continue
 
@@ -176,6 +187,7 @@ class BatchPipeline:
                     while extracted < max_extract:
                         batch.append(self.pending.popleft())
                         extracted += 1
+                    
                     if not self.is_dist:
                         self.processing = True
 
@@ -219,8 +231,15 @@ class BatchPipeline:
         
         logger.info(f"  Grouped into {len(groups)} compatible batches")
 
-        for params_key, group in groups.items():
-            await self._process_group(group, params_key)
+        if len(groups) > 1:
+            tasks = [
+                asyncio.create_task(self._process_group(group, params_key))
+                for params_key, group in groups.items()
+            ]
+            await asyncio.gather(*tasks, return_exceptions=True)
+        else:
+            for params_key, group in groups.items():
+                await self._process_group(group, params_key)
 
     def _group_by_params(
         self, 
@@ -336,8 +355,7 @@ class BatchPipeline:
             image_idx = 0
             for i, req in enumerate(group):
                 req_images = output.images[image_idx:image_idx + req.num_images]
-                logger.info(f"  [{i}] {req.id} → images[{image_idx}:{image_idx + req.num_images}]")
-
+                
                 if req.num_images == 1:
                     req.future.set_result(req_images[0])
                 else:
@@ -347,7 +365,7 @@ class BatchPipeline:
 
             if self.is_dist and device_stats:
                 device_stats.complete_batch(total_expected_images)
-                logger.info(f"Device {device_to_use} stats updated - completed {total_expected_images} images")
+                self.dist_cor.notify_device_available()
             
             self.total_batches += 1
             self.total_images += total_expected_images
@@ -361,17 +379,14 @@ class BatchPipeline:
         
         except Exception as e:
             logger.error(f"X Batch inference failed on {device_to_use}: {e}")
-            logger.error(f"  Params: {params}")
-            logger.error(f"  Group size: {len(group)}")
 
             if self.is_dist and device_stats:
                 device_stats.register_error(str(e))
-                logger.info(f"Device {device_to_use} error registered")
+                self.dist_cor.notify_device_available()
             
             self.total_failed += 1 
 
             for i, req in enumerate(group):
-                logger.error(f"  [{i}] {req.id} → FAILED")
                 if not req.future.done():
                     req.future.set_exception(e)
 

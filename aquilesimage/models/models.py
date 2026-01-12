@@ -286,7 +286,7 @@ class ConfigsServe(BaseModel):
     dist_inference: bool | None = Field(default=False, description="Use distributed inference (Not yet implemented)")
     max_batch_size: int | None = Field(default=4, description="Maximum number of requests to group in a single batch for inference")
     batch_timeout: float | None = Field(default=0.5, description="Maximum time (in seconds) to wait before processing a batch even if not full")
-    worker_sleep: float | None = Field(default=0.05, description="Time (in seconds) the worker sleeps between checking for new batch requests")
+    worker_sleep: float | None = Field(default=0.001, description="Time (in seconds) the worker sleeps between checking for new batch requests")
 
 class Model(BaseModel):
     id: str = Field(..., description="Unique identifier of the model")

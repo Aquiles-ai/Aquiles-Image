@@ -79,6 +79,8 @@ class DistributedCoordinator:
         ]
         
         self.lock = asyncio.Lock()
+        self.device_available_event = asyncio.Event()
+        self.device_available_event.set()
         
         logger.info(f"DistributedCoordinator initialized with {len(self.devices)} devices:")
         for dev in self.devices:
@@ -89,6 +91,7 @@ class DistributedCoordinator:
             available = [d for d in self.devices if d.can_accept_batch]
             
             if not available:
+                self.device_available_event.clear()
                 return None
 
             best = min(available, key=lambda d: (
@@ -101,15 +104,30 @@ class DistributedCoordinator:
     
     async def wait_for_available_device(self, timeout: float = 30.0) -> DistStats:
         start_time = time.time()
-        
+
+        device = await self.get_best_device()
+        if device:
+            return device
+
         while time.time() - start_time < timeout:
+            remaining = timeout - (time.time() - start_time)
+            
+            try:
+                await asyncio.wait_for(
+                    self.device_available_event.wait(),
+                    timeout=min(remaining, 0.05)
+                )
+            except asyncio.TimeoutError:
+                pass
+            
             device = await self.get_best_device()
             if device:
                 return device
-            
-            await asyncio.sleep(0.1)
         
         raise TimeoutError("No devices are available after waiting")
+    
+    def notify_device_available(self):
+        self.device_available_event.set()
     
     def get_stats_summary(self) -> dict:
         stats = {}
