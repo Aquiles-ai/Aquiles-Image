@@ -929,8 +929,145 @@ class RequestScopedPipeline:
             except Exception as e:
                 logger.info(f"Error restoring tokenizers: {e}")
 
+    def _generate_batch_dist_(self, prompts: List[str], *args, num_inference_steps: int = 50, device: Optional[str] = None, **kwargs):
+        # I believe that isolation is not needed in distributed inference, because queue management is already robust.
+        if device is None:
+            raise ValueError("device parameter is required in distributed mode")
+    
+        if device not in self.pipelines:
+            raise ValueError(
+                f"Device '{device}' not found in available pipelines. "
+                f"Available: {list(self.pipelines.keys())}"
+            )
+    
+        if not prompts:
+            raise ValueError("prompts list cannot be empty")
+
+        if not isinstance(prompts, list):
+            raise TypeError(f"prompts must be a list, got {type(prompts)}")
+
+        image = kwargs.pop("image", None)
+        height = kwargs.pop("height", 1024)
+        width = kwargs.pop("width", 1024)
+        num_images_per_prompt = kwargs.pop("num_images_per_prompt", 1)
+
+        base_pipeline = self.pipelines[device]
+    
+        logger.info(f"[DIST] Using pipeline on device {device} for {len(prompts)} prompts")
+
+        logger.info(f"[DIST] generate_batch on {device} - num_images_per_prompt:{num_images_per_prompt}")
+        total_images = len(prompts) * num_images_per_prompt
+        generators = []
+        for _ in range(total_images):
+            g = torch.Generator(device=device)
+            g.manual_seed(torch.randint(0, 10_000_000, (1,)).item())
+            generators.append(g)
+
+        result = None
+        cm = getattr(base_pipeline, "model_cpu_offload_context", None)
+        
+        try:
+            if callable(cm):
+                try:
+                    with cm():
+                        if image is not None:
+                            result = base_pipeline(
+                                prompt=prompts,
+                                generator=generators,
+                                num_inference_steps=num_inference_steps,
+                                image=image,
+                                height=height,
+                                width=width,
+                                num_images_per_prompt=num_images_per_prompt,
+                            )
+                        else:
+                            result = base_pipeline(
+                                prompt=prompts,
+                                generator=generators,
+                                num_inference_steps=num_inference_steps,
+                                height=height,
+                                width=width,
+                                num_images_per_prompt=num_images_per_prompt,
+                            )
+                except TypeError:
+                    try:
+                        with cm:
+                            if image is not None:
+                                result = base_pipeline(
+                                    prompt=prompts,
+                                    generator=generators,
+                                    num_inference_steps=num_inference_steps,
+                                    image=image,
+                                    height=height,
+                                    width=width,
+                                    num_images_per_prompt=num_images_per_prompt,
+                                )
+                            else:
+                                result = base_pipeline(
+                                    prompt=prompts,
+                                    generator=generators,
+                                    num_inference_steps=num_inference_steps,
+                                    height=height,
+                                    width=width,
+                                    num_images_per_prompt=num_images_per_prompt,
+                                )
+                    except Exception as e:
+                        logger.info(f"model_cpu_offload_context failed: {e}. Proceeding without it.")
+                        if image is not None:
+                            result = base_pipeline(
+                                prompt=prompts,
+                                generator=generators,
+                                num_inference_steps=num_inference_steps,
+                                image=image,
+                                height=height,
+                                width=width,
+                                num_images_per_prompt=num_images_per_prompt,
+                            )
+                        else:
+                            result = base_pipeline(
+                                prompt=prompts,
+                                generator=generators,
+                                num_inference_steps=num_inference_steps,
+                                height=height,
+                                width=width,
+                                num_images_per_prompt=num_images_per_prompt,
+                            )
+            else:
+                if image is not None:
+                    result = base_pipeline(
+                        prompt=prompts,
+                        generator=generators,
+                        num_inference_steps=num_inference_steps,
+                        image=image,
+                        height=height,
+                        width=width,
+                        num_images_per_prompt=num_images_per_prompt,
+                    )
+                else:
+                    result = base_pipeline(
+                        prompt=prompts,
+                        generator=generators,
+                        num_inference_steps=num_inference_steps,
+                        height=height,
+                        width=width,
+                        num_images_per_prompt=num_images_per_prompt,
+                    )
+
+            if len(result.images) != total_images:
+                raise RuntimeError(
+                    f"X CRITICAL: Pipeline returned {len(result.images)} images "
+                    f"but expected {total_images} ({len(prompts)} prompts × {num_images_per_prompt} images each)."
+                )
+
+            logger.info(f"[DIST] Batch of {len(prompts)} completed on {device}")
+
+            return result
+
+        except Exception as e:
+            logger.info(f"Error _generate_batch_dist_: {e}")
+
     def generate_batch(self, prompts: List[str], *args, num_inference_steps: int = 50, device: Optional[str] = None, **kwargs):
         if self.is_dist:
-            return self._generate_batch_dist(prompts, *args, num_inference_steps=num_inference_steps, device=device, **kwargs)
+            return self._generate_batch_dist_(prompts, *args, num_inference_steps=num_inference_steps, device=device, **kwargs)
         else:
             return self._generate_batch_single(prompts, *args, num_inference_steps=num_inference_steps, device=device, **kwargs)
