@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Literal, Union
 from enum import Enum
 from pydantic import field_validator
-FLUX_2_KLEIN_9B
+
 """
 All these models are made based on the OpenAI openapi file to make the image generation server compatible with the OpenAI client
 
@@ -42,7 +42,7 @@ class ImageModel(str, Enum):
 
     FLUX_2_KLEIN_4B = 'black-forest-labs/FLUX.2-klein-4B'
 
-     = 'black-forest-labs/FLUX.2-klein-9B'
+    FLUX_2_KLEIN_9B  = 'black-forest-labs/FLUX.2-klein-9B'
 
 class ImageModelBase(str, Enum):
     SD3_MEDIUM = 'stabilityai/stable-diffusion-3-medium'
