@@ -26,6 +26,7 @@ import io
 from typing import Optional, Any, List
 from datetime import datetime
 from aquilesimage.runtime.batch_inf import BatchPipeline
+import torch.multiprocessing as mp
 
 DEV_MODE_IMAGE_URL = os.getenv("DEV_IMAGE_URL", "https://picsum.photos/1024/1024")
 DEV_MODE_IMAGE_PATH = os.getenv("DEV_IMAGE_PATH", None)
