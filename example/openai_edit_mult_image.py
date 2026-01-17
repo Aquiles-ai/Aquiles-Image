@@ -10,7 +10,7 @@ containing all the items in the reference pictures.
 """
 
 result = client.images.edit(
-    model="black-forest-labs/FLUX.2-dev",
+    model="black-forest-labs/FLUX.2-klein-4B",
     image=[
         open("body-lotion.png", "rb"),
         open("bath-bomb.png", "rb"),

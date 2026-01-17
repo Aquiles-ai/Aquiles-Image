@@ -1381,9 +1381,6 @@ class PipelineFlux2Klein:
         self.vae: AutoencoderKLFlux2 | None
         self.device: str | None = None
 
-        if self.model_name in [ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B]:
-            raise ValueError("Incompatible model")
-
     def start(self):
         torch._inductor.config.conv_1x1_as_mm = True
         torch._inductor.config.coordinate_descent_tuning = True
