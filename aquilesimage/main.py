@@ -68,7 +68,7 @@ def load_models():
     dist_inference = config.get("dist_inference")
     device_ids = []
 
-    flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2]
+    flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B]
 
     max_concurrent_infer = config.get("max_concurrent_infer")
 
@@ -518,7 +518,8 @@ async def create_image_edit(
         )
 
     if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, 
-                     ImageModel.QWEN_IMAGE_EDIT_BASE, ImageModel.QWEN_IMAGE_EDIT_2511, ImageModel.QWEN_IMAGE_EDIT_2509]:
+                     ImageModel.QWEN_IMAGE_EDIT_BASE, ImageModel.QWEN_IMAGE_EDIT_2511, ImageModel.QWEN_IMAGE_EDIT_2509, 
+                     ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B]:
         raise HTTPException(500, f"X Model not available")
 
     
@@ -605,8 +606,9 @@ async def create_image_edit(
     elif input_fidelity == "low":
         gd = 2.0
     else:
-        if model in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB]:
-            gd = 2.5 
+        if model in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2,
+                ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B]:
+            gd = 3.5 
         else:
             gd = 7.5
     

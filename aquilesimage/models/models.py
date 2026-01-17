@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Literal, Union
 from enum import Enum
 from pydantic import field_validator
-
+FLUX_2_KLEIN_9B
 """
 All these models are made based on the OpenAI openapi file to make the image generation server compatible with the OpenAI client
 
@@ -40,6 +40,10 @@ class ImageModel(str, Enum):
 
     QWEN_IMAGE_EDIT_2509 = 'Qwen/Qwen-Image-Edit-2509'
 
+    FLUX_2_KLEIN_4B = 'black-forest-labs/FLUX.2-klein-4B'
+
+     = 'black-forest-labs/FLUX.2-klein-9B'
+
 class ImageModelBase(str, Enum):
     SD3_MEDIUM = 'stabilityai/stable-diffusion-3-medium'
     SD3_5_LARGE = 'stabilityai/stable-diffusion-3.5-large'
@@ -64,6 +68,8 @@ class ImageModelEdit(str, Enum):
 class ImageModelHybrid(str, Enum):
     FLUX_2_4BNB = 'diffusers/FLUX.2-dev-bnb-4bit'
     FLUX_2 = 'black-forest-labs/FLUX.2-dev'
+    FLUX_2_KLEIN_4B = 'black-forest-labs/FLUX.2-klein-4B'
+    FLUX_2_KLEIN_9B = 'black-forest-labs/FLUX.2-klein-9B'
 
 class VideoModels(str, Enum):
     """I plan to have all of these models optimized for the Aquiles-Image runtime"""
