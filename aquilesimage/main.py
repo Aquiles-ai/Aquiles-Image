@@ -127,7 +127,7 @@ def load_models():
         else:
             if dist_inference is True:
                 logger.info("=" * 60)
-                logger.info("INITIALIZING DISTRIBUTED INFERENCE WITH MULTIPROCESSING")
+                logger.info("INITIALIZING DISTRIBUTED INFERENCE")
                 logger.info("=" * 60)
                 
                 try:
