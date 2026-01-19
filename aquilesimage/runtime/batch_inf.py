@@ -7,6 +7,8 @@ import uuid
 from aquilesimage.utils import setup_colored_logger
 import logging
 from aquilesimage.runtime.distributed_inference import DistributedCoordinator
+import torch.multiprocessing as mp
+import queue
 
 logger = setup_colored_logger("Aquiles-Image-BatchPipeline", logging.INFO)
 
@@ -41,7 +43,9 @@ class PendingRequest:
 class BatchPipeline:    
     def __init__(
         self,
-        request_scoped_pipeline: Any,
+        request_scoped_pipeline: Any = None,
+        work_queues: Optional[List[mp.Queue]] = None,
+        result_queues: Optional[List[mp.Queue]] = None,
         max_batch_size: int = 4,
         batch_timeout: float = 0.5,
         worker_sleep: float = 0.001,
@@ -50,14 +54,20 @@ class BatchPipeline:
         max_batch_sizes: Optional[List[int]] = None,
     ):
         self.pipeline = request_scoped_pipeline
+        self.work_queues = work_queues
+        self.result_queues = result_queues
+        
         self.max_batch_size = max_batch_size
         self.batch_timeout = batch_timeout
         self.worker_sleep = worker_sleep
         self.is_dist = is_dist
         
         if self.is_dist:
+            if work_queues is None or result_queues is None:
+                raise ValueError("work_queues and result_queues required for distributed mode")
             if device_ids is None or len(device_ids) == 0:
                 raise ValueError("device_ids required for distributed mode")
+            
             self.dist_cor = DistributedCoordinator(
                 device_ids=device_ids,
                 max_batch_sizes=max_batch_sizes
@@ -83,6 +93,10 @@ class BatchPipeline:
         self.total_images = 0
         self.total_complete = 0
         self.total_failed = 0
+
+        self.pending_results: Dict[str, asyncio.Future] = {}
+        self.result_lock = asyncio.Lock()
+        self.result_listener_task: Optional[asyncio.Task] = None
         
         logger.info(f"BatchCoordinator configuration:")
         logger.info(f"  max_batch_size={max_batch_size}")
@@ -93,6 +107,57 @@ class BatchPipeline:
         if self.worker_task is None:
             self.worker_task = asyncio.create_task(self._batch_worker_loop())
             logger.info("Batch worker started")
+
+        if self.is_dist and self.result_listener_task is None:
+            self.result_listener_task = asyncio.create_task(self._result_listener_loop())
+            logger.info("Result listener started")
+
+    async def _result_listener_loop(self):
+        logger.info("Result listener loop started")
+        
+        while not self.shutdown:
+            try:
+                for idx, result_q in enumerate(self.result_queues):
+                    try:
+                        result_data = await asyncio.get_event_loop().run_in_executor(
+                            None,
+                            lambda q=result_q: q.get(block=False)
+                        )
+                        
+                        if result_data.get('type') == 'inference_result':
+                            request_id = result_data.get('request_id')
+                            
+                            async with self.result_lock:
+                                if request_id in self.pending_results:
+                                    future = self.pending_results[request_id]
+                                    
+                                    if result_data.get('success'):
+                                        future.set_result(result_data)
+                                    else:
+                                        error_msg = result_data.get('error', 'Unknown error')
+                                        future.set_exception(RuntimeError(error_msg))
+                                    
+                                    del self.pending_results[request_id]
+                                    
+                                    gpu_id = result_data.get('gpu_id')
+                                    logger.info(f"Result received from worker {gpu_id}: request_id={request_id}")
+                                else:
+                                    logger.warning(f"Received result for unknown request_id: {request_id}")
+                    
+                    except queue.Empty:
+                        continue
+                    except Exception as e:
+                        logger.error(f"Error processing result from queue {idx}: {e}")
+                        continue
+
+                await asyncio.sleep(0.001)
+                
+            except asyncio.CancelledError:
+                logger.info("Result listener cancelled")
+                break
+            except Exception as e:
+                logger.error(f"Error in result listener: {e}")
+                await asyncio.sleep(0.1)
 
     async def submit(
         self,
@@ -267,11 +332,13 @@ class BatchPipeline:
 
         device_to_use = None
         device_stats = None
+        worker_idx = None
         
         if self.is_dist:
             try:
                 device_stats = await self.dist_cor.wait_for_available_device(timeout=30.0)
                 device_to_use = device_stats.id
+                worker_idx = int(device_to_use.split(':')[1])  # cuda:0 -> 0
 
                 total_images = sum(req.num_images for req in group)
                 device_stats.start_batch(total_images)
@@ -310,75 +377,148 @@ class BatchPipeline:
                 images = images[0]
         
         params = group[0].params.copy()
-        params['device'] = device_to_use
-
+        
         total_expected_images = sum(req.num_images for req in group)
         logger.info(f"Group expects {total_expected_images} total images")
         
         try:
-            from fastapi.concurrency import run_in_threadpool
-            
-            def batch_infer():
-                if images is not None:
-                    return self.pipeline.generate_batch(
-                        prompts=prompts,
-                        image=images,
-                        height=params['height'],
-                        width=params['width'],
-                        num_inference_steps=params['num_inference_steps'],
-                        device=device_to_use,
-                        num_images_per_prompt=params['num_images_per_prompt'],
-                        **{k: v for k, v in params.items() 
-                            if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images', 'num_images_per_prompt']}
-                    )
-                else:
-                    return self.pipeline.generate_batch(
-                        prompts=prompts,
-                        height=params['height'],
-                        width=params['width'],
-                        num_inference_steps=params['num_inference_steps'],
-                        device=device_to_use,
-                        num_images_per_prompt=params['num_images_per_prompt'],
-                        **{k: v for k, v in params.items() 
-                            if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images', 'num_images_per_prompt']}
-                    )
-
-            output = await run_in_threadpool(batch_infer)
-
-            if len(output.images) != total_expected_images:
-                raise RuntimeError(
-                    f"X CRITICAL: Batch size mismatch! "
-                    f"Expected {total_expected_images} images, got {len(output.images)}. "
-                    f"Output mapping is BROKEN!"
-                )
-
-            image_idx = 0
-            for i, req in enumerate(group):
-                req_images = output.images[image_idx:image_idx + req.num_images]
+            if self.is_dist:
                 
-                if req.num_images == 1:
-                    req.future.set_result(req_images[0])
-                else:
-                    req.future.set_result(req_images)
-            
-                image_idx += req.num_images
+                request_id = str(uuid.uuid4())
 
-            if self.is_dist and device_stats:
-                device_stats.complete_batch(total_expected_images)
-                self.dist_cor.notify_device_available()
+                batch_data = {
+                    'request_id': request_id,
+                    'prompts': prompts,
+                    'images': images,
+                    'params': {
+                        'height': params['height'],
+                        'width': params['width'],
+                        'num_inference_steps': params['num_inference_steps'],
+                        'num_images_per_prompt': params['num_images_per_prompt'],
+                        **{k: v for k, v in params.items() 
+                           if k not in ['height', 'width', 'num_inference_steps', 'device', 'num_images_per_prompt']}
+                    }
+                }
+
+                result_future = asyncio.Future()
+                async with self.result_lock:
+                    self.pending_results[request_id] = result_future
+
+                await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    self.work_queues[worker_idx].put,
+                    batch_data
+                )
+                
+                logger.info(f"Batch sent to worker {worker_idx}: request_id={request_id}")
+                
+                # Esperar resultado (viene del result_listener_loop)
+                try:
+                    result_data = await asyncio.wait_for(result_future, timeout=600.0)
+                except asyncio.TimeoutError:
+                    logger.error(f"X Worker {worker_idx} timed out for request_id={request_id}")
+                    # Limpiar pending_results
+                    async with self.result_lock:
+                        self.pending_results.pop(request_id, None)
+                    raise
+                
+                output_images = result_data['images']
+                
+                if len(output_images) != total_expected_images:
+                    raise RuntimeError(
+                        f"X CRITICAL: Batch size mismatch! "
+                        f"Expected {total_expected_images} images, got {len(output_images)}"
+                    )
+                
+                # Distribuir imágenes a requests
+                image_idx = 0
+                for i, req in enumerate(group):
+                    req_images = output_images[image_idx:image_idx + req.num_images]
+                    
+                    if req.num_images == 1:
+                        req.future.set_result(req_images[0])
+                    else:
+                        req.future.set_result(req_images)
+                
+                    image_idx += req.num_images
+                
+                if device_stats:
+                    device_stats.complete_batch(total_expected_images)
+                    self.dist_cor.notify_device_available()
+                
+                self.total_batches += 1
+                self.total_images += total_expected_images
+                self.total_complete += 1
+                
+                logger.info(
+                    f"Group completed on {device_to_use}: {total_expected_images} images "
+                    f"(total_batches={self.total_batches}, total_images={self.total_images})"
+                )
             
-            self.total_batches += 1
-            self.total_images += total_expected_images
-            self.total_complete += 1
-            
-            logger.info(
-                f"Group completed on {device_to_use}: {total_expected_images} images "
-                f"(total_batches={self.total_batches}, "
-                f"total_images={self.total_images})"
-            )
+            else:
+                # ====== MODO NO-DISTRIBUIDO: Usar RequestScopedPipeline directamente ======
+                
+                from fastapi.concurrency import run_in_threadpool
+                
+                def batch_infer():
+                    if images is not None:
+                        return self.pipeline.generate_batch(
+                            prompts=prompts,
+                            image=images,
+                            height=params['height'],
+                            width=params['width'],
+                            num_inference_steps=params['num_inference_steps'],
+                            device=device_to_use,
+                            num_images_per_prompt=params['num_images_per_prompt'],
+                            **{k: v for k, v in params.items() 
+                                if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images', 'num_images_per_prompt']}
+                        )
+                    else:
+                        return self.pipeline.generate_batch(
+                            prompts=prompts,
+                            height=params['height'],
+                            width=params['width'],
+                            num_inference_steps=params['num_inference_steps'],
+                            device=device_to_use,
+                            num_images_per_prompt=params['num_images_per_prompt'],
+                            **{k: v for k, v in params.items() 
+                                if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images', 'num_images_per_prompt']}
+                        )
+
+                output = await run_in_threadpool(batch_infer)
+
+                if len(output.images) != total_expected_images:
+                    raise RuntimeError(
+                        f"X CRITICAL: Batch size mismatch! "
+                        f"Expected {total_expected_images} images, got {len(output.images)}"
+                    )
+
+                image_idx = 0
+                for i, req in enumerate(group):
+                    req_images = output.images[image_idx:image_idx + req.num_images]
+                    
+                    if req.num_images == 1:
+                        req.future.set_result(req_images[0])
+                    else:
+                        req.future.set_result(req_images)
+                
+                    image_idx += req.num_images
+
+                if self.is_dist and device_stats:
+                    device_stats.complete_batch(total_expected_images)
+                    self.dist_cor.notify_device_available()
+                
+                self.total_batches += 1
+                self.total_images += total_expected_images
+                self.total_complete += 1
+                
+                logger.info(
+                    f"Group completed on {device_to_use}: {total_expected_images} images "
+                    f"(total_batches={self.total_batches}, total_images={self.total_images})"
+                )
         
         except Exception as e:
-            logger.error(f"X Batch inference failed on {device_to_use}: {e}")
+            logger.error(f"X Batch inference failed on {device_to_use}: {e}", exc_info=True)
 
             if self.is_dist and device_stats:
                 device_stats.register_error(str(e))
@@ -392,6 +532,15 @@ class BatchPipeline:
 
     async def stop(self):
         self.shutdown = True
+        
+        if self.result_listener_task:
+            self.result_listener_task.cancel()
+            try:
+                await self.result_listener_task
+            except asyncio.CancelledError:
+                pass
+            logger.info("Result listener stopped")
+        
         if self.worker_task:
             self.worker_task.cancel()
             try:

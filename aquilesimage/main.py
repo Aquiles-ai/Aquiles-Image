@@ -54,6 +54,7 @@ batch_timeout: float | None = None
 worker_sleep: float | None = None
 dist_inference: bool | None = None
 Videomodel = [model for model in VideoModels]
+worker_manager: Optional[Any] = None
 
 def load_models():
     global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout, dist_inference
@@ -67,6 +68,14 @@ def load_models():
     device_map_flux2 = config.get("device_map")
     dist_inference = config.get("dist_inference")
     device_ids = []
+
+    if dist_inference is True:
+        logger.info("Distributed inference enabled - configuring multiprocessing...")
+        try:
+            mp.set_start_method('spawn', force=True)
+            logger.info("Multiprocessing start method set to 'spawn'")
+        except RuntimeError as e:
+            logger.info(f"Multiprocessing already configured: {e}")
 
     flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B]
 
@@ -116,61 +125,106 @@ def load_models():
                 logger.error(f"Failed to initialize model pipeline: {e}")
                 raise
         else:
-            try:
-                from aquilesimage.runtime import RequestScopedPipeline
-                from aquilesimage.pipelines import ModelPipelineInit
-                if auto_pipeline is True:
-                    if dist_inference is True:
-                        initializer = ModelPipelineInit(model=model_name, auto_pipeline=True, dist_inf=dist_inference)
-                    else:
+            if dist_inference is True:
+                logger.info("=" * 60)
+                logger.info("INITIALIZING DISTRIBUTED INFERENCE WITH MULTIPROCESSING")
+                logger.info("=" * 60)
+                
+                try:
+                    from aquilesimage.runtime.worker_manager import WorkerManager
+
+                    worker_manager = WorkerManager(
+                        model_name=model_name,
+                        config=config,
+                        num_workers=None
+                    )
+                    
+                    logger.info("Starting workers (this may take a few minutes)...")
+
+                    worker_manager.start()
+
+                    work_queues, result_queues = worker_manager.get_queues()
+                    device_ids = worker_manager.get_device_ids()
+                    
+                    logger.info(f"Workers initialized successfully: {device_ids}")
+                    logger.info(f"  - Work queues: {len(work_queues)}")
+                    logger.info(f"  - Result queues: {len(result_queues)}")
+
+                    batch_pipeline = BatchPipeline(
+                        request_scoped_pipeline=None,
+                        work_queues=work_queues,
+                        result_queues=result_queues,
+                        max_batch_size=max_batch_size if max_batch_size is not None else 4,
+                        batch_timeout=batch_timeout if batch_timeout is not None else 0.5,
+                        worker_sleep=worker_sleep if worker_sleep is not None else 0.05,
+                        is_dist=True,
+                        device_ids=device_ids
+                    )
+                    
+                    request_pipe = None
+                    model_pipeline = None
+
+                    class DummyInitializer:
+                        def __init__(self):
+                            self.device = None
+                    
+                    initializer = DummyInitializer()
+                    
+                    logger.info("=" * 60)
+                    logger.info("DISTRIBUTED INFERENCE READY")
+                    logger.info(f"Active workers: {len(device_ids)}")
+                    logger.info("=" * 60)
+                    
+                except Exception as e:
+                    logger.error(f"Failed to initialize distributed inference: {e}")
+                    raise
+            else:
+                try:
+                    from aquilesimage.runtime import RequestScopedPipeline
+                    from aquilesimage.pipelines import ModelPipelineInit
+                    if auto_pipeline is True:
                         initializer = ModelPipelineInit(model=model_name, auto_pipeline=True)
-                elif device_map_flux2 == 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
-                    if dist_inference is True:
-                        initializer = ModelPipelineInit(model=model_name, device_map_flux2='cuda', dist_inf=dist_inference)
-                    else:
+                    elif device_map_flux2 == 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
                         initializer = ModelPipelineInit(model=model_name, device_map_flux2='cuda')
-                else:
-                    if dist_inference is True:
-                        initializer = ModelPipelineInit(model=model_name, dist_inf=dist_inference)
                     else:
                         initializer = ModelPipelineInit(model=model_name)
 
-                model_pipeline = initializer.initialize_pipeline()
-                model_pipeline.start()
+                    model_pipeline = initializer.initialize_pipeline()
+                    model_pipeline.start()
         
-                if model_name == ImageModel.FLUX_1_KONTEXT_DEV:
-                    if dist_inference is True:
-                        request_pipe = RequestScopedPipeline(pipelines=model_pipeline.pipelines, use_kontext=True, is_dist=dist_inference)
-                        device_ids = list(model_pipeline.pipelines.keys())
+                    if model_name == ImageModel.FLUX_1_KONTEXT_DEV:
+                        if dist_inference is True:
+                            request_pipe = RequestScopedPipeline(pipelines=model_pipeline.pipelines, use_kontext=True, is_dist=dist_inference)
+                            device_ids = list(model_pipeline.pipelines.keys())
+                        else:
+                            request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_kontext=True)
+                    elif model_name in flux_models:
+                        if dist_inference is True:
+                            request_pipe = RequestScopedPipeline(pipelines=model_pipeline.pipelines, use_flux=True, is_dist=dist_inference)
+                            device_ids = list(model_pipeline.pipelines.keys())
+                        else:
+                            request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
                     else:
-                        request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_kontext=True)
-                elif model_name in flux_models:
-                    if dist_inference is True:
-                        request_pipe = RequestScopedPipeline(pipelines=model_pipeline.pipelines, use_flux=True, is_dist=dist_inference)
-                        device_ids = list(model_pipeline.pipelines.keys())
-                    else:
-                        request_pipe = RequestScopedPipeline(model_pipeline.pipeline, use_flux=True)
-                else:
-                    if dist_inference is True:
-                        request_pipe = RequestScopedPipeline(pipelines=model_pipeline.pipelines, is_dist=dist_inference)
-                        device_ids = list(model_pipeline.pipelines.keys())
-                    else:
+                        if dist_inference is True:
+                            request_pipe = RequestScopedPipeline(pipelines=model_pipeline.pipelines, is_dist=dist_inference)
+                            device_ids = list(model_pipeline.pipelines.keys())
+                        else:
                         request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
 
-                logger.info(f"Model '{model_name}' loaded successfully")
+                    logger.info(f"Model '{model_name}' loaded successfully")
 
-                batch_pipeline = BatchPipeline(
-                    request_scoped_pipeline=request_pipe,
-                    max_batch_size=max_batch_size if max_batch_size is not None else 4,
-                    batch_timeout=batch_timeout if batch_timeout is not None else 0.5,
-                    worker_sleep=worker_sleep if worker_sleep is not None else 0.05,
-                    is_dist=dist_inference if dist_inference is True else False,
-                    device_ids=device_ids if device_ids is not None or len(device_ids) > 0 else None
-                )
+                    batch_pipeline = BatchPipeline(
+                        request_scoped_pipeline=request_pipe,
+                        max_batch_size=max_batch_size if max_batch_size is not None else 4,
+                        batch_timeout=batch_timeout if batch_timeout is not None else 0.5,
+                        worker_sleep=worker_sleep if worker_sleep is not None else 0.05,
+                        is_dist=dist_inference if dist_inference is True else False,
+                        device_ids=device_ids if device_ids is not None or len(device_ids) > 0 else None
+                    )
 
-            except Exception as e:
-                logger.error(f"Failed to initialize model pipeline: {e}")
-                raise
+                except Exception as e:
+                    logger.error(f"Failed to initialize model pipeline: {e}")
+                    raise
 
 class DummyOutput:
     def __init__(self, images):
@@ -184,7 +238,7 @@ except Exception as e:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global video_task_gen
+    global video_task_gen, worker_manager
 
     app.state.total_requests = 0
     app.state.active_inferences = 0
@@ -197,6 +251,7 @@ async def lifespan(app: FastAPI):
     app.state.REQUEST_PIPE = request_pipe
     app.state.PIPELINE_LOCK = pipeline_lock
     app.state.BATCH_PIPELINE = batch_pipeline
+    app.state.WORKER_MANAGER = worker_manager
 
     app.state.model = app.state.config.get("model")
 
@@ -303,6 +358,14 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 logger.warning(f"Error during video_task_gen shutdown: {e}")
 
+        if worker_manager:
+            try:
+                logger.info("Stopping worker processes...")
+                await run_in_threadpool(worker_manager.stop)
+                logger.info("Workers stopped successfully")
+            except Exception as e:
+                logger.warning(f"Error stopping workers: {e}")
+
         if batch_pipeline:
             try:
                 await batch_pipeline.stop()
@@ -393,13 +456,19 @@ async def create_image(input_r: CreateImageRequest):
         async with app.state.metrics_lock:
             app.state.active_inferences += 1
 
+
+        if dist_inference:
+            device_param = None
+        else:
+            device_param = initializer.device if initializer else "cuda"
+
         
         image = await batch_pipeline.submit(
             prompt=prompt,
             height=h,
             width=w,
             num_inference_steps=steps if steps is not None else 30,
-            device=initializer.device,
+            device=device_param,
             timeout=600.0,
             num_images_per_prompt=n,
         )
@@ -616,6 +685,10 @@ async def create_image_edit(
         async with app.state.metrics_lock:
             app.state.active_inferences += 1
 
+        if dist_inference:
+            device_param = None
+        else:
+            device_param = initializer.device if initializer else "cuda"
 
         image_result = await batch_pipeline.submit(
             prompt=prompt,
@@ -623,7 +696,7 @@ async def create_image_edit(
             height=h,
             width=w,
             num_inference_steps=steps if steps is not None else 30,
-            device=initializer.device,
+            device=device_param,
             timeout=600.0,
             guidance_scale=gd,
             output_type="pil",
