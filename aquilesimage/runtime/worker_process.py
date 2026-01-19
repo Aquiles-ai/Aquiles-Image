@@ -1,5 +1,3 @@
-# aquilesimage/runtime/worker_process.py
-
 import torch
 import torch.multiprocessing as mp
 import queue

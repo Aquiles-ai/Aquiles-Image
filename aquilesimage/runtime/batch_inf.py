@@ -411,13 +411,11 @@ class BatchPipeline:
                 )
                 
                 logger.info(f"Batch sent to worker {worker_idx}: request_id={request_id}")
-                
-                # Esperar resultado (viene del result_listener_loop)
+
                 try:
                     result_data = await asyncio.wait_for(result_future, timeout=600.0)
                 except asyncio.TimeoutError:
                     logger.error(f"X Worker {worker_idx} timed out for request_id={request_id}")
-                    # Limpiar pending_results
                     async with self.result_lock:
                         self.pending_results.pop(request_id, None)
                     raise
@@ -430,7 +428,6 @@ class BatchPipeline:
                         f"Expected {total_expected_images} images, got {len(output_images)}"
                     )
                 
-                # Distribuir imágenes a requests
                 image_idx = 0
                 for i, req in enumerate(group):
                     req_images = output_images[image_idx:image_idx + req.num_images]
@@ -455,9 +452,7 @@ class BatchPipeline:
                     f"(total_batches={self.total_batches}, total_images={self.total_images})"
                 )
             
-            else:
-                # ====== MODO NO-DISTRIBUIDO: Usar RequestScopedPipeline directamente ======
-                
+            else:                
                 from fastapi.concurrency import run_in_threadpool
                 
                 def batch_infer():

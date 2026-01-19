@@ -75,35 +75,32 @@ class PipelineSD3:
             torch.backends.cudnn.allow_tf32 = True
 
         if torch.cuda.is_available():
-            if self.dist_inf:
-                self.start_multi_gpu()
-            else:
-                model_path = self.model_path or "stabilityai/stable-diffusion-3.5-large"
-                logger_p.info("Loading CUDA")
-                self.device = "cuda"
-                self.pipeline = StableDiffusion3Pipeline.from_pretrained(
-                    model_path,
-                    torch_dtype=torch.float16,
-                ).to(device=self.device)
+            model_path = self.model_path or "stabilityai/stable-diffusion-3.5-large"
+            logger_p.info("Loading CUDA")
+            self.device = "cuda"
+            self.pipeline = StableDiffusion3Pipeline.from_pretrained(
+                model_path,
+                torch_dtype=torch.float16,
+            ).to(device=self.device)
 
-                torch.cuda.empty_cache()
+            torch.cuda.empty_cache()
 
-                if hasattr(self.pipeline, 'transformer') and self.pipeline.transformer is not None:
-                    self.pipeline.transformer = self.pipeline.transformer.to(
-                        memory_format=torch.channels_last
-                    )
+            if hasattr(self.pipeline, 'transformer') and self.pipeline.transformer is not None:
+                self.pipeline.transformer = self.pipeline.transformer.to(
+                    memory_format=torch.channels_last
+                )
 
-                try:
-                    self.pipeline.enable_xformers_memory_efficient_attention()
-                    print("xformers enabled")
-                except Exception as e:
-                    print(f"X xformers not available: {e}")
+            try:
+                self.pipeline.enable_xformers_memory_efficient_attention()
+                print("xformers enabled")
+            except Exception as e:
+                print(f"X xformers not available: {e}")
 
-                try:
-                    self.enable_flash_attn()
-                except Exception as e:
-                    print(f"X flash_attn not available: {e}")
-                    pass
+            try:
+                self.enable_flash_attn()
+            except Exception as e:
+                print(f"X flash_attn not available: {e}")
+                pass
 
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "stabilityai/stable-diffusion-3.5-medium"
@@ -132,90 +129,6 @@ class PipelineSD3:
                 except Exception as e3:
                     logger_p.warning(f"No optimized attention available, using default SDPA: {str(e3)}")
 
-    def start_multi_gpu(self):
-        torch.set_float32_matmul_precision("high")
-
-        if hasattr(torch._inductor, 'config'):
-            if hasattr(torch._inductor.config, 'conv_1x1_as_mm'):
-                torch._inductor.config.conv_1x1_as_mm = True
-            if hasattr(torch._inductor.config, 'coordinate_descent_tuning'):
-                torch._inductor.config.coordinate_descent_tuning = True
-            if hasattr(torch._inductor.config, 'epilogue_fusion'):
-                torch._inductor.config.epilogue_fusion = False
-            if hasattr(torch._inductor.config, 'coordinate_descent_check_all_directions'):
-                torch._inductor.config.coordinate_descent_check_all_directions = True
-
-        if torch.cuda.is_available():
-            torch.backends.cudnn.benchmark = True
-            torch.backends.cuda.matmul.allow_tf32 = True
-            torch.backends.cudnn.deterministic = False
-            torch.backends.cudnn.allow_tf32 = True
-
-        device_count = get_device_count()
-
-        for gpu_id in range(device_count):
-            device = f"cuda:{gpu_id}"
-
-            pipeline = StableDiffusion3Pipeline.from_pretrained(
-                    self.model_path,
-                    torch_dtype=torch.float16,
-                ).to(device=device)
-
-            pipeline = self.opt_multi_gpu(pipeline)
-
-            self.pipelines[device] = pipeline
-
-            torch.cuda.empty_cache()
-
-    def enable_flash_attn_multi_gpu(self, pipeline):
-        try:
-            pipeline.transformer.set_attention_backend("_flash_3_hub")
-            logger_p.info("FlashAttention 3 enabled")
-            return pipeline
-        except Exception as e:
-            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
-            try:
-                pipeline.transformer.set_attention_backend("flash")
-                logger_p.info("FlashAttention 2 enabled")
-                return pipeline
-            except Exception as e2:
-                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
-                try:
-                    pipeline.transformer.set_attention_backend("sage_hub")
-                    logger_p.info("SAGE Attention enabled")
-                    return pipeline
-                except Exception as e3:
-                    logger_p.warning(f"No optimized attention available, using default SDPA: {str(e3)}")
-                    return pipeline
-
-    def opt_multi_gpu(self, pipeline):
-        try:
-            torch.cuda.empty_cache()
-
-            if hasattr(pipeline, 'transformer') and pipeline.transformer is not None:
-                pipeline.transformer = pipeline.transformer.to(
-                    memory_format=torch.channels_last
-                )
-
-            try:
-                pipeline.enable_xformers_memory_efficient_attention()
-                print("xformers enabled")
-            except Exception as ea:
-                print(f"X xformers not available: {ea}")
-
-            try:
-                pipeline = self.enable_flash_attn_multi_gpu(pipeline)
-            except Exception as ea3:
-                print(f"X flash_attn not available: {ea3}")
-                pass
-
-            return pipeline
-
-        except Exception as ea4:
-            logger_p.warning(f"X Error in opt_multi_gpu: {str(ea4)}")
-            return pipeline
-
-
 class PipelineFlux:
     def __init__(self, model_path: str | None = None, low_vram: bool = False, compile_flag: bool = False, dist_inf: bool = False):
         self.model_path = model_path or os.getenv("MODEL_PATH")
@@ -230,22 +143,20 @@ class PipelineFlux:
         if torch.cuda.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-schnell"
             logger_p.info("Loading CUDA")
-            if self.dist_inf:
-                self.start_multi_gpu()
+
+            self.device = "cuda"
+
+            self.pipeline = FluxPipeline.from_pretrained(
+                model_path,
+                torch_dtype=torch.float16,
+            ).to(device=self.device)
+
+            if self.low_vram:
+                self.pipeline.enable_model_cpu_offload()
             else:
-                self.device = "cuda"
+                pass
 
-                self.pipeline = FluxPipeline.from_pretrained(
-                    model_path,
-                    torch_dtype=torch.float16,
-                    ).to(device=self.device)
-
-                if self.low_vram:
-                    self.pipeline.enable_model_cpu_offload()
-                else:
-                    pass
-
-                self.optimization()
+            self.optimization()
 
                 
         elif torch.backends.mps.is_available():
@@ -255,74 +166,6 @@ class PipelineFlux:
             
         else:
             raise Exception("No CUDA or MPS device available")
-
-    def start_multi_gpu(self):
-        logger_p.info("Starting Multi GPU")
-            
-        config = torch._inductor.config
-        config.conv_1x1_as_mm = True
-        config.coordinate_descent_check_all_directions = True
-        config.coordinate_descent_tuning = True
-        config.disable_progress = False
-        config.epilogue_fusion = False
-        config.shape_padding = True
-
-        device_count = get_device_count()
-
-        for gpu_id in range(device_count):
-            device = f"cuda:{gpu_id}"
-
-            pipeline = FluxPipeline.from_pretrained(
-                    self.model_path,
-                    torch_dtype=torch.float16,
-                ).to(device=device)
-
-            pipeline = self.opt_multi_gpu(pipeline)
-
-            self.pipelines[device] = pipeline
-
-            torch.cuda.empty_cache()
-
-    def opt_multi_gpu(self, pipeline):
-        try:
-            logger_p.info("Fusing QKV projections...")
-            pipeline.transformer.fuse_qkv_projections()
-            pipeline.vae.fuse_qkv_projections()
-
-            logger_p.info("Converting to channels_last memory format...")
-            pipeline.transformer.to(memory_format=torch.channels_last)
-            pipeline.vae.to(memory_format=torch.channels_last)
-
-            logger_p.info("FlashAttention")
-            pipeline = self.enable_flash_attn_multi_gpu(pipeline)
-            logger_p.info("All optimizations completed successfully")
-
-            return pipeline
-            
-        except Exception as e:
-            logger_p.error(f"X Error in optimization with Flux: {e}")
-            return pipeline
-
-    def enable_flash_attn_multi_gpu(self, pipeline):
-        try:
-            pipeline.transformer.set_attention_backend("_flash_3_hub")
-            logger_p.info("FlashAttention 3 enabled")
-            return pipeline
-        except Exception as e:
-            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
-            try:
-                pipeline.transformer.set_attention_backend("flash")
-                logger_p.info("FlashAttention 2 enabled")
-                return pipeline
-            except Exception as e2:
-                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
-                try:
-                    pipeline.transformer.set_attention_backend("sage_hub")
-                    logger_p.info("SAGE Attention enabled")
-                    return pipeline
-                except Exception as e3:
-                    logger_p.warning(f"No optimized attention available, using default SDPA: {str(e3)}")
-                    return pipeline
 
     def optimization(self):
         try:
@@ -435,20 +278,18 @@ class PipelineFluxKontext:
         if torch.cuda.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-Kontext-dev"
             logger_p.info("Loading CUDA")
-            if self.dist_inf:
-                self.start_multi_gpu()
-            else:
-                self.device = "cuda" 
-                self.pipeline = FluxKontextPipeline.from_pretrained(
-                    model_path,
-                    torch_dtype=torch.float16,
-                ).to(device=self.device)
-                if self.low_vram:
-                    self.pipeline.enable_model_cpu_offload()
-                else:
-                    pass
 
-                self.optimization()
+            self.device = "cuda" 
+            self.pipeline = FluxKontextPipeline.from_pretrained(
+                model_path,
+                torch_dtype=torch.float16,
+            ).to(device=self.device)
+            if self.low_vram:
+                self.pipeline.enable_model_cpu_offload()
+            else:
+                pass
+
+            self.optimization()
         elif torch.backends.mps.is_available():
             model_path = self.model_path or "black-forest-labs/FLUX.1-Kontext-dev"
             logger_p.info("Loading MPS for Mac M Series")
@@ -459,76 +300,6 @@ class PipelineFluxKontext:
             ).to(device=self.device)
         else:
             raise Exception("No CUDA or MPS device available")
-
-    def start_multi_gpu(self):
-        logger_p.info("Starting Multi GPU")
-        
-        config = torch._inductor.config
-        config.conv_1x1_as_mm = True
-        config.coordinate_descent_check_all_directions = True
-        config.coordinate_descent_tuning = True
-        config.disable_progress = False
-        config.epilogue_fusion = False
-        config.shape_padding = True
-
-        device_count = get_device_count()
-
-        for gpu_id in range(device_count):
-            device = f"cuda:{gpu_id}"
-
-            pipeline = FluxKontextPipeline.from_pretrained(
-                    self.model_path,
-                    torch_dtype=torch.float16,
-                ).to(device=device)
-
-            pipeline = self.opt_multi_gpu(pipeline)
-
-            self.pipelines[device] = pipeline
-
-            torch.cuda.empty_cache()
-
-    def opt_multi_gpu(self, pipeline):
-        try:
-            logger_p.info("Fusing QKV projections...")
-            pipeline.transformer.fuse_qkv_projections()
-            pipeline.vae.fuse_qkv_projections()
-
-            logger_p.info("Converting to channels_last memory format...")
-            pipeline.transformer.to(memory_format=torch.channels_last)
-            pipeline.vae.to(memory_format=torch.channels_last)
-            
-            logger_p.info("FlashAttention")
-
-            pipeline = self.enable_flash_attn_multi_gpu(pipeline)
-
-            logger_p.info("All optimizations completed successfully")
-
-            return pipeline
-            
-        except Exception as e:
-            logger_p.error(f"X Error in optimization with FluxKontext: {e}")
-            return pipeline
-
-    def enable_flash_attn_multi_gpu(self, pipeline):
-        try:
-            pipeline.transformer.set_attention_backend("_flash_3_hub")
-            logger_p.info("FlashAttention 3 enabled")
-            return pipeline
-        except Exception as e:
-            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
-            try:
-                pipeline.transformer.set_attention_backend("flash")
-                logger_p.info("FlashAttention 2 enabled")
-                return pipeline
-            except Exception as e2:
-                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
-                try:
-                    pipeline.transformer.set_attention_backend("sage_hub")
-                    logger_p.info("SAGE Attention enabled")
-                    return pipeline
-                except Exception as e3:
-                    logger_p.warning(f"No optimized attention available, using default SDPA: {str(e3)}")
-                    return pipeline
 
     def optimization(self):
         try:
@@ -600,9 +371,7 @@ class PipelineFlux2:
 
     def start(self):
         if torch.cuda.is_available():
-            if self.dist_inf:
-                self.start_multi_gpu()
-            elif self.low_vram and self.device_map == 'cuda':
+            if self.low_vram and self.device_map == 'cuda':
                 self.start_low_vram_cuda()
             elif self.low_vram:
                 self.start_low_vram()
@@ -636,102 +405,6 @@ class PipelineFlux2:
                 ).to(device="cuda")
 
                 self.optimization()
-
-    def start_multi_gpu(self):
-        logger_p.info("Starting Multi GPU for FLUX.2")
-        
-        config = torch._inductor.config
-        config.conv_1x1_as_mm = True
-        config.coordinate_descent_check_all_directions = True
-        config.coordinate_descent_tuning = True
-        config.disable_progress = False
-        config.epilogue_fusion = False
-        config.shape_padding = True
-
-        device_count = get_device_count()
-
-        for gpu_id in range(device_count):
-            device = f"cuda:{gpu_id}"
-            
-            logger_p.info(f"Loading FLUX.2 on {device}...")
-
-            text_encoder = Mistral3ForConditionalGeneration.from_pretrained(
-                self.model_path, subfolder="text_encoder", torch_dtype=torch.bfloat16, device_map=device
-            )
-
-            dit = Flux2Transformer2DModel.from_pretrained(
-                self.model_path, subfolder="transformer", torch_dtype=torch.bfloat16, device_map=device
-            )
-
-            vae = AutoencoderKLFlux2.from_pretrained(
-                self.model_path,
-                subfolder="vae",
-                torch_dtype=torch.bfloat16
-            ).to(device)
-
-            pipeline = Flux2Pipeline.from_pretrained(
-                self.model_path, 
-                text_encoder=text_encoder, 
-                transformer=dit, 
-                vae=vae, 
-                dtype=torch.bfloat16
-            ).to(device=device)
-
-            pipeline = self.opt_multi_gpu(pipeline)
-
-            self.pipelines[device] = pipeline
-
-            torch.cuda.empty_cache()
-
-    def opt_multi_gpu(self, pipeline):
-        try:
-            if self.model_path != "black-forest-labs/FLUX.2-dev":
-                logger_p.info("Fusing QKV projections...")
-                try:
-                    pipeline.transformer.fuse_qkv_projections()
-                    pipeline.vae.fuse_qkv_projections()
-                except Exception as e:
-                    logger_p.warning(f"Could not fuse QKV projections: {e}")
-
-            logger_p.info("Converting to channels_last memory format...")
-            pipeline.transformer.to(memory_format=torch.channels_last)
-            pipeline.vae.to(memory_format=torch.channels_last)
-
-            logger_p.info("FlashAttention")
-            pipeline = self.enable_flash_attn_multi_gpu(pipeline)
-            
-            logger_p.info("All optimizations completed successfully")
-
-            return pipeline
-            
-        except Exception as e:
-            logger_p.error(f"X Error in optimization with FLUX.2: {e}")
-            return pipeline
-
-    def enable_flash_attn_multi_gpu(self, pipeline):
-        if self.model_path == "black-forest-labs/FLUX.2-dev":
-            try:
-                pipeline.transformer.set_attention_backend("_flash_3_hub")
-                logger_p.info("FlashAttention 3 enabled")
-                return pipeline
-            except Exception as e:
-                logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
-                try:
-                    pipeline.transformer.set_attention_backend("flash")
-                    logger_p.info("FlashAttention 2 enabled")
-                    return pipeline
-                except Exception as e2:
-                    logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
-                    try:
-                        pipeline.transformer.set_attention_backend("sage_hub")
-                        logger_p.info("SAGE Attention enabled")
-                        return pipeline
-                    except Exception as e3:
-                        logger_p.warning(f"No optimized attention available, using default SDPA: {str(e3)}")
-                        return pipeline
-        else:
-            logger_p.info("Skip FlashAttention for this model variant")
-            return pipeline
 
     def start_low_vram(self):
         logger_p.info("Loading quantized text encoder...")
@@ -834,120 +507,24 @@ class PipelineZImage:
         if torch.cuda.is_available():
             model_path = self.model_path or "Tongyi-MAI/Z-Image-Turbo"
             logger_p.info("Loading CUDA")
-            if self.dist_inf:
-                self.start_multi_gpu()
-            else:
-                self.device = "cuda"
-                self.load_compo()
-                self.pipeline = ZImagePipeline(
-                    scheduler=None,
-                    vae=self.vae,
-                    text_encoder=self.text_encoder, 
-                    tokenizer=self.tokenizer,
-                    transformer=None
-                )
+
+            self.device = "cuda"
+            self.load_compo()
+            self.pipeline = ZImagePipeline(
+                scheduler=None,
+                vae=self.vae,
+                text_encoder=self.text_encoder, 
+                tokenizer=self.tokenizer,
+                transformer=None
+            )
                 
-                self.pipeline.to("cuda")
-                self.pipeline.vae.disable_tiling()
-                self.load_transformer()
-                self.enable_flash_attn()
-                self.load_scheduler()
+            self.pipeline.to("cuda")
+            self.pipeline.vae.disable_tiling()
+            self.load_transformer()
+            self.enable_flash_attn()
+            self.load_scheduler()
 
-                self._warmup()
-
-    def start_multi_gpu(self):
-        logger_p.info("Starting Multi GPU for Z-Image")
-        
-        try:
-            torch._inductor.config.conv_1x1_as_mm = True
-            torch._inductor.config.coordinate_descent_tuning = True
-            torch._inductor.config.epilogue_fusion = False
-            torch._inductor.config.coordinate_descent_check_all_directions = True
-            torch._inductor.config.max_autotune_gemm = True
-            torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
-            torch._inductor.config.triton.cudagraphs = False
-        except Exception as e:
-            logger_p.error(f"X torch config failed: {str(e)}")
-            pass
-
-        device_count = get_device_count()
-
-        for gpu_id in range(device_count):
-            device = f"cuda:{gpu_id}"
-            
-            logger_p.info(f"Loading Z-Image on {device}...")
-
-            vae = AutoencoderKL.from_pretrained(
-                self.model_path or "Tongyi-MAI/Z-Image-Turbo",
-                subfolder="vae",
-                torch_dtype=torch.bfloat16,
-                device_map=device,
-            )
-
-            text_encoder = AutoModelForCausalLM.from_pretrained(
-                self.model_path or "Tongyi-MAI/Z-Image-Turbo",
-                subfolder="text_encoder",
-                torch_dtype=torch.bfloat16,
-                device_map=device,
-            ).eval()
-
-            tokenizer = AutoTokenizer.from_pretrained(
-                self.model_path or "Tongyi-MAI/Z-Image-Turbo", 
-                subfolder="tokenizer"
-            )
-            tokenizer.padding_side = "left"
-
-            transformer = ZImageTransformer2DModel.from_pretrained(
-                self.model_path or "Tongyi-MAI/Z-Image-Turbo", 
-                subfolder="transformer"
-            ).to(device, torch.bfloat16)
-
-            scheduler = FlowMatchEulerDiscreteScheduler(num_train_timesteps=1000, shift=3.0)
-
-            pipeline = ZImagePipeline(
-                scheduler=scheduler,
-                vae=vae,
-                text_encoder=text_encoder, 
-                tokenizer=tokenizer,
-                transformer=transformer
-            ).to(device)
-            
-            pipeline.vae.disable_tiling()
-
-            pipeline = self.opt_multi_gpu(pipeline)
-
-            self.pipelines[device] = pipeline
-
-            torch.cuda.empty_cache()
-
-    def opt_multi_gpu(self, pipeline):
-        try:
-            logger_p.info("Applying optimizations...")
-
-            pipeline = self.enable_flash_attn_multi_gpu(pipeline)
-            
-            logger_p.info("All optimizations completed successfully")
-
-            return pipeline
-            
-        except Exception as e:
-            logger_p.error(f"X Error in optimization with Z-Image: {e}")
-            return pipeline
-
-    def enable_flash_attn_multi_gpu(self, pipeline):
-        try:
-            pipeline.transformer.set_attention_backend("flash")
-            logger_p.info("Z-Image - FlashAttention 2.0 is enabled")
-            return pipeline
-        except Exception as e:
-            logger_p.error(f"X Z-Image - FlashAttention 2.0 could not be enabled: {str(e)}")
-            try:
-                pipeline.transformer.set_attention_backend("_flash_3")
-                logger_p.info("Z-Image - FlashAttention 3.0 is enabled")
-                return pipeline
-            except Exception as e3:
-                logger_p.error(f"X Z-Image - FlashAttention 3.0 could not be enabled: {str(e3)}")
-                return pipeline
+            self._warmup()
 
     def enable_flash_attn(self):
         try:
@@ -1043,99 +620,13 @@ class PipelineQwenImage:
 
     def start(self):
         if torch.cuda.is_available():
-            if self.dist_inf:
-                self.start_multi_gpu()
-            else:
-                self.pipeline = QwenImagePipeline.from_pretrained(
-                    self.model_name,
-                    torch_dtype=torch.bfloat16
-                ).to("cuda")
-                self.optimization()
-        else:
-            raise ValueError("CUDA not available")
-
-    def start_multi_gpu(self):
-        logger_p.info("Starting Multi GPU for QwenImage")
-        
-        try:
-            torch._inductor.config.conv_1x1_as_mm = True
-            torch._inductor.config.coordinate_descent_tuning = True
-            torch._inductor.config.epilogue_fusion = False
-            torch._inductor.config.coordinate_descent_check_all_directions = True
-            torch._inductor.config.max_autotune_gemm = True
-            torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
-            torch._inductor.config.triton.cudagraphs = False
-        except Exception as e:
-            logger_p.error(f"X torch_opt failed: {str(e)}")
-            pass
-
-        device_count = get_device_count()
-
-        for gpu_id in range(device_count):
-            device = f"cuda:{gpu_id}"
-            
-            logger_p.info(f"Loading QwenImage on {device}...")
-            
-            pipeline = QwenImagePipeline.from_pretrained(
+            self.pipeline = QwenImagePipeline.from_pretrained(
                 self.model_name,
                 torch_dtype=torch.bfloat16
-            ).to(device)
-
-            pipeline = self.opt_multi_gpu(pipeline)
-
-            self.pipelines[device] = pipeline
-
-            torch.cuda.empty_cache()
-
-    def opt_multi_gpu(self, pipeline):
-        try:
-            logger_p.info("Applying optimizations...")
-            
-            # Flash attention
-            pipeline = self.flash_attn_multi_gpu(pipeline)
-            
-            # Fuse QKV
-            try:
-                pipeline.transformer.fuse_qkv_projections()
-                pipeline.vae.fuse_qkv_projections()
-                logger_p.info("QKV projection fusion")
-            except Exception as e:
-                logger_p.error(f"X Error merging QKV projections: {e}")
-                pass
-            
-            # Memory format
-            try:
-                logger_p.info("channels_last memory format")
-                if hasattr(pipeline, 'vae'):
-                    pipeline.vae.to(memory_format=torch.channels_last)
-                if hasattr(pipeline, 'transformer'):
-                    pipeline.transformer.to(memory_format=torch.channels_last)
-            except Exception as e:
-                logger_p.error(f"X Error optimizing memory format: {e}")
-                pass
-            
-            logger_p.info("All optimizations completed successfully")
-            
-            return pipeline
-            
-        except Exception as e:
-            logger_p.error(f"X Error in optimization with QwenImage: {e}")
-            return pipeline
-
-    def flash_attn_multi_gpu(self, pipeline):
-        try:
-            pipeline.transformer.set_attention_backend("_flash_3_hub")
-            logger_p.info("FlashAttention 3 enabled")
-            return pipeline
-        except Exception as e:
-            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
-            try:
-                pipeline.transformer.set_attention_backend("flash")
-                logger_p.info("FlashAttention 2 enabled")
-                return pipeline
-            except Exception as e2:
-                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
-                return pipeline
+            ).to("cuda")
+            self.optimization()
+        else:
+            raise ValueError("CUDA not available")
 
     def optimization(self):
         try:
@@ -1201,115 +692,21 @@ class PipelineQwenImageEdit:
 
     def start(self):
         if torch.cuda.is_available():
-            if self.dist_inf:
-                self.start_multi_gpu()
-            else:
-                if self.model_name in [ImageModel.QWEN_IMAGE_EDIT_BASE]:
-                    self.pipeline = QwenImageEditPipeline.from_pretrained(
-                        self.model_name,
-                        torch_dtype=torch.bfloat16
-                    ).to("cuda")
-                elif self.model_name in [ImageModel.QWEN_IMAGE_EDIT_2511, ImageModel.QWEN_IMAGE_EDIT_2509]:
-                    self.pipeline = QwenImageEditPlusPipeline.from_pretrained(
-                        self.model_name,
-                        torch_dtype=torch.bfloat16
-                    ).to("cuda")
-                else:
-                    raise ValueError("Unsupported model")
-                self.optimization()
-        else:
-            raise ValueError("CUDA not available")
-
-    def start_multi_gpu(self):
-        logger_p.info("Starting Multi GPU for QwenImageEdit")
-        
-        try:
-            torch._inductor.config.conv_1x1_as_mm = True
-            torch._inductor.config.coordinate_descent_tuning = True
-            torch._inductor.config.epilogue_fusion = False
-            torch._inductor.config.coordinate_descent_check_all_directions = True
-            torch._inductor.config.max_autotune_gemm = True
-            torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
-            torch._inductor.config.triton.cudagraphs = False
-        except Exception as e:
-            logger_p.error(f"X torch_opt failed: {str(e)}")
-            pass
-
-        device_count = get_device_count()
-
-        for gpu_id in range(device_count):
-            device = f"cuda:{gpu_id}"
-            
-            logger_p.info(f"Loading QwenImageEdit on {device}...")
-            
             if self.model_name in [ImageModel.QWEN_IMAGE_EDIT_BASE]:
-                pipeline = QwenImageEditPipeline.from_pretrained(
+                self.pipeline = QwenImageEditPipeline.from_pretrained(
                     self.model_name,
                     torch_dtype=torch.bfloat16
-                ).to(device)
+                ).to("cuda")
             elif self.model_name in [ImageModel.QWEN_IMAGE_EDIT_2511, ImageModel.QWEN_IMAGE_EDIT_2509]:
-                pipeline = QwenImageEditPlusPipeline.from_pretrained(
+                self.pipeline = QwenImageEditPlusPipeline.from_pretrained(
                     self.model_name,
                     torch_dtype=torch.bfloat16
-                ).to(device)
+                ).to("cuda")
             else:
                 raise ValueError("Unsupported model")
-
-            pipeline = self.opt_multi_gpu(pipeline)
-
-            self.pipelines[device] = pipeline
-
-            torch.cuda.empty_cache()
-
-    def opt_multi_gpu(self, pipeline):
-        try:
-            logger_p.info("Applying optimizations...")
-            
-            # Flash attention
-            pipeline = self.flash_attn_multi_gpu(pipeline)
-            
-            # Fuse QKV
-            try:
-                pipeline.transformer.fuse_qkv_projections()
-                pipeline.vae.fuse_qkv_projections()
-                logger_p.info("QKV projection fusion")
-            except Exception as e:
-                logger_p.error(f"X Error merging QKV projections: {e}")
-                pass
-            
-            # Memory format
-            try:
-                logger_p.info("channels_last memory format")
-                if hasattr(pipeline, 'vae'):
-                    pipeline.vae.to(memory_format=torch.channels_last)
-                if hasattr(pipeline, 'transformer'):
-                    pipeline.transformer.to(memory_format=torch.channels_last)
-            except Exception as e:
-                logger_p.error(f"X Error optimizing memory format: {e}")
-                pass
-            
-            logger_p.info("All optimizations completed successfully")
-            
-            return pipeline
-            
-        except Exception as e:
-            logger_p.error(f"X Error in optimization with QwenImageEdit: {e}")
-            return pipeline
-
-    def flash_attn_multi_gpu(self, pipeline):
-        try:
-            pipeline.transformer.set_attention_backend("_flash_3_hub")
-            logger_p.info("FlashAttention 3 enabled")
-            return pipeline
-        except Exception as e:
-            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
-            try:
-                pipeline.transformer.set_attention_backend("flash")
-                logger_p.info("FlashAttention 2 enabled")
-                return pipeline
-            except Exception as e2:
-                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
-                return pipeline
+            self.optimization()
+        else:
+            raise ValueError("CUDA not available")
 
     def optimization(self):
         try:
@@ -1465,86 +862,8 @@ class AutoPipelineDiffusers:
 
     def start(self):
         if torch.cuda.is_available():
-            if self.dist_inf:
-                self.start_multi_gpu()
-            else:
-                self.pipeline = AutoPipelineForText2Image.from_pretrained(self.model_name, device_map="cuda")
-                self.optimization()
-
-    def start_multi_gpu(self):
-        logger_p.info("Starting Multi GPU for AutoPipelineDiffusers")
-        
-        try:
-            torch._inductor.config.conv_1x1_as_mm = True
-            torch._inductor.config.coordinate_descent_tuning = True
-            torch._inductor.config.epilogue_fusion = False
-            torch._inductor.config.coordinate_descent_check_all_directions = True
-            torch._inductor.config.max_autotune_gemm = True
-            torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
-            torch._inductor.config.triton.cudagraphs = False
-        except Exception as e:
-            logger_p.error(f"X torch_opt failed: {str(e)}")
-            pass
-
-        device_count = get_device_count()
-
-        for gpu_id in range(device_count):
-            device = f"cuda:{gpu_id}"
-            
-            logger_p.info(f"Loading AutoPipeline on {device}...")
-            
-            pipeline = AutoPipelineForText2Image.from_pretrained(self.model_name, device_map=device)
-
-            pipeline = self.opt_multi_gpu(pipeline)
-
-            self.pipelines[device] = pipeline
-
-            torch.cuda.empty_cache()
-
-    def opt_multi_gpu(self, pipeline):
-        try:
-            logger_p.info("Applying optimizations...")
-            
-            # SDPA
-            try:
-                logger_p.info("SDPA (Scaled Dot Product Attention)")
-                from diffusers.models.attention_processor import AttnProcessor2_0
-                pipeline.unet.set_attn_processor(AttnProcessor2_0())
-            except Exception as e:
-                logger_p.error(f"X Error enabling SDPA: {e}")
-                pass
-            
-            # Memory format
-            try:
-                logger_p.info("channels_last memory format")
-                if hasattr(pipeline, 'unet'):
-                    pipeline.unet.to(memory_format=torch.channels_last)
-                if hasattr(pipeline, 'vae'):
-                    pipeline.vae.to(memory_format=torch.channels_last)
-                if hasattr(pipeline, 'transformer'):
-                    pipeline.transformer.to(memory_format=torch.channels_last)
-            except Exception as e:
-                logger_p.error(f"X Error optimizing memory format: {e}")
-                pass
-            
-            # Fuse QKV
-            try:
-                pipeline.fuse_qkv_projections()
-                logger_p.info("QKV projection fusion")
-            except AttributeError:
-                logger_p.warning("fuse_qkv_projections not available for this model")
-                pass
-            except Exception as e:
-                logger_p.error(f"X Error merging QKV projections: {e}")
-                pass
-            
-            logger_p.info("All optimizations completed successfully")
-            
-            return pipeline
-            
-        except Exception as e:
-            logger_p.error(f"X Error in optimization with AutoPipeline: {e}")
-            return pipeline
+            self.pipeline = AutoPipelineForText2Image.from_pretrained(self.model_name, device_map="cuda")
+            self.optimization()
 
     def optimization(self):
         try:
