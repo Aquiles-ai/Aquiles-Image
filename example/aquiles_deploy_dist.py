@@ -12,15 +12,14 @@ aquiles_image = (
     .env({"UV_HTTP_TIMEOUT": "600"})
     .uv_pip_install(
         "torch==2.8",
-        "diffusers==0.36.0",
+        "git+https://github.com/huggingface/diffusers.git",
         "transformers==4.57.3",
         "tokenizers==0.22.1",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
         "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl",
         "kernels"
     )
-    .env({"HF_XET_HIGH_PERFORMANCE": "1",
-          "HF_TOKEN": os.getenv("Hugging_face_token_for_deploy", "")})  
+    .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
 )
 
 MODEL_NAME = "stabilityai/stable-diffusion-3.5-medium"
@@ -30,7 +29,7 @@ aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=T
 
 app = modal.App("aquiles-image-server")
 
-N_GPU = 2 # minimum viable example
+N_GPU = 4 # minimum viable example
 MINUTES = 60
 AQUILES_PORT = 5500
 

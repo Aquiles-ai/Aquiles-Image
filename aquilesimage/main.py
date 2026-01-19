@@ -209,7 +209,7 @@ def load_models():
                             request_pipe = RequestScopedPipeline(pipelines=model_pipeline.pipelines, is_dist=dist_inference)
                             device_ids = list(model_pipeline.pipelines.keys())
                         else:
-                        request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
+                            request_pipe = RequestScopedPipeline(model_pipeline.pipeline)
 
                     logger.info(f"Model '{model_name}' loaded successfully")
 
