@@ -1,7 +1,6 @@
 import torch
 import torch.multiprocessing as mp
 import queue
-import os
 import logging
 from typing import Dict, Any
 from aquilesimage.utils import setup_colored_logger

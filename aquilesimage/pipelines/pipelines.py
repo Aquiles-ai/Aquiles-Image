@@ -37,8 +37,15 @@ from aquilesimage.utils import setup_colored_logger
 from diffusers.schedulers.scheduling_flow_match_euler_discrete import FlowMatchEulerDiscreteScheduler
 from diffusers.models.autoencoders.autoencoder_kl import AutoencoderKL
 import gc
-from aquilesimage.runtime import get_device_count
 from transformers import Qwen3ForCausalLM
+try:
+    from diffusers.pipelines.glm_image.pipeline_glm_image import GlmImagePipeline
+    from transformers import T5EncoderModel, ByT5Tokenizer, GlmImageProcessor, GlmImageForConditionalGeneration
+    from diffusers.models.transformers.transformer_glm_image import GlmImageTransformer2DModel
+except ImportError as e:
+    print("Error import GlmImagePipeline")
+    pass
+from diffusers.models.autoencoders.autoencoder_kl import AutoencoderKL
 
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
@@ -850,7 +857,9 @@ class PipelineFlux2Klein:
             logger_p.warning(f"Error in optimization: {str(e)}")
             pass
 
-        
+class PipelineGLMImage:
+    def __init__(self, model_path: str):
+        self.model_name = model_path      
 
 class AutoPipelineDiffusers:
     def __init__(self, model_path: str | None = None, dist_inf: bool = False):

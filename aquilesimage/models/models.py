@@ -44,6 +44,8 @@ class ImageModel(str, Enum):
 
     FLUX_2_KLEIN_9B  = 'black-forest-labs/FLUX.2-klein-9B'
 
+    GLM = 'zai-org/GLM-Image'
+
 class ImageModelBase(str, Enum):
     SD3_MEDIUM = 'stabilityai/stable-diffusion-3-medium'
     SD3_5_LARGE = 'stabilityai/stable-diffusion-3.5-large'
@@ -70,6 +72,7 @@ class ImageModelHybrid(str, Enum):
     FLUX_2 = 'black-forest-labs/FLUX.2-dev'
     FLUX_2_KLEIN_4B = 'black-forest-labs/FLUX.2-klein-4B'
     FLUX_2_KLEIN_9B = 'black-forest-labs/FLUX.2-klein-9B'
+    GLM = 'zai-org/GLM-Image'
 
 class VideoModels(str, Enum):
     """I plan to have all of these models optimized for the Aquiles-Image runtime"""
