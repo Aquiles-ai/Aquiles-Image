@@ -588,7 +588,7 @@ async def create_image_edit(
 
     if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, 
                      ImageModel.QWEN_IMAGE_EDIT_BASE, ImageModel.QWEN_IMAGE_EDIT_2511, ImageModel.QWEN_IMAGE_EDIT_2509, 
-                     ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B]:
+                     ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B, ImageModel.GLM]:
         raise HTTPException(500, f"X Model not available")
 
     
