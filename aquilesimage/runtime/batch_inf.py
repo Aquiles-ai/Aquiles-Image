@@ -38,6 +38,7 @@ class PendingRequest:
             has_image,
             num_input_images,
             self.num_images,
+            self.params.get('use_glm', False)
         )
 
 class BatchPipeline:    
@@ -374,6 +375,11 @@ class BatchPipeline:
                     images.append(r.image)
 
             if len(images) == 1:
+
+                if group[0].params.get('use_glm') is True:
+                    images = [images[0]]
+                    group[0].params.pop('use_glm', None)
+
                 images = images[0]
         
         params = group[0].params.copy()
@@ -396,7 +402,7 @@ class BatchPipeline:
                         'num_inference_steps': params['num_inference_steps'],
                         'num_images_per_prompt': params['num_images_per_prompt'],
                         **{k: v for k, v in params.items() 
-                           if k not in ['height', 'width', 'num_inference_steps', 'device', 'num_images_per_prompt']}
+                           if k not in ['height', 'width', 'num_inference_steps', 'device', 'num_images_per_prompt', 'use_glm']}
                     }
                 }
 

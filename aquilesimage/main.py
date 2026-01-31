@@ -690,8 +690,6 @@ async def create_image_edit(
         else:
             device_param = initializer.device if initializer else "cuda"
 
-        if not isinstance(image_to_use, list) and model in [ImageModel.GLM]:
-            image_to_use = [image_to_use]
 
         image_result = await batch_pipeline.submit(
             prompt=prompt,
@@ -703,7 +701,8 @@ async def create_image_edit(
             timeout=600.0,
             guidance_scale=gd,
             output_type="pil",
-            num_images_per_prompt=n or 1,  
+            num_images_per_prompt=n or 1,
+            use_glm=True if model in [ ImageModel.GLM ] else False,
         )
 
         if isinstance(image_result, list):
