@@ -16,9 +16,6 @@ aquiles_image = (
         "transformers==4.57.3",
         "tokenizers==0.22.1",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
-        "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl",
-        "kernels",
-        "uvicorn==0.40.0"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
 )

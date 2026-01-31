@@ -945,7 +945,7 @@ class PipelineZImage:
 
     def optimization(self):
         self.optimize_memory_format()
-        self.flash_attn()
+        #self.flash_attn()
 
     def optimize_memory_format(self):
         try:
