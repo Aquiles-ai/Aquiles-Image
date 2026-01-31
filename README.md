@@ -105,6 +105,8 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `Qwen/Qwen-Image-2512`
 - `black-forest-labs/FLUX.2-klein-4B`
 - `black-forest-labs/FLUX.2-klein-9B`
+- `zai-org/GLM-Image` - (This model is usually the slowest to execute in relative terms)
+- `Tongyi-MAI/Z-Image`
 
 ### Image-to-Image (`/images/edits`)
 
@@ -116,6 +118,7 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `Qwen/Qwen-Image-Edit-2511` - Supports multi-image editing. Maximum 3 input images.
 - `black-forest-labs/FLUX.2-klein-4B` - Supports multi-image editing. Maximum 10 input images.
 - `black-forest-labs/FLUX.2-klein-9B` - Supports multi-image editing. Maximum 10 input images.
+- `zai-org/GLM-Image` - Supports multi-image editing. Maximum 5 input images. (This model is usually the slowest to execute in relative terms)
 
 > **\* Note on FLUX.2-dev**: Requires NVIDIA H200.
 
