@@ -490,7 +490,7 @@ class PipelineFlux2:
         self.optimization()
 
 
-class PipelineZImage:
+class PipelineZImageTurbo:
     def __init__(self, model_path: str | None = None, dist_inf: bool = False):
 
         self.model_path = model_path or os.getenv("MODEL_PATH")
@@ -920,6 +920,57 @@ class PipelineGLMImage:
             logger_p.error(f"X Error optimizing memory format: {e}")
             pass
 
+class PipelineZImage:
+    def __init__(self, model_path: str):
+        self.model_name = model_path
+        self.pipeline: ZImagePipeline | None = None
+
+    def start(self):
+        if torch.cuda.is_available():
+            try:
+                torch._inductor.config.conv_1x1_as_mm = True
+                torch._inductor.config.coordinate_descent_tuning = True
+                torch._inductor.config.epilogue_fusion = False
+                torch._inductor.config.coordinate_descent_check_all_directions = True
+                torch._inductor.config.max_autotune_gemm = True
+                torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
+                torch._inductor.config.triton.cudagraphs = False
+            except Exception as e:
+                logger_p.error(f"X torch_opt failed: {str(e)}")
+                pass
+            self.pipeline = ZImagePipeline.from_pretrained(self.model_name,
+                        torch_dtype=torch.bfloat16,
+                        device_map="cuda")
+            self.optimization()
+
+    def optimization(self):
+        self.optimize_memory_format()
+        self.flash_attn()
+
+    def optimize_memory_format(self):
+        try:
+            logger_p.info("channels_last memory format")
+            if hasattr(self.pipeline, 'vae'):
+                self.pipeline.vae.to(memory_format=torch.channels_last)
+            if hasattr(self.pipeline, 'transformer'):
+                self.pipeline.transformer.to(memory_format=torch.channels_last)
+        except Exception as e:
+            logger_p.error(f"X Error optimizing memory format: {e}")
+            pass
+
+    def flash_attn(self):
+        try:
+            self.pipeline.transformer.set_attention_backend("_flash_3_hub")
+            logger_p.info("FlashAttention 3 enabled")
+        except Exception as e:
+            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
+            try:
+                self.pipeline.transformer.set_attention_backend("flash")
+                logger_p.info("FlashAttention 2 enabled")
+            except Exception as e2:
+                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
+                pass
+
 class AutoPipelineDiffusers:
     def __init__(self, model_path: str | None = None, dist_inf: bool = False):
         self.pipeline: AutoPipelineForText2Image | None = None
@@ -1022,6 +1073,10 @@ class ModelPipelineInit:
             self.models.Z_IMAGE_TURBO
         ]
 
+        self.z_image_base = [
+            self.models.Z_IMAGE_BASE
+        ]
+
         self.qwen_image = [
             self.models.QWEN_IMAGE,
             self.models.QWEN_IMAGE_2512
@@ -1039,12 +1094,12 @@ class ModelPipelineInit:
         ]
 
         self.flux2_klein = [
-            ImageModel.FLUX_2_KLEIN_4B, 
-            ImageModel.FLUX_2_KLEIN_9B
+            self.models.FLUX_2_KLEIN_4B, 
+            self.models.FLUX_2_KLEIN_9B
         ]
 
         self.glm_image = [
-            ImageModel.GLM
+            self.models.GLM
         ]
 
 
@@ -1058,7 +1113,7 @@ class ModelPipelineInit:
         elif self.model in self.flux:
             self.pipeline = PipelineFlux(self.model, self.low_vram, False, self.dist_inf)
         elif self.model in self.z_image:
-            self.pipeline = PipelineZImage(self.model, self.dist_inf)
+            self.pipeline = PipelineZImageTurbo(self.model, self.dist_inf)
         elif self.model in self.flux2:
             if self.model == 'diffusers/FLUX.2-dev-bnb-4bit':
                 self.pipeline = PipelineFlux2(self.model, True, self.device_map_flux2, self.dist_inf)
@@ -1073,7 +1128,9 @@ class ModelPipelineInit:
         elif self.model in self.flux2_klein:
             self.pipeline = PipelineFlux2Klein(self.model, self.dist_inf)
         elif self.model in self.glm_image:
-            self.pipeline = PipelineGLMImage(self.mode)
+            self.pipeline = PipelineGLMImage(self.model)
+        elif self.model in self.z_image_base:
+            self.pipeline = PipelineZImage(self.model)
         elif self.auto_pipeline:
             logger_p.info(f"Loading model '{self.model}' with 'AutoPipelineDiffusers' - Experimental")
             self.pipeline = AutoPipelineDiffusers(self.model, self.dist_inf)

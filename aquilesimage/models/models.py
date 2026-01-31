@@ -46,6 +46,8 @@ class ImageModel(str, Enum):
 
     GLM = 'zai-org/GLM-Image'
 
+    Z_IMAGE_BASE = 'Tongyi-MAI/Z-Image'
+
 class ImageModelBase(str, Enum):
     SD3_MEDIUM = 'stabilityai/stable-diffusion-3-medium'
     SD3_5_LARGE = 'stabilityai/stable-diffusion-3.5-large'
@@ -57,6 +59,7 @@ class ImageModelBase(str, Enum):
     Z_IMAGE_TURBO = 'Tongyi-MAI/Z-Image-Turbo'
     QWEN_IMAGE = 'Qwen/Qwen-Image'
     QWEN_IMAGE_2512 = 'Qwen/Qwen-Image-2512'
+    Z_IMAGE_BASE = 'Tongyi-MAI/Z-Image'
 
 class ImageModelEdit(str, Enum):
     QWEN_IMAGE_EDIT_BASE = 'Qwen/Qwen-Image-Edit'
