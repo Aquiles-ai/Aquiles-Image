@@ -379,8 +379,8 @@ class BatchPipeline:
                 if group[0].params.get('use_glm') is True:
                     images = [images[0]]
                     group[0].params.pop('use_glm', None)
-
-                images = images[0]
+                else:
+                    images = images[0]
         
         params = group[0].params.copy()
         
