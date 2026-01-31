@@ -382,6 +382,8 @@ class BatchPipeline:
                 else:
                     images = images[0]
         
+        group[0].params.pop('use_glm', None)
+
         params = group[0].params.copy()
         
         total_expected_images = sum(req.num_images for req in group)
