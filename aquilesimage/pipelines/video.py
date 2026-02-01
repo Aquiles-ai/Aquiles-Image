@@ -505,7 +505,6 @@ class LTX_2_Pipeline:
                     num_frames=300,
                     frame_rate=25.0,
                     num_inference_steps=40,
-                    cfg_guidance_scale=3.0,
                     images=[],
                     enhance_prompt=False,
                     tiling_config=tiling_config
