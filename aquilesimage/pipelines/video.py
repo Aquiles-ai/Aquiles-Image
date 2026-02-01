@@ -14,6 +14,7 @@ try:
     from ltx_pipelines.utils.constants import AUDIO_SAMPLE_RATE
     from ltx_core.model.video_vae import TilingConfig, get_video_chunks_number
     from ltx_core.loader import LoraPathStrengthAndSDOps, LTXV_LORA_COMFY_RENAMING_MAP
+    from ltx_core.components.guiders import MultiModalGuiderParams
 except ImportError as e:
     print("Error importing components for LTX-2")
     pass
@@ -483,7 +484,23 @@ class LTX_2_Pipeline:
                         sd_ops=LTXV_LORA_COMFY_RENAMING_MAP
                     )
                 ], 
-                spatial_upsampler_path=f"{data_dir}/ltx-2-spatial-upscaler-x2-1.0.safetensors"
+                spatial_upsampler_path=f"{data_dir}/ltx-2-spatial-upscaler-x2-1.0.safetensors",
+                video_guider_params=MultiModalGuiderParams(
+                    cfg_scale=3.0,
+                    stg_scale=1.0,
+                    rescale_scale=0.7,
+                    modality_scale=3.0,
+                    skip_step=0,
+                    stg_blocks=[29],
+                ),
+                audio_guider_params=MultiModalGuiderParams(
+                    cfg_scale=7.0,
+                    stg_scale=1.0,
+                    rescale_scale=0.7,
+                    modality_scale=3.0,
+                    skip_step=0,
+                    stg_blocks=[29],
+                )
             )
 
     def generate(self, seed: int, prompt: str, save_result_path: str, negative_prompt: str):
