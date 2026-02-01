@@ -484,23 +484,7 @@ class LTX_2_Pipeline:
                         sd_ops=LTXV_LORA_COMFY_RENAMING_MAP
                     )
                 ], 
-                spatial_upsampler_path=f"{data_dir}/ltx-2-spatial-upscaler-x2-1.0.safetensors",
-                video_guider_params=MultiModalGuiderParams(
-                    cfg_scale=3.0,
-                    stg_scale=1.0,
-                    rescale_scale=0.7,
-                    modality_scale=3.0,
-                    skip_step=0,
-                    stg_blocks=[29],
-                ),
-                audio_guider_params=MultiModalGuiderParams(
-                    cfg_scale=7.0,
-                    stg_scale=1.0,
-                    rescale_scale=0.7,
-                    modality_scale=3.0,
-                    skip_step=0,
-                    stg_blocks=[29],
-                )
+                spatial_upsampler_path=f"{data_dir}/ltx-2-spatial-upscaler-x2-1.0.safetensors"
             )
 
     def generate(self, seed: int, prompt: str, save_result_path: str, negative_prompt: str):
@@ -523,6 +507,22 @@ class LTX_2_Pipeline:
                     frame_rate=25.0,
                     num_inference_steps=40,
                     images=[],
+                    video_guider_params=MultiModalGuiderParams(
+                        cfg_scale=3.0,
+                        stg_scale=1.0,
+                        rescale_scale=0.7,
+                        modality_scale=3.0,
+                        skip_step=0,
+                        stg_blocks=[29],
+                    ),
+                    audio_guider_params=MultiModalGuiderParams(
+                        cfg_scale=7.0,
+                        stg_scale=1.0,
+                        rescale_scale=0.7,
+                        modality_scale=3.0,
+                        skip_step=0,
+                        stg_blocks=[29],
+                    ),
                     enhance_prompt=False,
                     tiling_config=tiling_config
                 )
