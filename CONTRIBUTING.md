@@ -66,14 +66,14 @@ If you find a bug, please open an [issue](https://github.com/Aquiles-ai/Aquiles-
 - Model: [e.g., stabilityai/stable-diffusion-3.5-medium]
 
 ## Logs
-```
+
 [Paste the complete error here]
-```
+
 
 ## Example Code (optional)
 ```python
 # Minimal code to reproduce the error
-```
+
 ```
 
 ## Adding New Models
