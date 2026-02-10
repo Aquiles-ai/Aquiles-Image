@@ -1036,6 +1036,7 @@ class AutoPipelineDiffusers:
             logger_p.error(f"X Error merging QKV projections: {e}")
             pass
 
+## TODO: Implement the AutoPipeline for Img2Img.
 
 class ModelPipelineInit:
     def __init__(self, model: str, low_vram: bool = False, auto_pipeline: bool = False, device_map_flux2: str | None = None, dist_inf: bool = False):
