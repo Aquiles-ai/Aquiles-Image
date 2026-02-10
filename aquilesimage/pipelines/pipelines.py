@@ -772,8 +772,6 @@ class PipelineQwenImageEdit:
 class PipelineFlux2Klein:
     def __init__(self, model_path: str | None = None, dist_inf: bool = False):
         self.model_name = model_path
-        if dist_inf:
-            raise ValueError("Distributed inference is not supported for these models")
         try:
             self.pipeline: Flux2KleinPipeline | None = None
         except Exception as e:
