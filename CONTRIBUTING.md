@@ -71,8 +71,8 @@ If you find a bug, please open an [issue](https://github.com/Aquiles-ai/Aquiles-
 
 
 ## Example Code (optional)
-```python
-# Minimal code to reproduce the error
+
+[ ... Minimal code to reproduce the error]
 
 ```
 
