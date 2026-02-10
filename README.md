@@ -359,10 +359,18 @@ The response varies depending on the model type and configuration:
 - [**Client Reference**](https://aquiles-ai.github.io/aquiles-image-docs/#client-api)
 - [**Model Guide**](https://aquiles-ai.github.io/aquiles-image-docs/#models)
 
+## 🤝 Contributing
+
+We welcome contributions! Whether you want to:
+- 🐛 Report bugs and issues
+- 🎨 Add support for new image models
+- 📝 Improve documentation
+
+Please read our [**Contributing Guide**](CONTRIBUTING.md) to get started.
 
 <div align="center">
 
-**[⭐ Star this project](https://github.com/Aquiles-ai/Aquiles-Image)** • **[🐛 Report issues](https://github.com/Aquiles-ai/Aquiles-Image/issues)**
+**[⭐ Star this project](https://github.com/Aquiles-ai/Aquiles-Image)** • **[🐛 Report issues](https://github.com/Aquiles-ai/Aquiles-Image/issues)** • **[🤝 Contribute](CONTRIBUTING.md)**
 
 *Built with ❤️ for the AI community*
 
