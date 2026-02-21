@@ -1,0 +1,1 @@
+from .stable_diffusion_3_5 import PipelineSD3
