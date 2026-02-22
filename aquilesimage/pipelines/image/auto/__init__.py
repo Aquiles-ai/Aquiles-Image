@@ -1,0 +1,1 @@
+from .text2img import AutoPipelineDiffusers

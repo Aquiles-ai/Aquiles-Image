@@ -6,9 +6,7 @@ try:
 except ImportError as e:
     print("Error import Flux2Pipeline")
     pass
-from transformers import AutoModelForCausalLM
 from aquilesimage.utils import setup_colored_logger
-import os
 import logging
 from transformers import Qwen3ForCausalLM
 

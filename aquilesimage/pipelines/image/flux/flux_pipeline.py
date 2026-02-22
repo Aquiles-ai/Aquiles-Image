@@ -3,6 +3,7 @@ from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
 from aquilesimage.utils import setup_colored_logger
 import os
 import logging
+import gc
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
