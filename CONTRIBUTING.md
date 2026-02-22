@@ -87,15 +87,27 @@ Before adding a new model, make sure that:
 3. **You tested the model locally**: Verify that it works correctly with your implementation
 4. **Open an issue first**: For large changes, open an issue describing which model you want to add and why
 
-### Implementation Guide
+#### 1. Implement the Pipeline (`aquilesimage/pipelines/image/`)
 
-To add a new model, you need to modify two main files:
+Refer to the [`pipelines/image/`](https://github.com/Aquiles-ai/Aquiles-Image/tree/main/aquilesimage/pipelines/image) folder to understand how pipelines are structured.
 
-#### 1. Implement the Pipeline (`aquilesimage/pipelines/pipelines.py`)
+Each model must have its **own folder** inside `aquilesimage/pipelines/image/`, following the existing pattern:
 
-Refer to the [`pipelines.py`](https://github.com/Aquiles-ai/Aquiles-Image/blob/main/aquilesimage/pipelines/pipelines.py) file to understand how pipelines are implemented.
+```
+aquilesimage/pipelines/image/
+├── flux/
+│   ├── flux_pipeline.py
+│   ├── flux2.py
+│   ├── flux2_klein.py
+│   ├── fluxkontext.py
+│   └── __init__.py
+├── your_model/          ← Create this folder
+│   ├── your_model.py    ← Your pipeline logic goes here
+│   └── __init__.py      ← Expose your class here
+├── __init__.py
+```
 
-**Basic pipeline structure:**
+**Step 1 - Create your pipeline file (`aquilesimage/pipelines/image/your_model/your_model.py`):**
 
 ```python
 from diffusers import AutoPipelineForText2Image
@@ -175,24 +187,31 @@ class PipelineYourModel:
                 logger_p.warning("Using default SDPA")
 ```
 
+**Step 2 - Expose your class in `aquilesimage/pipelines/image/your_model/__init__.py`:**
+
+```python
+from aquilesimage.pipelines.image.your_model.your_model import PipelineYourModel
+```
+
 **Important tips:**
-- Each pipeline is an independent class (does not inherit from a base class)
+- Each pipeline lives in its **own folder** inside `aquilesimage/pipelines/image/`
+- Each folder must have an `__init__.py` that exposes the pipeline class
 - Implement `start()` to load and initialize the model
 - Implement `optimization()` to apply optimizations (FlashAttention, QKV fusion, etc.)
 - Implement `enable_flash_attn()` to attempt to enable FlashAttention
 - Use `self.device` for the device (cuda/mps)
 - Use `self.pipelines = {}` if you support distributed inference
 - Handle exceptions with try-except and appropriate logging
-- Follow the pattern of existing classes in `pipelines.py`
+- Follow the pattern of existing folders in `aquilesimage/pipelines/image/`
 
 **⚠️ Important - Imports with Try-Except:**
 
 If the model you are adding **is only available in the `main` branch of diffusers** (not in a stable release), you must protect the imports with `try-except` blocks to avoid errors on systems using stable versions of diffusers.
 
-**Example of correct imports:**
+**Example of correct imports in your pipeline file:**
 
 ```python
-# At the beginning of the pipelines.py file
+# At the beginning of your pipeline file
 try:
     from diffusers.pipelines.your_model.pipeline_your_model import YourModelPipeline
     from diffusers.models.transformers.transformer_your_model import YourModelTransformer
@@ -260,7 +279,30 @@ class ImageModelHybrid(str, Enum):
     YOUR_HYBRID_MODEL = "organization/hybrid-model"
 ```
 
-#### 3. Update Documentation
+#### 3. Register your pipeline in `aquilesimage/pipelines/pipelines.py`:**
+
+Import your class alongside the existing ones:
+
+```python
+from aquilesimage.pipelines.image.your_model import PipelineYourModel
+```
+
+Then add your model to the `ModelPipelineInit` class. First, register the model list in `__init__`:
+
+```python
+self.your_model = [
+    self.models.YOUR_NEW_MODEL
+]
+```
+
+Then handle it in `initialize_pipeline()`:
+
+```python
+elif self.model in self.your_model:
+    self.pipeline = PipelineYourModel(self.model, self.dist_inf)
+```
+
+#### 4. Update Documentation
 
 Don't forget to update the README.md by adding your new model to the supported models section, including:
 - Model name
