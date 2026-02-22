@@ -244,11 +244,8 @@ class ImageEditCompletedEvent(BaseModel):
     output_format: Literal["png", "webp", "jpeg"] = Field(..., description="The output format for the edited image.")
     usage: ImagesUsage = Field(..., description="For `gpt-image-1` only, the token usage information for the image generation.")
 
-
 ImageGenStreamEvent = Union[ImageGenPartialImageEvent, ImageGenCompletedEvent]
 ImageEditStreamEvent = Union[ImageEditPartialImageEvent, ImageEditCompletedEvent]
-
-
 
 class CreateImageRequest(BaseModel):
     prompt: str = Field(..., max_length=1000, description="A text description of the desired image(s).")
@@ -265,7 +262,6 @@ class CreateImageRequest(BaseModel):
     background: Optional[Literal["transparent", "opaque", "auto"]] = Field("auto", description="Allows to set transparency for the background of the generated image(s). Must be one of `transparent`, `opaque` or `auto` (default value). When `auto` is used, the model will automatically determine the best background for the image.")
     style: Optional[Literal["vivid", "natural"]] = Field("vivid", description="The style of the generated images. ")
     user: Optional[str] = Field(None, description="A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse.")
-
 
 class CreateImageEditRequest(BaseModel):
     # Note: In FastAPI, these fields would be handled with UploadFile and Form()
@@ -291,7 +287,7 @@ class ConfigsServe(BaseModel):
     max_concurrent_infer: int | None = Field(default=50, description="Maximum number of inferences running at the same time")
     block_request: bool | None = Field(default=False, description="Block requests during the maximum concurrent inferences")
     load_model: bool | None = Field(default=True, description="Loading the model or not simply allows for faster development without having to load the model constantly.")
-    steps_n: int | None = Field(default=None, description="Loading the model or not simply allows for faster development without having to load the model constantly.")
+    steps_n: int | None = Field(default=None, description="Steps that the model will use")
     auto_pipeline: bool | None = Field(default=None, description="Load a model that is compatible with diffusers (Only the Text2Image models) but is not mentioned in the Aquiles-Image documentation.")
     device_map: str | None = Field(default=None, description="device_map option in which to load the model (Only compatible with diffusers/FLUX.2-dev-bnb-4bit)")
     type_model: str | None = Field(default=None, description="This is for video models. There are only 2 options: 'Images' and 'Videos'.")
@@ -299,6 +295,7 @@ class ConfigsServe(BaseModel):
     max_batch_size: int | None = Field(default=4, description="Maximum number of requests to group in a single batch for inference")
     batch_timeout: float | None = Field(default=0.5, description="Maximum time (in seconds) to wait before processing a batch even if not full")
     worker_sleep: float | None = Field(default=0.001, description="Time (in seconds) the worker sleeps between checking for new batch requests")
+    auto_pipeline_mode: str | None = Field(default=None) # Only t2i or i2i
 
 class Model(BaseModel):
     id: str = Field(..., description="Unique identifier of the model")

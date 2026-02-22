@@ -11,8 +11,6 @@ from aquilesimage.pipelines.image.auto import AutoPipelineDiffusers
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
-## TODO: Implement the AutoPipeline for Img2Img.
-
 class ModelPipelineInit:
     def __init__(self, model: str, low_vram: bool = False, auto_pipeline: bool = False, device_map_flux2: str | None = None, dist_inf: bool = False):
         self.model = model
