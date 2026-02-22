@@ -7,12 +7,13 @@ from aquilesimage.pipelines.image.flux import PipelineFlux, PipelineFlux2Klein, 
 from aquilesimage.pipelines.image.z_image import PipelineZImageTurbo, PipelineZImage
 from aquilesimage.pipelines.image.qwen_image import PipelineQwenImage, PipelineQwenImageEdit
 from aquilesimage.pipelines.image.glm import PipelineGLMImage
-from aquilesimage.pipelines.image.auto import AutoPipelineDiffusers
+from aquilesimage.pipelines.image.auto import AutoPipelineDiffusers, AutoPipelineI2IDiffusers
+from typing import Literal
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
 class ModelPipelineInit:
-    def __init__(self, model: str, low_vram: bool = False, auto_pipeline: bool = False, device_map_flux2: str | None = None, dist_inf: bool = False):
+    def __init__(self, model: str, low_vram: bool = False, auto_pipeline: bool = False, device_map_flux2: str | None = None, dist_inf: bool = False, auto_type: Literal["t2i", "i2i"] | None = None):
         self.model = model
         self.pipeline = None
         self.device = "cuda" if torch.cuda.is_available() else "mps"
@@ -21,6 +22,7 @@ class ModelPipelineInit:
         self.auto_pipeline = auto_pipeline
         self.device_map_flux2 = device_map_flux2
         self.dist_inf = dist_inf
+        self.auto_type = auto_type
 
         self.models = ImageModel
 
@@ -104,9 +106,16 @@ class ModelPipelineInit:
         elif self.model in self.z_image_base:
             self.pipeline = PipelineZImage(self.model)
         elif self.auto_pipeline:
-            logger_p.info(f"Loading model '{self.model}' with 'AutoPipelineDiffusers' - Experimental")
-            self.pipeline = AutoPipelineDiffusers(self.model, self.dist_inf)
+            if self.auto_type is not None:
+                if self.auto_type == "t2i":
+                    logger_p.info(f"Loading model '{self.model}' with 'AutoPipelineDiffusers'")
+                    self.pipeline = AutoPipelineDiffusers(self.model, self.dist_inf)
+                else self.auto_type == "i2i":
+                    logger_p.info(f"Loading model '{self.model}' with 'AutoPipelineI2IDiffusers'")
+                    self.pipeline = AutoPipelineI2IDiffusers(self.model, self.dist_inf)
+            else:
+                raise ValueError(f"You must specify the AutoPipeline type with '--auto-pipeline-type t2i (Text to Image) or i2i (Image to Image)'")
         else:
-            raise ValueError(f"Unsupported model or enable the '--auto-pipeline' option (Only the Text2Image models). Model: {self.model}")
+            raise ValueError(f"Unsupported model or enable the '--auto-pipeline' option. Model: {self.model}")
 
         return self.pipeline

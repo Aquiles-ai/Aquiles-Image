@@ -55,9 +55,10 @@ worker_sleep: float | None = None
 dist_inference: bool | None = None
 Videomodel = [model for model in VideoModels]
 worker_manager: Optional[Any] = None
+auto_type: str | None = None
 
 def load_models():
-    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout, dist_inference
+    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout, dist_inference, auto_type
 
     logger.info("Loading configuration...")
     
@@ -67,6 +68,7 @@ def load_models():
     auto_pipeline = config.get("auto_pipeline")
     device_map_flux2 = config.get("device_map")
     dist_inference = config.get("dist_inference")
+    auto_type = config.get("auto_pipeline_mode")
     device_ids = []
 
     if dist_inference is True:
@@ -183,7 +185,7 @@ def load_models():
                     from aquilesimage.runtime import RequestScopedPipeline
                     from aquilesimage.pipelines import ModelPipelineInit
                     if auto_pipeline is True:
-                        initializer = ModelPipelineInit(model=model_name, auto_pipeline=True)
+                        initializer = ModelPipelineInit(model=model_name, auto_pipeline=True, auto_type=auto_type)
                     elif device_map_flux2 == 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
                         initializer = ModelPipelineInit(model=model_name, device_map_flux2='cuda')
                     else:
@@ -775,7 +777,11 @@ async def get_models():
     type_model = None
 
     if auto_pipeline is True:
-        type_model = "Image"
+        if auto_type is not None:
+            if auto_type == "t2i":
+                type_model = "Image"
+            else:
+                type_model = "Edit"
     else:
         type_model = await getTypeModel(model_name)
 

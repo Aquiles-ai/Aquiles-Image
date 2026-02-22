@@ -1,1 +1,2 @@
 from .text2img import AutoPipelineDiffusers
+from .img2img import AutoPipelineI2IDiffusers
