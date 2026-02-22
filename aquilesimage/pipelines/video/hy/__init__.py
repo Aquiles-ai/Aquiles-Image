@@ -1,0 +1,1 @@
+from .hy_1_5 import HunyuanVideo_Pipeline
