@@ -1,10 +1,10 @@
 import torch
 try:
-    from diffusers.pipelines.flux2.pipeline_flux2 import Flux2Pipeline
+    from diffusers.pipelines.flux2.pipeline_flux2 import Flux2KleinPipeline
     from diffusers.models.transformers.transformer_flux2 import Flux2Transformer2DModel
     from diffusers.models.autoencoders.autoencoder_kl_flux2 import AutoencoderKLFlux2
 except ImportError as e:
-    print("Error import Flux2Pipeline")
+    print("Error import Flux2KleinPipeline")
     pass
 from aquilesimage.utils import setup_colored_logger
 import logging
