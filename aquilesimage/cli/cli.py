@@ -28,11 +28,12 @@ def greet(name):
 @click.option("--max-batch-size", type=int, default=None, help="Maximum number of requests to group in a single batch for inference")
 @click.option("--batch-timeout", type=float, default=None, help="Maximum time (in seconds) to wait before processing a batch even if not full")
 @click.option("--worker-sleep", type=float, default=None, help="Time (in seconds) the worker sleeps between checking for new batch requests")
+@click.option("--auto-pipeline-type", type=click.Choice(["t2i", "i2i"]), default=None, help="You must specify the AutoPipeline type with '--auto-pipeline-type t2i (Text to Image) or i2i (Image to Image)'")
 def serve(host: str, port: int, model: Optional[str], api_key: Optional[str], 
          max_concurrent_infer: Optional[int], block_request: Optional[bool], force: bool, 
          no_load_model: bool, set_steps: Optional[int], auto_pipeline: Optional[bool], 
          device_map: Optional[str], dist_inference: Optional[bool], max_batch_size: Optional[int], 
-         batch_timeout: Optional[float], worker_sleep: Optional[float]):
+         batch_timeout: Optional[float], worker_sleep: Optional[float], auto_pipeline_type: Optional[str],):
     """Start the Aquiles-Image server."""
     try:
         from aquilesimage.configs import (
@@ -91,7 +92,8 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
         dist_inference is not None,
         max_batch_size is not None,
         batch_timeout is not None,
-        worker_sleep is not None
+        worker_sleep is not None,
+        auto_pipeline_type is not None,
     ])
 
     if config_needs_update:
@@ -113,7 +115,8 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
                 dist_inference=dist_inference if dist_inference is not None else conf.get("dist_inference"),
                 max_batch_size=max_batch_size if max_batch_size is not None else conf.get("max_batch_size"),
                 batch_timeout=batch_timeout if batch_timeout is not None else conf.get("batch_timeout"),
-                worker_sleep=worker_sleep if worker_sleep is not None else conf.get("worker_sleep")
+                worker_sleep=worker_sleep if worker_sleep is not None else conf.get("worker_sleep"),
+                auto_pipeline_mode=auto_pipeline_type if auto_pipeline_type is not None else conf.get("auto_pipeline_mode"),
             )
 
             configs_image_serve(updated_conf, force=True)
