@@ -17,7 +17,7 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Aquiles-ai/Aquiles-Image)
 [![View Code Wiki](https://www.gstatic.com/_/boq-sdlc-agents-ui/_/r/YUi5dj2UWvE.svg)](https://codewiki.google/github.com/aquiles-ai/aquiles-image)
 
-[**\[ English | [Español](README_es.md) \]**]
+**\[ English | [Español](README_es.md) \]**
 
 </div>
 
