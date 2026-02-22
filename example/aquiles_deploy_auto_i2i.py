@@ -23,7 +23,7 @@ aquiles_image = (
           "HF_TOKEN": os.getenv("Hugging_face_token_for_deploy", "")})  
 )
 
-MODEL_NAME = "FireRedTeam/FireRed-Image-Edit-1.0"
+MODEL_NAME = "meituan-longcat/LongCat-Image-Edit"
 
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
 aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=True)
