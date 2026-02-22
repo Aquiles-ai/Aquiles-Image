@@ -279,7 +279,7 @@ class ImageModelHybrid(str, Enum):
     YOUR_HYBRID_MODEL = "organization/hybrid-model"
 ```
 
-#### 3. Register your pipeline in `aquilesimage/pipelines/pipelines.py`:**
+#### 3. Register your pipeline in `aquilesimage/pipelines/pipelines.py`:
 
 Import your class alongside the existing ones:
 
