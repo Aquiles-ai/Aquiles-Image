@@ -195,19 +195,20 @@ https://github.com/user-attachments/assets/b7104dc3-5306-4e6a-97e5-93a6c1e73f54
 
 ### AutoPipeline - Run Any Diffusers Model
 
-Run any model compatible with `AutoPipelineForText2Image` from HuggingFace:
+Run any model compatible with `AutoPipelineForText2Image` or `AutoPipelineForImage2Image` from HuggingFace:
 
 ```bash
 aquiles-image serve \
   --model "stabilityai/stable-diffusion-xl-base-1.0" \
   --auto-pipeline \
-  --set-steps 30
+  --set-steps 30 \
+  ----auto-pipeline-type t2i # or i2i for Image to Image
 ```
 
 **Supported models include:**
 - `stable-diffusion-v1-5/stable-diffusion-v1-5`
 - `stabilityai/stable-diffusion-xl-base-1.0`
-- Any HuggingFace model compatible with `AutoPipelineForText2Image`
+- Any HuggingFace model compatible with `AutoPipelineForText2Image` or `AutoPipelineForImage2Image`
 
 **Trade-offs:**
 - ⚠️ Slower inference than native implementations
