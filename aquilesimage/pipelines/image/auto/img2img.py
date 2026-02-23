@@ -14,7 +14,11 @@ class AutoPipelineI2IDiffusers:
 
     def start(self):
         if torch.cuda.is_available():
-            self.pipeline = AutoPipelineForImage2Image.from_pretrained(self.model_name, device_map="cuda", trust_remote_code=True)
+            self.pipeline = AutoPipelineForImage2Image.from_pretrained(
+                self.model_name, 
+                device_map="cuda", 
+                trust_remote_code=True,
+                dtype=torch.bfloat16)
             self.optimization()
 
     def optimization(self):
@@ -30,7 +34,7 @@ class AutoPipelineI2IDiffusers:
             except Exception as e:
                 logger_p.error(f"X torch_opt failed: {str(e)}")
                 pass
-            #self.enable_flash_attn()
+            self.enable_flash_attn()
             self.optimize_memory_format()
             self.fuse_qkv_projections()
         except Exception as e:
