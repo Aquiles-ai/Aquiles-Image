@@ -110,7 +110,7 @@ class ModelPipelineInit:
                 if self.auto_type == "t2i":
                     logger_p.info(f"Loading model '{self.model}' with 'AutoPipelineDiffusers'")
                     self.pipeline = AutoPipelineDiffusers(self.model, self.dist_inf)
-                else self.auto_type == "i2i":
+                elif self.auto_type == "i2i":
                     logger_p.info(f"Loading model '{self.model}' with 'AutoPipelineI2IDiffusers'")
                     self.pipeline = AutoPipelineI2IDiffusers(self.model, self.dist_inf)
             else:
