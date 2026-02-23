@@ -202,7 +202,7 @@ aquiles-image serve \
   --model "stabilityai/stable-diffusion-xl-base-1.0" \
   --auto-pipeline \
   --set-steps 30 \
-  ----auto-pipeline-type t2i # or i2i for Image to Image
+  --auto-pipeline-type t2i # or i2i for Image to Image
 ```
 
 **Supported models include:**
