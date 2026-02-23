@@ -14,7 +14,7 @@ class AutoPipelineI2IDiffusers:
 
     def start(self):
         if torch.cuda.is_available():
-            self.pipeline = AutoPipelineForImage2Image.from_pretrained(self.model_name, device_map="cuda")
+            self.pipeline = AutoPipelineForImage2Image.from_pretrained(self.model_name, device_map="cuda", trust_remote_code=True)
             self.optimization()
 
     def optimization(self):
