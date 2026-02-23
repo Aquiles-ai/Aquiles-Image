@@ -1,6 +1,6 @@
 import torch
 try:
-    from diffusers.pipelines.flux2.pipeline_flux2 import Flux2KleinPipeline
+    from diffusers.pipelines.flux2.pipeline_flux2_klein import Flux2KleinPipeline
     from diffusers.models.transformers.transformer_flux2 import Flux2Transformer2DModel
     from diffusers.models.autoencoders.autoencoder_kl_flux2 import AutoencoderKLFlux2
 except ImportError as e:

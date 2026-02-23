@@ -18,7 +18,7 @@ class AutoPipelineDiffusers:
                 self.model_name, 
                 device_map="cuda",
                 trust_remote_code=True,
-                dtype=torch.bfloat16)
+                torch_dtype=torch.bfloat16)
             self.optimization()
 
     def optimization(self):
