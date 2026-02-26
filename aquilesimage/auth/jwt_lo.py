@@ -1,4 +1,4 @@
-from aquiles.configs import load_config_app as load_aquiles_config
+from aquilesimage.configs import load_config_app as load_aquiles_config
 from fastapi import Depends, HTTPException, Cookie
 from datetime import datetime, timedelta
 from pydantic import Field

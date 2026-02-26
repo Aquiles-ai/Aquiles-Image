@@ -7,14 +7,17 @@ POST /images/generations (generate)
 """
 
 from fastapi import FastAPI, UploadFile, File, Request, HTTPException, Depends, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import OAuth2PasswordRequestForm
+from datetime import timedelta
 from fastapi.concurrency import run_in_threadpool
 from aquilesimage.models import CreateImageRequest, ImagesResponse, Image, ImageModel, ListModelsResponse, Model, CreateVideoBody, VideoResource, VideoModels, VideoListResource, DeletedVideoResource
 from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key, create_dev_mode_response, create_dev_mode_video_response, VideoTaskGeneration, getTypeModel
 from aquilesimage.configs import load_config_app, load_config_cli
+from aquilesimage.auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
 import asyncio
 import logging
 from contextlib import asynccontextmanager
@@ -59,9 +62,10 @@ dist_inference: bool | None = None
 Videomodel = [model for model in VideoModels]
 worker_manager: Optional[Any] = None
 auto_type: str | None = None
+allow_users: bool | None = None
 
 def load_models():
-    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout, dist_inference, auto_type
+    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout, dist_inference, auto_type, allow_users
 
     logger.info("Loading configuration...")
     
@@ -72,6 +76,7 @@ def load_models():
     device_map_flux2 = config.get("device_map")
     dist_inference = config.get("dist_inference")
     auto_type = config.get("auto_pipeline_mode")
+    allow_users = bool(config.get("allows_users"))
     device_ids = []
 
     if dist_inference is True:
@@ -927,6 +932,47 @@ async def get_stats():
         stats = await batch_pipeline.get_stats()
         return stats
 
+# Playground
+if allow_users:
+    @app.exception_handler(HTTPException)
+    async def auth_exception_handler(request: Request, exc: HTTPException):
+        if exc.status_code == 401:
+            login_url = f"/login?next={request.url.path}"
+            return RedirectResponse(url=login_url, status_code=302)
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+    @app.post("/token", tags=["HTML Helper"])
+    async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+        if not await authenticate_user(form_data.username, form_data.password):
+            raise HTTPException(status_code=401,
+                            detail="Invalid username or password")
+        token = await create_access_token(
+            username=form_data.username,
+            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        )
+        response = RedirectResponse(url="/", status_code=302)
+        response.set_cookie(key="access_token", value=f"Bearer {token}", httponly=True)
+        return response
+
+    @app.get("/login", response_class=HTMLResponse, tags=["HTML"])
+    async def login(request: Request):
+        return templates.TemplateResponse("login.html", {"request": request})
+
+    @app.get("/", response_class=HTMLResponse, tags=["HTML"])
+    async def home(request: Request, user: str = Depends(get_current_user)):
+        try:
+            configs = app.state.config
+
+            valid_keys = [k for k in configs["allows_api_keys"] if k and k.strip()]
+
+            if not valid_keys:
+                api_key = "EMPTY"
+            else:
+                api_key = valid_keys[0]
+        
+            return templates.TemplateResponse("index.html", {"request": request, "api_key": api_key})
+        except HTTPException:
+            return RedirectResponse(url="/login", status_code=302)
 
 app.add_middleware(
     CORSMiddleware,
