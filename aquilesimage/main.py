@@ -9,6 +9,8 @@ POST /images/generations (generate)
 from fastapi import FastAPI, UploadFile, File, Request, HTTPException, Depends, Form
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from fastapi.concurrency import run_in_threadpool
 from aquilesimage.models import CreateImageRequest, ImagesResponse, Image, ImageModel, ListModelsResponse, Model, CreateVideoBody, VideoResource, VideoModels, VideoListResource, DeletedVideoResource
 from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key, create_dev_mode_response, create_dev_mode_video_response, VideoTaskGeneration, getTypeModel
@@ -27,6 +29,7 @@ from typing import Optional, Any, List
 from datetime import datetime
 from aquilesimage.runtime.batch_inf import BatchPipeline
 import torch.multiprocessing as mp
+import pathlib
 
 DEV_MODE_IMAGE_URL = os.getenv("DEV_IMAGE_URL", "https://picsum.photos/1024/1024")
 DEV_MODE_IMAGE_PATH = os.getenv("DEV_IMAGE_PATH", None)
@@ -378,6 +381,12 @@ async def lifespan(app: FastAPI):
         logger.info("Lifespan shutdown complete")
 
 app = FastAPI(title="Aquiles-Image", lifespan=lifespan)
+
+package_dir = pathlib.Path(__file__).parent.absolute()
+static_dir = os.path.join(package_dir, "static")
+templates_dir = os.path.join(package_dir, "templates")
+templates = Jinja2Templates(directory=templates_dir)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.middleware("http")
 async def count_requests_middleware(request: Request, call_next):
