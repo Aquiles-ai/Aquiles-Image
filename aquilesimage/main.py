@@ -83,6 +83,9 @@ def load_models():
     else:
         allow_users = False
         logger.info("There are no users")
+
+    logger.info(f"Raw value of 'allows_users': {allows_users_list!r}")
+    logger.info(f"Available config keys: {list(config.keys())}")
     device_ids = []
 
     if dist_inference is True:
