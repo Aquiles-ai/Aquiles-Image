@@ -76,7 +76,10 @@ def load_models():
     device_map_flux2 = config.get("device_map")
     dist_inference = config.get("dist_inference")
     auto_type = config.get("auto_pipeline_mode")
-    allow_users = bool(config.get("allows_users"))
+    if config.get("allows_users") is not None:
+        allow_users = True
+    else:
+        allow_users = False
     device_ids = []
 
     if dist_inference is True:
