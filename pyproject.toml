@@ -47,7 +47,7 @@ dependencies = [
     "dm-tree",
     "pymongo",
     "pydantic-settings",
-    "jwt"
+    "PyJWT"
 ]
 
 [project.optional-dependencies]

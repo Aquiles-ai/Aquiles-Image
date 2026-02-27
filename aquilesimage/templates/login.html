@@ -4,12 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Aquiles-Image Playground</title>
+  <link rel="icon" href="https://res.cloudinary.com/dmtomxyvm/image/upload/v1765043556/aqui_kyhcn8.png" type="image/png">
 
-  <!--
-    Geist Pixel (Square variant) via jsDelivr npm CDN.
-    Not yet on Google Fonts / Fontsource — loaded directly from the geist npm package.
-    Geist Mono is used as fallback for all UI text.
-  -->
   <style>
     @font-face {
       font-family: 'GeistPixel';
@@ -22,7 +18,6 @@
     }
   </style>
 
-  <!-- Geist Mono via Fontsource (confirmed CDN, used as UI font + pixel fallback) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/geist-mono@latest/index.css" />
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.development.js"></script>
@@ -32,165 +27,256 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --bg:       #0f0f0f;
+      --fg:       #ede9df;
+      --accent:   #ea580c;
+      --muted:    rgba(237,233,223,0.42);
+      --border:   rgba(237,233,223,0.75);
+      --border-lt: rgba(237,233,223,0.13);
+      --card-bg:  #141414;
+    }
+
     html, body {
       min-height: 100vh;
-      background: #080808;
-      font-family: 'Geist Mono', 'GeistPixel', monospace;
-      color: #fff;
+      background-color: var(--bg);
+      /* Dot grid */
+      background-image: radial-gradient(circle, rgba(237,233,223,0.12) 1px, transparent 1px);
+      background-size: 24px 24px;
+      font-family: 'Geist Mono', monospace;
+      color: var(--fg);
     }
 
     #root {
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 32px 16px;
+      padding: 40px 16px;
     }
 
-    /* Grain overlay */
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.045;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
-      background-size: 200px 200px;
-    }
-
-    .card {
-      position: relative;
-      z-index: 1;
+    /* ── Section label ── */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 14px;
       width: 100%;
-      max-width: 400px;
+      max-width: 440px;
+      margin-bottom: 20px;
+      animation: fadeUp .5s cubic-bezier(0.22,1,0.36,1) .05s both;
+    }
+    .section-label span {
+      font-size: 9px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .section-label .line {
+      flex: 1;
+      height: 1px;
+      background: var(--border-lt);
     }
 
-    /* Title */
+    /* ── Card ── */
+    .card {
+      width: 100%;
+      max-width: 440px;
+      border: 2px solid var(--border);
+      background: var(--card-bg);
+      animation: fadeUp .65s cubic-bezier(0.22,1,0.36,1) .15s both;
+    }
+
+    /* ── Card header (terminal bar) ── */
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid var(--border);
+      padding: 10px 16px;
+    }
+    .dot-orange { width: 8px; height: 8px; background: var(--accent); flex-shrink: 0; }
+    .dot-solid  { width: 8px; height: 8px; background: var(--fg); flex-shrink: 0; }
+    .dot-empty  { width: 8px; height: 8px; border: 1px solid var(--fg); flex-shrink: 0; }
+    .card-header-label {
+      margin-left: auto;
+      font-size: 9px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── Title ── */
+    .title-wrap {
+      padding: 28px 24px 20px;
+      border-bottom: 2px solid var(--border);
+    }
     .title {
       font-family: 'GeistPixel', 'Geist Mono', monospace;
-      font-size: clamp(1.9rem, 7vw, 2.8rem);
+      font-size: clamp(1.6rem, 6vw, 2.2rem);
       font-weight: 400;
-      line-height: 1.15;
-      letter-spacing: 0.01em;
-      text-align: center;
-      margin-bottom: 40px;
-
-      /* pixelated rendering for crisp edges */
+      line-height: 1.1;
+      letter-spacing: .02em;
+      color: var(--fg);
       image-rendering: pixelated;
       -webkit-font-smoothing: none;
-      -moz-osx-font-smoothing: unset;
+      animation: glitch 6s infinite;
+    }
+    /* ── Form body ── */
+    .card-body {
+      padding: 24px;
     }
 
-    /* Separator */
-    .sep {
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      margin-bottom: 36px;
-    }
-
-    /* Fields */
+    /* ── Field ── */
     .field {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      margin-bottom: 22px;
+      gap: 7px;
+      margin-bottom: 18px;
     }
-
+    .field-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
     .field-label {
-      font-size: 9.5px;
-      letter-spacing: 0.18em;
+      font-size: 9px;
+      letter-spacing: .2em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.38);
+      color: var(--muted);
       user-select: none;
-      cursor: default;
+    }
+    .field-tag {
+      font-size: 9px;
+      letter-spacing: .1em;
+      color: var(--accent);
     }
 
     .field-input {
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.18);
-      color: #fff;
-      padding: 12px 14px;
+      border: 1px solid var(--border-lt);
+      border-left: 2px solid var(--border);
+      color: var(--fg);
+      padding: 11px 13px;
       font-family: 'Geist Mono', monospace;
       font-size: 13px;
-      font-weight: 400;
-      letter-spacing: 0.04em;
+      letter-spacing: .04em;
       width: 100%;
       outline: none;
-      transition: border-color 0.2s ease, background 0.2s ease;
+      transition: border-color .18s ease, background .18s ease;
     }
-    .field-input::placeholder { color: rgba(255,255,255,0.13); }
+    .field-input::placeholder { color: rgba(13,13,13,0.22); }
     .field-input:focus {
-      border-color: rgba(255,255,255,0.65);
-      background: rgba(255,255,255,0.03);
-    }
-    .field-input:-webkit-autofill,
-    .field-input:-webkit-autofill:focus {
-      -webkit-text-fill-color: #fff;
-      -webkit-box-shadow: 0 0 0 1000px #080808 inset;
+      border-color: var(--fg);
+      border-left-color: var(--accent);
+      background: rgba(13,13,13,0.03);
     }
 
-    /* Error */
+    /* ── Error ── */
     .error {
-      border-left: 1.5px solid rgba(255,255,255,0.5);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      border-left: 2px solid var(--accent);
       padding: 10px 14px;
       font-size: 11px;
-      letter-spacing: 0.05em;
-      color: rgba(255,255,255,0.55);
-      background: rgba(255,255,255,0.03);
-      margin-bottom: 22px;
+      letter-spacing: .04em;
+      color: var(--accent);
+      background: rgba(234,88,12,.06);
+      margin-bottom: 18px;
+      animation: slideIn .25s ease both;
+    }
+    .error-code {
+      font-size: 9px;
+      letter-spacing: .12em;
+      color: var(--accent);
+      opacity: .6;
+      flex-shrink: 0;
+      padding-top: 1px;
     }
 
-    /* Button */
+    /* ── Button ── */
+    .btn-wrap {
+      width: 100%;
+    }
     .btn {
       width: 100%;
-      background: #fff;
-      color: #000;
+      display: flex;
+      align-items: center;
+      background: var(--fg);
+      color: var(--bg);
       border: none;
-      padding: 14px;
       font-family: 'Geist Mono', monospace;
       font-size: 11px;
       font-weight: 500;
-      letter-spacing: 0.16em;
+      letter-spacing: .16em;
       text-transform: uppercase;
       cursor: pointer;
-      transition: background 0.15s ease;
+      transition: opacity .15s ease;
+      padding: 0;
     }
-    .btn:hover:not(:disabled) { background: #e8e8e8; }
-    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .btn:hover:not(:disabled) { opacity: .88; }
+    .btn:disabled { opacity: .3; cursor: not-allowed; }
 
-    /* Footer */
+    .btn-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: var(--accent);
+      flex-shrink: 0;
+      font-size: 18px;
+      line-height: 1;
+      color: #fff;
+    }
+    .btn-text {
+      padding: 0 18px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+    }
+
+    .blink { animation: blink 1s step-end infinite; }
+
+    /* ── Footer ── */
     .footer {
-      margin-top: 36px;
+      margin-top: 20px;
       text-align: center;
       font-size: 9px;
-      letter-spacing: 0.14em;
+      letter-spacing: .14em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.15);
+      color: var(--muted);
+      animation: fadeUp .65s cubic-bezier(0.22,1,0.36,1) .4s both;
     }
     .footer a {
-      color: rgba(255,255,255,0.35);
+      color: var(--fg);
       text-decoration: none;
-      transition: color 0.15s;
+      transition: color .15s;
     }
-    .footer a:hover { color: rgba(255,255,255,0.7); }
+    .footer a:hover { color: var(--accent); }
 
-    /* Animations */
+    /* ── Keyframes ── */
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(18px); }
+      from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
     @keyframes slideIn {
       from { opacity: 0; transform: translateX(-6px); }
       to   { opacity: 1; transform: translateX(0); }
     }
-
-    .a1 { animation: fadeUp .65s cubic-bezier(0.16,1,0.3,1) 0.05s both; }
-    .a2 { animation: fadeUp .65s cubic-bezier(0.16,1,0.3,1) 0.18s both; }
-    .a3 { animation: fadeUp .65s cubic-bezier(0.16,1,0.3,1) 0.32s both; }
-    .a4 { animation: fadeUp .65s cubic-bezier(0.16,1,0.3,1) 0.46s both; }
-    .a5 { animation: fadeUp .65s cubic-bezier(0.16,1,0.3,1) 0.60s both; }
-    .slide { animation: slideIn .3s ease both; }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+    @keyframes glitch {
+      0%, 88%, 100% { transform: translate(0); filter: none; }
+      90% { transform: translate(-2px, 1px); filter: hue-rotate(80deg); }
+      92% { transform: translate(2px, -1px); filter: hue-rotate(-80deg); }
+      94% { transform: translate(-1px, 0); filter: none; }
+      96% { transform: translate(1px, 2px); filter: hue-rotate(40deg); }
+    }
   </style>
 </head>
 <body>
@@ -202,6 +288,12 @@
       const [password, setPassword] = React.useState("");
       const [error,    setError]    = React.useState("");
       const [loading,  setLoading]  = React.useState(false);
+      const [tick,     setTick]     = React.useState(0);
+
+      React.useEffect(() => {
+        const id = setInterval(() => setTick(t => t + 1), 2000);
+        return () => clearInterval(id);
+      }, []);
 
       async function handleSubmit(e) {
         e.preventDefault();
@@ -234,57 +326,93 @@
       const canSubmit = username.trim().length > 0 && password.length > 0 && !loading;
 
       return (
-        <div className="card">
+        <div>
+          {/* Section label */}
+          <div className="section-label">
+            <span>{"// AUTH: LOGIN_SYS"}</span>
+            <div className="line" />
+            <span>{`TICK:${String(tick).padStart(4, "0")}`}</span>
+          </div>
 
-          <h1 className="title a1">
-            Aquiles-Image Playground
-          </h1>
+          {/* Card */}
+          <div className="card">
 
-          <form onSubmit={handleSubmit}>
-            <div className="a2">
-              <div className="field">
-                <label htmlFor="username" className="field-label">Username</label>
-                <input
-                  id="username"
-                  type="text"
-                  className="field-input"
-                  placeholder="your_username"
-                  autoComplete="username"
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
-                  required
-                />
-              </div>
+            {/* Terminal header bar */}
+            <div className="card-header">
+              <div className="dot-orange" />
+              <div className="dot-solid" />
+              <div className="dot-empty" />
+              <span className="card-header-label">aquiles.auth.sys</span>
             </div>
 
-            <div className="a3">
-              <div className="field">
-                <label htmlFor="password" className="field-label">Password</label>
-                <input
-                  id="password"
-                  type="password"
-                  className="field-input"
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                />
-              </div>
+            {/* Title */}
+            <div className="title-wrap">
+              <h1 className="title">AQUILES-IMAGE<br />PLAYGROUND</h1>
             </div>
 
-            {error && (
-              <div className="error slide" role="alert">{error}</div>
-            )}
+            {/* Form */}
+            <div className="card-body">
+              <form onSubmit={handleSubmit}>
 
-            <div className="a4">
-              <button type="submit" className="btn" disabled={!canSubmit}>
-                {loading ? "verifying..." : "sign in →"}
-              </button>
+                <div className="field">
+                  <div className="field-row">
+                    <label htmlFor="username" className="field-label">Username</label>
+                    <span className="field-tag">USR_IDENT</span>
+                  </div>
+                  <input
+                    id="username"
+                    type="text"
+                    className="field-input"
+                    placeholder="your_username"
+                    autoComplete="username"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="field">
+                  <div className="field-row">
+                    <label htmlFor="password" className="field-label">Password</label>
+                    <span className="field-tag">SEC_KEY</span>
+                  </div>
+                  <input
+                    id="password"
+                    type="password"
+                    className="field-input"
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {error && (
+                  <div className="error" role="alert">
+                    <span className="error-code">ERR_401</span>
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                <div className="btn-wrap">
+                  <button type="submit" className="btn" disabled={!canSubmit}>
+                    <span className="btn-icon">→</span>
+                    <span className="btn-text">
+                      {loading ? (
+                        <span>Verifying<span className="blink">_</span></span>
+                      ) : "Sign In"}
+                    </span>
+                  </button>
+                </div>
+
+              </form>
             </div>
-          </form>
 
-          <p className="footer a5">
+          </div>
+
+          {/* Footer */}
+          <p className="footer">
             Powered by{" "}
             <a href="https://github.com/Aquiles-ai" target="_blank" rel="noopener noreferrer">
               Aquiles-ai
