@@ -76,9 +76,10 @@ def load_models():
     device_map_flux2 = config.get("device_map")
     dist_inference = config.get("dist_inference")
     auto_type = config.get("auto_pipeline_mode")
-    if config.get("allows_users") is not None:
+    allows_users_list = config.get("allows_users")
+    if allows_users_list and isinstance(allows_users_list, list) and len(allows_users_list) > 0:
         allow_users = True
-        logger.info("There are users")
+        logger.info(f"There are users: {len(allows_users_list)} user(s) loaded")
     else:
         allow_users = False
         logger.info("There are no users")
