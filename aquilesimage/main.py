@@ -62,7 +62,7 @@ dist_inference: bool | None = None
 Videomodel = [model for model in VideoModels]
 worker_manager: Optional[Any] = None
 auto_type: str | None = None
-allow_users: bool | None = None
+allow_users: bool
 
 def load_models():
     global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout, dist_inference, auto_type, allow_users

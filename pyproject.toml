@@ -45,7 +45,9 @@ dependencies = [
     "python-multipart",
     "openai",
     "dm-tree",
-    "pymongo"
+    "pymongo",
+    "pydantic-settings",
+    "jwt"
 ]
 
 [project.optional-dependencies]
