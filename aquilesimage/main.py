@@ -69,7 +69,7 @@ def load_models():
 
     logger.info("Loading configuration...")
     
-    config = load_config_cli() 
+    config = load_config_cli(use_cache=False) 
     model_name = config.get("model")
     load_model = config.get("load_model")
     auto_pipeline = config.get("auto_pipeline")
