@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aquiles — Login</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonts: Playfair Display (título) + IBM Plex Mono (UI) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet" />
+
+  <!-- importmap: React 18 + htm + Radix Label via esm.sh -->
+  <script type="importmap">
+  {
+    "imports": {
+      "react":              "https://esm.sh/react@18.3.1",
+      "react-dom/client":   "https://esm.sh/react-dom@18.3.1/client",
+      "htm/react":          "https://esm.sh/htm@3.1.1/react",
+      "@radix-ui/react-label": "https://esm.sh/@radix-ui/react-label@2.1.2"
+    }
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: 'IBM Plex Mono', monospace;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    /* Ruido de fondo sutil */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #root { position: relative; z-index: 1; }
+
+    /* Animación de aparición */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+    @keyframes scanline {
+      0%   { transform: translateY(-100%); }
+      100% { transform: translateY(100vh); }
+    }
+
+    .fade-up       { animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+    .delay-1       { animation-delay: 0.1s; }
+    .delay-2       { animation-delay: 0.2s; }
+    .delay-3       { animation-delay: 0.35s; }
+    .delay-4       { animation-delay: 0.5s; }
+
+    .cursor-blink::after {
+      content: '▮';
+      animation: blink 1.1s step-end infinite;
+      margin-left: 2px;
+      font-size: 0.7em;
+      vertical-align: middle;
+    }
+
+    /* Línea scanline decorativa */
+    .scanline {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: rgba(255,255,255,0.04);
+      animation: scanline 8s linear infinite;
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    /* Input custom: negro con borde blanco */
+    .input-field {
+      width: 100%;
+      background: #000;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 12px 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .input-field::placeholder { color: rgba(255,255,255,0.2); }
+    .input-field:focus { border-color: #fff; }
+
+    /* Botón */
+    .btn-submit {
+      width: 100%;
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 13px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-submit:hover:not(:disabled) {
+      background: rgba(255,255,255,0.85);
+    }
+    .btn-submit:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Label de Radix */
+    .field-label {
+      display: block;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 8px;
+    }
+
+    /* Error */
+    .error-box {
+      border-left: 2px solid #fff;
+      padding: 10px 14px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.04);
+    }
+
+    /* Línea decorativa */
+    .deco-line {
+      width: 32px;
+      height: 1px;
+      background: rgba(255,255,255,0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scanline"></div>
+  <div id="root"></div>
+
+  <script type="module">
+    import { useState, useCallback }  from "react";
+    import { createRoot }             from "react-dom/client";
+    import { html }                   from "htm/react";
+    import * as RadixLabel            from "@radix-ui/react-label";
+
+    // ─── Componente Label accesible con Radix ───────────────────────────────
+    function Field({ id, label, type, value, onChange, placeholder, autoComplete }) {
+      return html`
+        <div>
+          <${RadixLabel.Root}
+            htmlFor=${id}
+            className="field-label"
+          >
+            ${label}
+          <//>
+          <input
+            id=${id}
+            type=${type}
+            value=${value}
+            onInput=${e => onChange(e.target.value)}
+            placeholder=${placeholder}
+            autoComplete=${autoComplete}
+            required
+            className="input-field"
+          />
+        </div>
+      `;
+    }
+
+    // ─── App principal ───────────────────────────────────────────────────────
+    function LoginApp() {
+      const [username, setUsername] = useState("");
+      const [password, setPassword] = useState("");
+      const [error,    setError]    = useState("");
+      const [loading,  setLoading]  = useState(false);
+
+      const handleSubmit = useCallback(async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+
+        const formData = new FormData();
+        formData.append("username", username);
+        formData.append("password", password);
+
+        try {
+          const res = await fetch("/token", {
+            method: "POST",
+            body: formData,
+            redirect: "follow",
+          });
+
+          // Si fue redirigido (302 → 200), FastAPI ya nos mandó al home
+          if (res.redirected || res.ok) {
+            window.location.href = res.url || "/";
+            return;
+          }
+
+          const data = await res.json().catch(() => ({}));
+          setError(data.detail || "Credenciales inválidas.");
+        } catch (err) {
+          setError("Error de conexión. Intenta de nuevo.");
+        } finally {
+          setLoading(false);
+        }
+      }, [username, password]);
+
+      return html`
+        <div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 16px;">
+
+          <!-- Bloque de título -->
+          <div class="fade-up delay-1" style="text-align:center; margin-bottom:56px;">
+
+            <div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:20px;">
+              <div class="deco-line"></div>
+              <span style="font-size:9px; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.3); font-weight:400;">
+                Image Playground
+              </span>
+              <div class="deco-line"></div>
+            </div>
+
+            <h1 style="
+              font-family: 'Playfair Display', serif;
+              font-size: clamp(2.2rem, 6vw, 3.6rem);
+              font-weight: 700;
+              letter-spacing: -0.01em;
+              line-height: 1.05;
+              margin: 0;
+            ">
+              Aquiles
+            </h1>
+
+            <p style="
+              font-family: 'Playfair Display', serif;
+              font-style: italic;
+              font-size: clamp(0.85rem, 2vw, 1rem);
+              color: rgba(255,255,255,0.35);
+              margin: 10px 0 0;
+              font-weight: 400;
+            " class="cursor-blink">
+              acceso al sistema
+            </p>
+          </div>
+
+          <!-- Formulario -->
+          <form
+            onSubmit=${handleSubmit}
+            class="fade-up delay-2"
+            style="width:100%; max-width:360px; display:flex; flex-direction:column; gap:0;"
+          >
+            <!-- Borde superior decorativo -->
+            <div style="height:1px; background: rgba(255,255,255,0.15); margin-bottom:32px;"></div>
+
+            <div style="display:flex; flex-direction:column; gap:20px; margin-bottom:28px;">
+              <div class="fade-up delay-3">
+                <${Field}
+                  id="username"
+                  label="Usuario"
+                  type="text"
+                  value=${username}
+                  onChange=${setUsername}
+                  placeholder="tu_usuario"
+                  autoComplete="username"
+                />
+              </div>
+
+              <div class="fade-up delay-4">
+                <${Field}
+                  id="password"
+                  label="Contraseña"
+                  type="password"
+                  value=${password}
+                  onChange=${setPassword}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+              </div>
+            </div>
+
+            ${error && html`
+              <div class="error-box fade-up" style="margin-bottom:20px;">
+                ${error}
+              </div>
+            `}
+
+            <button
+              type="submit"
+              class="btn-submit fade-up delay-4"
+              disabled=${loading}
+            >
+              ${loading ? "verificando..." : "ingresar →"}
+            </button>
+
+            <!-- Borde inferior decorativo -->
+            <div style="height:1px; background: rgba(255,255,255,0.15); margin-top:32px;"></div>
+          </form>
+
+          <!-- Footer -->
+          <p class="fade-up delay-4" style="
+            margin-top: 40px;
+            font-size: 9px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.12);
+          ">
+            Aquiles-Image Playground · acceso restringido
+          </p>
+        </div>
+      `;
+    }
+
+    createRoot(document.getElementById("root")).render(html`<${LoginApp} />`);
+  </script>
+
+</body>
+</html>
