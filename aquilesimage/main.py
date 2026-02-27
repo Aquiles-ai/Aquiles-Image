@@ -62,7 +62,7 @@ dist_inference: bool | None = None
 Videomodel = [model for model in VideoModels]
 worker_manager: Optional[Any] = None
 auto_type: str | None = None
-allow_users: bool
+allow_users: bool = False
 
 def load_models():
     global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout, dist_inference, auto_type, allow_users
@@ -78,8 +78,10 @@ def load_models():
     auto_type = config.get("auto_pipeline_mode")
     if config.get("allows_users") is not None:
         allow_users = True
+        logger.info("There are users")
     else:
         allow_users = False
+        logger.info("There are no users")
     device_ids = []
 
     if dist_inference is True:
