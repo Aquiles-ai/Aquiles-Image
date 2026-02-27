@@ -1,342 +1,300 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aquiles — Login</title>
+  <title>Aquiles-Image Playground</title>
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Fonts: Playfair Display (título) + IBM Plex Mono (UI) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet" />
-
-  <!-- importmap: React 18 + htm + Radix Label via esm.sh -->
-  <script type="importmap">
-  {
-    "imports": {
-      "react":              "https://esm.sh/react@18.3.1",
-      "react-dom/client":   "https://esm.sh/react-dom@18.3.1/client",
-      "htm/react":          "https://esm.sh/htm@3.1.1/react",
-      "@radix-ui/react-label": "https://esm.sh/@radix-ui/react-label@2.1.2"
+  <!--
+    Geist Pixel (Square variant) via jsDelivr npm CDN.
+    Not yet on Google Fonts / Fontsource — loaded directly from the geist npm package.
+    Geist Mono is used as fallback for all UI text.
+  -->
+  <style>
+    @font-face {
+      font-family: 'GeistPixel';
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+      src:
+        url('https://cdn.jsdelivr.net/npm/geist@1.7.0/dist/fonts/geist-pixel-square/GeistPixelSquare-Regular.woff2') format('woff2'),
+        url('https://cdn.jsdelivr.net/npm/geist@1.7.0/dist/fonts/geist-pixel-square/GeistPixelSquare-Regular.woff') format('woff');
     }
-  }
-  </script>
+  </style>
+
+  <!-- Geist Mono via Fontsource (confirmed CDN, used as UI font + pixel fallback) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/geist-mono@latest/index.css" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.10/babel.min.js"></script>
 
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
-      background: #000;
-      color: #fff;
-      font-family: 'IBM Plex Mono', monospace;
+    html, body {
       min-height: 100vh;
-      margin: 0;
+      background: #080808;
+      font-family: 'Geist Mono', 'GeistPixel', monospace;
+      color: #fff;
     }
 
-    /* Ruido de fondo sutil */
-    body::before {
+    #root {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    /* Grain overlay */
+    body::after {
       content: '';
       position: fixed;
       inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
       pointer-events: none;
       z-index: 0;
+      opacity: 0.045;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
     }
 
-    #root { position: relative; z-index: 1; }
-
-    /* Animación de aparición */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0; }
-    }
-    @keyframes scanline {
-      0%   { transform: translateY(-100%); }
-      100% { transform: translateY(100vh); }
-    }
-
-    .fade-up       { animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both; }
-    .delay-1       { animation-delay: 0.1s; }
-    .delay-2       { animation-delay: 0.2s; }
-    .delay-3       { animation-delay: 0.35s; }
-    .delay-4       { animation-delay: 0.5s; }
-
-    .cursor-blink::after {
-      content: '▮';
-      animation: blink 1.1s step-end infinite;
-      margin-left: 2px;
-      font-size: 0.7em;
-      vertical-align: middle;
-    }
-
-    /* Línea scanline decorativa */
-    .scanline {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: rgba(255,255,255,0.04);
-      animation: scanline 8s linear infinite;
-      pointer-events: none;
-      z-index: 50;
-    }
-
-    /* Input custom: negro con borde blanco */
-    .input-field {
+    .card {
+      position: relative;
+      z-index: 1;
       width: 100%;
-      background: #000;
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.25);
-      padding: 12px 14px;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 13px;
-      font-weight: 300;
-      letter-spacing: 0.04em;
-      outline: none;
-      transition: border-color 0.2s;
-      -webkit-appearance: none;
-      appearance: none;
+      max-width: 400px;
     }
-    .input-field::placeholder { color: rgba(255,255,255,0.2); }
-    .input-field:focus { border-color: #fff; }
 
-    /* Botón */
-    .btn-submit {
+    /* Title */
+    .title {
+      font-family: 'GeistPixel', 'Geist Mono', monospace;
+      font-size: clamp(1.9rem, 7vw, 2.8rem);
+      font-weight: 400;
+      line-height: 1.15;
+      letter-spacing: 0.01em;
+      text-align: center;
+      margin-bottom: 40px;
+
+      /* pixelated rendering for crisp edges */
+      image-rendering: pixelated;
+      -webkit-font-smoothing: none;
+      -moz-osx-font-smoothing: unset;
+    }
+
+    /* Separator */
+    .sep {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      margin-bottom: 36px;
+    }
+
+    /* Fields */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 22px;
+    }
+
+    .field-label {
+      font-size: 9.5px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.38);
+      user-select: none;
+      cursor: default;
+    }
+
+    .field-input {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #fff;
+      padding: 12px 14px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    .field-input::placeholder { color: rgba(255,255,255,0.13); }
+    .field-input:focus {
+      border-color: rgba(255,255,255,0.65);
+      background: rgba(255,255,255,0.03);
+    }
+    .field-input:-webkit-autofill,
+    .field-input:-webkit-autofill:focus {
+      -webkit-text-fill-color: #fff;
+      -webkit-box-shadow: 0 0 0 1000px #080808 inset;
+    }
+
+    /* Error */
+    .error {
+      border-left: 1.5px solid rgba(255,255,255,0.5);
+      padding: 10px 14px;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      color: rgba(255,255,255,0.55);
+      background: rgba(255,255,255,0.03);
+      margin-bottom: 22px;
+    }
+
+    /* Button */
+    .btn {
       width: 100%;
       background: #fff;
       color: #000;
       border: none;
-      padding: 13px;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px;
+      padding: 14px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
       font-weight: 500;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.16em;
       text-transform: uppercase;
       cursor: pointer;
-      transition: background 0.2s, color 0.2s;
+      transition: background 0.15s ease;
     }
-    .btn-submit:hover:not(:disabled) {
-      background: rgba(255,255,255,0.85);
-    }
-    .btn-submit:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
+    .btn:hover:not(:disabled) { background: #e8e8e8; }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-    /* Label de Radix */
-    .field-label {
-      display: block;
-      font-size: 10px;
-      font-weight: 500;
+    /* Footer */
+    .footer {
+      margin-top: 36px;
+      text-align: center;
+      font-size: 9px;
       letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.4);
-      margin-bottom: 8px;
+      color: rgba(255,255,255,0.15);
+    }
+    .footer a {
+      color: rgba(255,255,255,0.35);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .footer a:hover { color: rgba(255,255,255,0.7); }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-6px); }
+      to   { opacity: 1; transform: translateX(0); }
     }
 
-    /* Error */
-    .error-box {
-      border-left: 2px solid #fff;
-      padding: 10px 14px;
-      font-size: 11px;
-      letter-spacing: 0.04em;
-      color: rgba(255,255,255,0.7);
-      background: rgba(255,255,255,0.04);
-    }
-
-    /* Línea decorativa */
-    .deco-line {
-      width: 32px;
-      height: 1px;
-      background: rgba(255,255,255,0.3);
-    }
+    .a1 { animation: fadeUp .65s cubic-bezier(0.16,1,0.3,1) 0.05s both; }
+    .a2 { animation: fadeUp .65s cubic-bezier(0.16,1,0.3,1) 0.18s both; }
+    .a3 { animation: fadeUp .65s cubic-bezier(0.16,1,0.3,1) 0.32s both; }
+    .a4 { animation: fadeUp .65s cubic-bezier(0.16,1,0.3,1) 0.46s both; }
+    .a5 { animation: fadeUp .65s cubic-bezier(0.16,1,0.3,1) 0.60s both; }
+    .slide { animation: slideIn .3s ease both; }
   </style>
 </head>
 <body>
-
-  <div class="scanline"></div>
   <div id="root"></div>
 
-  <script type="module">
-    import { useState, useCallback }  from "react";
-    import { createRoot }             from "react-dom/client";
-    import { html }                   from "htm/react";
-    import * as RadixLabel            from "@radix-ui/react-label";
-
-    // ─── Componente Label accesible con Radix ───────────────────────────────
-    function Field({ id, label, type, value, onChange, placeholder, autoComplete }) {
-      return html`
-        <div>
-          <${RadixLabel.Root}
-            htmlFor=${id}
-            className="field-label"
-          >
-            ${label}
-          <//>
-          <input
-            id=${id}
-            type=${type}
-            value=${value}
-            onInput=${e => onChange(e.target.value)}
-            placeholder=${placeholder}
-            autoComplete=${autoComplete}
-            required
-            className="input-field"
-          />
-        </div>
-      `;
-    }
-
-    // ─── App principal ───────────────────────────────────────────────────────
+  <script type="text/babel">
     function LoginApp() {
-      const [username, setUsername] = useState("");
-      const [password, setPassword] = useState("");
-      const [error,    setError]    = useState("");
-      const [loading,  setLoading]  = useState(false);
+      const [username, setUsername] = React.useState("");
+      const [password, setPassword] = React.useState("");
+      const [error,    setError]    = React.useState("");
+      const [loading,  setLoading]  = React.useState(false);
 
-      const handleSubmit = useCallback(async (e) => {
+      async function handleSubmit(e) {
         e.preventDefault();
         setLoading(true);
         setError("");
 
-        const formData = new FormData();
-        formData.append("username", username);
-        formData.append("password", password);
+        const body = new FormData();
+        body.append("username", username.trim());
+        body.append("password", password);
 
         try {
           const res = await fetch("/token", {
             method: "POST",
-            body: formData,
+            body,
             redirect: "follow",
           });
 
-          // Si fue redirigido (302 → 200), FastAPI ya nos mandó al home
-          if (res.redirected || res.ok) {
-            window.location.href = res.url || "/";
-            return;
-          }
+          if (res.redirected) { window.location.href = res.url; return; }
+          if (res.ok)          { window.location.href = "/";    return; }
 
           const data = await res.json().catch(() => ({}));
-          setError(data.detail || "Credenciales inválidas.");
-        } catch (err) {
-          setError("Error de conexión. Intenta de nuevo.");
+          setError(data.detail || "Invalid credentials.");
+        } catch (_) {
+          setError("Connection error. Please try again.");
         } finally {
           setLoading(false);
         }
-      }, [username, password]);
+      }
 
-      return html`
-        <div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 16px;">
+      const canSubmit = username.trim().length > 0 && password.length > 0 && !loading;
 
-          <!-- Bloque de título -->
-          <div class="fade-up delay-1" style="text-align:center; margin-bottom:56px;">
+      return (
+        <div className="card">
 
-            <div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:20px;">
-              <div class="deco-line"></div>
-              <span style="font-size:9px; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.3); font-weight:400;">
-                Image Playground
-              </span>
-              <div class="deco-line"></div>
-            </div>
+          <h1 className="title a1">
+            Aquiles-Image Playground
+          </h1>
 
-            <h1 style="
-              font-family: 'Playfair Display', serif;
-              font-size: clamp(2.2rem, 6vw, 3.6rem);
-              font-weight: 700;
-              letter-spacing: -0.01em;
-              line-height: 1.05;
-              margin: 0;
-            ">
-              Aquiles
-            </h1>
-
-            <p style="
-              font-family: 'Playfair Display', serif;
-              font-style: italic;
-              font-size: clamp(0.85rem, 2vw, 1rem);
-              color: rgba(255,255,255,0.35);
-              margin: 10px 0 0;
-              font-weight: 400;
-            " class="cursor-blink">
-              acceso al sistema
-            </p>
-          </div>
-
-          <!-- Formulario -->
-          <form
-            onSubmit=${handleSubmit}
-            class="fade-up delay-2"
-            style="width:100%; max-width:360px; display:flex; flex-direction:column; gap:0;"
-          >
-            <!-- Borde superior decorativo -->
-            <div style="height:1px; background: rgba(255,255,255,0.15); margin-bottom:32px;"></div>
-
-            <div style="display:flex; flex-direction:column; gap:20px; margin-bottom:28px;">
-              <div class="fade-up delay-3">
-                <${Field}
+          <form onSubmit={handleSubmit}>
+            <div className="a2">
+              <div className="field">
+                <label htmlFor="username" className="field-label">Username</label>
+                <input
                   id="username"
-                  label="Usuario"
                   type="text"
-                  value=${username}
-                  onChange=${setUsername}
-                  placeholder="tu_usuario"
+                  className="field-input"
+                  placeholder="your_username"
                   autoComplete="username"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  required
                 />
               </div>
+            </div>
 
-              <div class="fade-up delay-4">
-                <${Field}
+            <div className="a3">
+              <div className="field">
+                <label htmlFor="password" className="field-label">Password</label>
+                <input
                   id="password"
-                  label="Contraseña"
                   type="password"
-                  value=${password}
-                  onChange=${setPassword}
+                  className="field-input"
                   placeholder="••••••••"
                   autoComplete="current-password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
                 />
               </div>
             </div>
 
-            ${error && html`
-              <div class="error-box fade-up" style="margin-bottom:20px;">
-                ${error}
-              </div>
-            `}
+            {error && (
+              <div className="error slide" role="alert">{error}</div>
+            )}
 
-            <button
-              type="submit"
-              class="btn-submit fade-up delay-4"
-              disabled=${loading}
-            >
-              ${loading ? "verificando..." : "ingresar →"}
-            </button>
-
-            <!-- Borde inferior decorativo -->
-            <div style="height:1px; background: rgba(255,255,255,0.15); margin-top:32px;"></div>
+            <div className="a4">
+              <button type="submit" className="btn" disabled={!canSubmit}>
+                {loading ? "verifying..." : "sign in →"}
+              </button>
+            </div>
           </form>
 
-          <!-- Footer -->
-          <p class="fade-up delay-4" style="
-            margin-top: 40px;
-            font-size: 9px;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            color: rgba(255,255,255,0.12);
-          ">
-            Aquiles-Image Playground · acceso restringido
+          <p className="footer a5">
+            Powered by{" "}
+            <a href="https://github.com/Aquiles-ai" target="_blank" rel="noopener noreferrer">
+              Aquiles-ai
+            </a>
           </p>
         </div>
-      `;
+      );
     }
 
-    createRoot(document.getElementById("root")).render(html`<${LoginApp} />`);
+    ReactDOM.createRoot(document.getElementById("root")).render(<LoginApp />);
   </script>
-
 </body>
 </html>
