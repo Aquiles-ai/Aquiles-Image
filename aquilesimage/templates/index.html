@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aquiles-Image · Playground</title>
+  <link rel="icon" href="https://res.cloudinary.com/dmtomxyvm/image/upload/v1765043556/aqui_kyhcn8.png" type="image/png">
+
+  <style>
+    @font-face {
+      font-family: 'GeistPixel';
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+      src:
+        url('https://cdn.jsdelivr.net/npm/geist@1.7.0/dist/fonts/geist-pixel/GeistPixel-Square.woff2') format('woff2'),
+    }
+  </style>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/geist-mono@latest/index.css" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.10/babel.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0f0f0f;
+      --fg:         #ede9df;
+      --accent:     #ea580c;
+      --accent-dim: rgba(234,88,12,.15);
+      --green:      #22c55e;
+      --green-dim:  rgba(34,197,94,.12);
+      --blue:       #3b82f6;
+      --blue-dim:   rgba(59,130,246,.12);
+      --purple:     #a855f7;
+      --purple-dim: rgba(168,85,247,.12);
+      --muted:      rgba(237,233,223,0.42);
+      --border:     rgba(237,233,223,0.75);
+      --border-lt:  rgba(237,233,223,0.13);
+      --card-bg:    #141414;
+    }
+
+    html, body {
+      min-height: 100vh;
+      background-color: var(--bg);
+      background-image: radial-gradient(circle, rgba(237,233,223,0.10) 1px, transparent 1px);
+      background-size: 24px 24px;
+      font-family: 'Geist Mono', monospace;
+      color: var(--fg);
+    }
+
+    #root {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 0 0 60px;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border-lt); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    /* ── Topbar ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 32px;
+      border-bottom: 1px solid var(--border-lt);
+      background: rgba(15,15,15,0.92);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      animation: fadeDown .45s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .topbar-dot { width: 8px; height: 8px; background: var(--accent); flex-shrink: 0; }
+    .topbar-title {
+      font-family: 'GeistPixel', 'Geist Mono', monospace;
+      font-size: 13px;
+      letter-spacing: .12em;
+      color: var(--fg);
+      image-rendering: pixelated;
+      -webkit-font-smoothing: none;
+    }
+    .topbar-sep { color: var(--border-lt); font-size: 12px; }
+    .topbar-label {
+      font-size: 9px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 9px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+    .status-dot.online  { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+    .status-dot.offline { background: var(--accent); }
+
+    /* ── Page container ── */
+    .page {
+      max-width: 1140px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 24px 0;
+    }
+
+    /* ── Section label (same as login) ── */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .section-label span {
+      font-size: 9px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .section-label .line {
+      flex: 1;
+      height: 1px;
+      background: var(--border-lt);
+    }
+
+    /* ── Card (same as login) ── */
+    .card {
+      border: 2px solid var(--border);
+      background: var(--card-bg);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid var(--border);
+      padding: 10px 16px;
+    }
+    .dot-orange { width: 8px; height: 8px; background: var(--accent); flex-shrink: 0; }
+    .dot-solid  { width: 8px; height: 8px; background: var(--fg); flex-shrink: 0; }
+    .dot-empty  { width: 8px; height: 8px; border: 1px solid var(--fg); flex-shrink: 0; }
+    .card-header-label {
+      margin-left: auto;
+      font-size: 9px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .card-header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* ── Type badge ── */
+    .type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      font-size: 9px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      border: 1px solid;
+    }
+    .type-badge.t2i    { color: var(--green);  border-color: var(--green);  background: var(--green-dim); }
+    .type-badge.i2i    { color: var(--blue);   border-color: var(--blue);   background: var(--blue-dim); }
+    .type-badge.hybrid { color: var(--purple); border-color: var(--purple); background: var(--purple-dim); }
+    .type-badge.unknown{ color: var(--muted);  border-color: var(--border-lt); background: transparent; }
+
+    /* ── Playground grid ── */
+    .playground-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    @media (max-width: 780px) {
+      .playground-grid { grid-template-columns: 1fr; }
+    }
+    .panel-left {
+      border-right: 2px solid var(--border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    @media (max-width: 780px) {
+      .panel-left { border-right: none; border-bottom: 2px solid var(--border); }
+    }
+    .panel-right {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* ── Model info strip ── */
+    .model-strip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: 1px solid var(--border-lt);
+      border-left: 2px solid var(--border);
+      background: rgba(237,233,223,0.02);
+    }
+    .model-name {
+      font-size: 11px;
+      letter-spacing: .06em;
+      color: var(--fg);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .model-label {
+      font-size: 9px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── Field (reuse login) ── */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .field-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .field-label {
+      font-size: 9px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      user-select: none;
+    }
+    .field-tag {
+      font-size: 9px;
+      letter-spacing: .1em;
+      color: var(--accent);
+    }
+    .field-input {
+      background: transparent;
+      border: 1px solid var(--border-lt);
+      border-left: 2px solid var(--border);
+      color: var(--fg);
+      padding: 11px 13px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      letter-spacing: .04em;
+      width: 100%;
+      outline: none;
+      transition: border-color .18s ease, background .18s ease;
+      resize: vertical;
+      min-height: 100px;
+    }
+    .field-input::placeholder { color: rgba(237,233,223,0.22); }
+    .field-input:focus {
+      border-color: var(--fg);
+      border-left-color: var(--accent);
+      background: rgba(237,233,223,0.02);
+    }
+
+    /* ── Select ── */
+    .field-select {
+      background: transparent;
+      border: 1px solid var(--border-lt);
+      border-left: 2px solid var(--border);
+      color: var(--fg);
+      padding: 10px 13px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 12px;
+      letter-spacing: .04em;
+      width: 100%;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23ede9df' stroke-width='1.5' fill='none' stroke-linecap='square'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      transition: border-color .18s ease;
+    }
+    .field-select:focus { border-color: var(--fg); border-left-color: var(--accent); }
+    .field-select option { background: #1a1a1a; color: var(--fg); }
+
+    /* ── File upload ── */
+    .file-zone {
+      border: 1px dashed var(--border-lt);
+      border-left: 2px solid var(--border);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: border-color .18s ease, background .18s ease;
+      position: relative;
+    }
+    .file-zone:hover, .file-zone.drag-over {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .file-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .file-zone-icon {
+      font-size: 20px;
+      color: var(--muted);
+    }
+    .file-zone-text {
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+    }
+    .file-zone-name {
+      font-size: 11px;
+      letter-spacing: .06em;
+      color: var(--accent);
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .file-preview {
+      width: 100%;
+      max-height: 120px;
+      object-fit: contain;
+      border: 1px solid var(--border-lt);
+    }
+
+    /* ── Button ── */
+    .btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      background: var(--fg);
+      color: var(--bg);
+      border: none;
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: opacity .15s ease;
+      padding: 0;
+    }
+    .btn:hover:not(:disabled) { opacity: .88; }
+    .btn:disabled { opacity: .3; cursor: not-allowed; }
+    .btn-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: var(--accent);
+      flex-shrink: 0;
+      font-size: 16px;
+      color: #fff;
+    }
+    .btn-text {
+      padding: 0 18px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+    }
+    .blink { animation: blink 1s step-end infinite; }
+
+    /* ── Error ── */
+    .error-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      border-left: 2px solid var(--accent);
+      padding: 10px 14px;
+      font-size: 11px;
+      letter-spacing: .04em;
+      color: var(--accent);
+      background: rgba(234,88,12,.06);
+      animation: slideIn .25s ease both;
+    }
+    .error-code {
+      font-size: 9px;
+      letter-spacing: .12em;
+      color: var(--accent);
+      opacity: .6;
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+
+    /* ── Output panel ── */
+    .output-placeholder {
+      flex: 1;
+      min-height: 320px;
+      border: 1px dashed var(--border-lt);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background-image: radial-gradient(circle, rgba(237,233,223,0.06) 1px, transparent 1px);
+      background-size: 16px 16px;
+      position: relative;
+    }
+    .output-placeholder-text {
+      font-size: 9px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+    }
+    .output-img-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .output-img {
+      width: 100%;
+      border: 1px solid var(--border-lt);
+      display: block;
+    }
+    .output-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .output-meta-item {
+      font-size: 9px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .output-meta-item span { color: var(--fg); }
+    .download-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 1px solid var(--border-lt);
+      border-left: 2px solid var(--border);
+      color: var(--fg);
+      font-family: 'Geist Mono', monospace;
+      font-size: 9px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      padding: 7px 12px;
+      cursor: pointer;
+      transition: border-color .15s ease, background .15s ease;
+    }
+    .download-btn:hover { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+
+    /* ── Loading overlay ── */
+    .output-loading {
+      flex: 1;
+      min-height: 320px;
+      border: 1px dashed var(--border-lt);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .loading-bar-wrap {
+      width: 120px;
+      height: 2px;
+      background: var(--border-lt);
+      overflow: hidden;
+    }
+    .loading-bar {
+      height: 100%;
+      background: var(--accent);
+      animation: loadBar 1.4s ease-in-out infinite;
+    }
+    .loading-text {
+      font-size: 9px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── Code section ── */
+    .code-section { margin-top: 32px; }
+    .tab-bar {
+      display: flex;
+      border-bottom: 2px solid var(--border);
+    }
+    .tab-btn {
+      padding: 10px 20px;
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--border-lt);
+      font-family: 'Geist Mono', monospace;
+      font-size: 9px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .15s ease, color .15s ease;
+    }
+    .tab-btn:hover { background: rgba(237,233,223,0.04); color: var(--fg); }
+    .tab-btn.active {
+      color: var(--fg);
+      background: rgba(237,233,223,0.06);
+      border-bottom: 2px solid var(--accent);
+      margin-bottom: -2px;
+    }
+    .code-wrap {
+      position: relative;
+      background: #0a0a0a;
+      border: 1px solid var(--border-lt);
+      border-top: none;
+      max-height: 360px;
+      overflow: auto;
+    }
+    .code-wrap pre {
+      margin: 0;
+      padding: 20px 24px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 12px;
+      line-height: 1.75;
+      overflow: visible;
+    }
+    .code-wrap code {
+      font-family: inherit;
+      font-size: inherit;
+      background: none;
+    }
+    .copy-btn {
+      position: sticky;
+      top: 12px;
+      float: right;
+      margin: 12px 12px 0 0;
+      background: transparent;
+      border: 1px solid var(--border-lt);
+      color: var(--muted);
+      font-family: 'Geist Mono', monospace;
+      font-size: 9px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+      z-index: 10;
+    }
+    .copy-btn:hover { border-color: var(--fg); color: var(--fg); }
+    .copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+    /* Simple syntax coloring without highlight.js (manual) */
+    .tok-keyword { color: #f472b6; }
+    .tok-string  { color: #86efac; }
+    .tok-comment { color: #6b7280; font-style: italic; }
+    .tok-fn      { color: #93c5fd; }
+    .tok-num     { color: #fcd34d; }
+    .tok-var     { color: #ede9df; }
+    .tok-op      { color: #ea580c; }
+
+    /* ── Video note ── */
+    .video-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 16px;
+      border: 1px solid var(--border-lt);
+      border-left: 2px solid var(--muted);
+      font-size: 11px;
+      letter-spacing: .04em;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .video-note-icon { flex-shrink: 0; color: var(--muted); font-size: 13px; margin-top: 1px; }
+    .video-note a { color: var(--fg); text-decoration: none; border-bottom: 1px solid var(--border-lt); transition: color .15s, border-color .15s; }
+    .video-note a:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* ── Stats section ── */
+    .stats-section { margin-top: 32px; }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+    }
+    @media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    .stat-card {
+      padding: 20px 24px;
+      border-right: 1px solid var(--border-lt);
+      border-bottom: 1px solid var(--border-lt);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .stat-card:last-child { border-right: none; }
+    .stat-label {
+      font-size: 9px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .stat-value {
+      font-family: 'GeistPixel', 'Geist Mono', monospace;
+      font-size: 28px;
+      color: var(--fg);
+      image-rendering: pixelated;
+      -webkit-font-smoothing: none;
+      line-height: 1;
+    }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.green  { color: var(--green); }
+    .stat-value.blue   { color: var(--blue); }
+    .stat-sub {
+      font-size: 9px;
+      letter-spacing: .12em;
+      color: var(--border-lt);
+      text-transform: uppercase;
+    }
+    .stats-extra {
+      padding: 20px 24px;
+      border-top: 1px solid var(--border-lt);
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .stats-extra-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .stats-extra-item span { color: var(--fg); }
+    .stats-mode-badge {
+      padding: 3px 8px;
+      border: 1px solid var(--border-lt);
+      font-size: 9px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Distributed device cards */
+    .device-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0;
+      border-top: 1px solid var(--border-lt);
+    }
+    .device-card {
+      padding: 16px 20px;
+      border-right: 1px solid var(--border-lt);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .device-card:last-child { border-right: none; }
+    .device-id {
+      font-size: 10px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--fg);
+    }
+    .device-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .device-metric {
+      font-size: 9px;
+      letter-spacing: .1em;
+      color: var(--muted);
+    }
+    .device-val { color: var(--fg); }
+    .load-bar-wrap {
+      width: 100%;
+      height: 2px;
+      background: var(--border-lt);
+    }
+    .load-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width .4s ease;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 9px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .footer a { color: var(--fg); text-decoration: none; transition: color .15s; }
+    .footer a:hover { color: var(--accent); }
+
+    /* ── Skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border-lt) 25%, rgba(237,233,223,0.08) 50%, var(--border-lt) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      height: 14px;
+    }
+    .skeleton.sm  { height: 10px; width: 60%; }
+    .skeleton.lg  { height: 28px; }
+    .skeleton.full { width: 100%; }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-6px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .4; }
+    }
+    @keyframes loadBar {
+      0%   { transform: translateX(-100%); }
+      50%  { transform: translateX(0%); }
+      100% { transform: translateX(100%); }
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    @keyframes glitch {
+      0%, 88%, 100% { transform: translate(0); filter: none; }
+      90% { transform: translate(-2px, 1px); filter: hue-rotate(80deg); }
+      92% { transform: translate(2px, -1px); filter: hue-rotate(-80deg); }
+      94% { transform: translate(-1px, 0); filter: none; }
+      96% { transform: translate(1px, 2px); filter: hue-rotate(40deg); }
+    }
+    .animate-up { animation: fadeUp .55s cubic-bezier(0.22,1,0.36,1) both; }
+    .delay-1 { animation-delay: .08s; }
+    .delay-2 { animation-delay: .16s; }
+    .delay-3 { animation-delay: .24s; }
+    .delay-4 { animation-delay: .32s; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Jinja2 server-side injection -->
+  <script>
+    window.__AQUILES__ = {
+      apiKey:  "{{ api_key }}",
+      baseUrl: window.location.origin
+    };
+  </script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    const API_KEY  = window.__AQUILES__.apiKey;
+    const BASE_URL = window.__AQUILES__.baseUrl;
+
+    /* ── Helpers ── */
+    function parseModelType(input) {
+      if (typeof input !== 'string') return { model: '', type: null };
+      const s = input.trim();
+      if (!s) return { model: '', type: null };
+      const idx = s.lastIndexOf('|');
+      if (idx === -1) return { model: s, type: null };
+      const model = s.slice(0, idx).trim();
+      let type = s.slice(idx + 1).trim();
+      if (!type) type = null;
+      if (type) {
+        type = type.replace(/^[\[\(\{<\s]+|[\]\)\}>]+$/g, '').trim();
+        if (!type) type = null;
+      }
+      return { model, type };
+    }
+
+    function normalizeType(raw) {
+      if (!raw) return 'unknown';
+      const t = raw.toLowerCase();
+      if (t === 'image') return 'Image';
+      if (t === 'edit')  return 'Edit';
+      if (t === 'hybrid') return 'Hybrid';
+      return raw;
+    }
+
+    function typeClass(type) {
+      const t = (type || '').toLowerCase();
+      if (t === 'image')  return 't2i';
+      if (t === 'edit')   return 'i2i';
+      if (t === 'hybrid') return 'hybrid';
+      return 'unknown';
+    }
+
+    function typeLabel(type) {
+      const t = (type || '').toLowerCase();
+      if (t === 'image')  return 'T2I';
+      if (t === 'edit')   return 'I2I';
+      if (t === 'hybrid') return 'T2I + I2I';
+      return type || 'Unknown';
+    }
+
+    function supportsPrompt(type) {
+      const t = (type || '').toLowerCase();
+      return t === 'image' || t === 'hybrid' || t === '';
+    }
+
+    function supportsImage(type) {
+      const t = (type || '').toLowerCase();
+      return t === 'edit' || t === 'hybrid';
+    }
+
+    function isGenerationOnly(type) {
+      return (type || '').toLowerCase() === 'image';
+    }
+
+    /* ── Code generators ── */
+    function pythonCode(modelName, type) {
+      const t = (type || '').toLowerCase();
+      if (t === 'edit') {
+        return [
+          `<span class="tok-keyword">from</span> <span class="tok-fn">openai</span> <span class="tok-keyword">import</span> OpenAI`,
+          `<span class="tok-keyword">import</span> <span class="tok-fn">base64</span>`,
+          ``,
+          `client <span class="tok-op">=</span> OpenAI(`,
+          `    base_url<span class="tok-op">=</span><span class="tok-string">"${BASE_URL}"</span>,`,
+          `    api_key<span class="tok-op">=</span><span class="tok-string">"${API_KEY}"</span>`,
+          `)`,
+          ``,
+          `result <span class="tok-op">=</span> client.images.<span class="tok-fn">edit</span>(`,
+          `    model<span class="tok-op">=</span><span class="tok-string">"${modelName}"</span>,`,
+          `    image<span class="tok-op">=</span><span class="tok-fn">open</span>(<span class="tok-string">"input.png"</span>, <span class="tok-string">"rb"</span>),`,
+          `    prompt<span class="tok-op">=</span><span class="tok-string">"Your edit instruction here"</span>,`,
+          `    response_format<span class="tok-op">=</span><span class="tok-string">"b64_json"</span>`,
+          `)`,
+          ``,
+          `image_bytes <span class="tok-op">=</span> base64.<span class="tok-fn">b64decode</span>(result.data[<span class="tok-num">0</span>].b64_json)`,
+          `<span class="tok-keyword">with</span> <span class="tok-fn">open</span>(<span class="tok-string">"output.png"</span>, <span class="tok-string">"wb"</span>) <span class="tok-keyword">as</span> f:`,
+          `    f.<span class="tok-fn">write</span>(image_bytes)`,
+          ``,
+          `<span class="tok-fn">print</span>(<span class="tok-string">"Image edited successfully"</span>)`,
+        ].join('\n');
+      }
+      if (t === 'hybrid') {
+        return [
+          `<span class="tok-keyword">from</span> <span class="tok-fn">openai</span> <span class="tok-keyword">import</span> OpenAI`,
+          `<span class="tok-keyword">import</span> <span class="tok-fn">base64</span>`,
+          ``,
+          `client <span class="tok-op">=</span> OpenAI(`,
+          `    base_url<span class="tok-op">=</span><span class="tok-string">"${BASE_URL}"</span>,`,
+          `    api_key<span class="tok-op">=</span><span class="tok-string">"${API_KEY}"</span>`,
+          `)`,
+          ``,
+          `<span class="tok-comment"># Text-to-Image generation</span>`,
+          `result <span class="tok-op">=</span> client.images.<span class="tok-fn">generate</span>(`,
+          `    model<span class="tok-op">=</span><span class="tok-string">"${modelName}"</span>,`,
+          `    prompt<span class="tok-op">=</span><span class="tok-string">"A vast futuristic city bending upward into the sky"</span>,`,
+          `    size<span class="tok-op">=</span><span class="tok-string">"1024x1024"</span>,`,
+          `    response_format<span class="tok-op">=</span><span class="tok-string">"b64_json"</span>`,
+          `)`,
+          ``,
+          `<span class="tok-comment"># Image-to-Image editing (provide an input image)</span>`,
+          `result_edit <span class="tok-op">=</span> client.images.<span class="tok-fn">edit</span>(`,
+          `    model<span class="tok-op">=</span><span class="tok-string">"${modelName}"</span>,`,
+          `    image<span class="tok-op">=</span><span class="tok-fn">open</span>(<span class="tok-string">"input.png"</span>, <span class="tok-string">"rb"</span>),`,
+          `    prompt<span class="tok-op">=</span><span class="tok-string">"Your edit instruction here"</span>,`,
+          `    response_format<span class="tok-op">=</span><span class="tok-string">"b64_json"</span>`,
+          `)`,
+          ``,
+          `image_bytes <span class="tok-op">=</span> base64.<span class="tok-fn">b64decode</span>(result.data[<span class="tok-num">0</span>].b64_json)`,
+          `<span class="tok-keyword">with</span> <span class="tok-fn">open</span>(<span class="tok-string">"output.png"</span>, <span class="tok-string">"wb"</span>) <span class="tok-keyword">as</span> f:`,
+          `    f.<span class="tok-fn">write</span>(image_bytes)`,
+        ].join('\n');
+      }
+      // default: image (T2I)
+      return [
+        `<span class="tok-keyword">from</span> <span class="tok-fn">openai</span> <span class="tok-keyword">import</span> OpenAI`,
+        `<span class="tok-keyword">import</span> <span class="tok-fn">base64</span>`,
+        ``,
+        `client <span class="tok-op">=</span> OpenAI(`,
+        `    base_url<span class="tok-op">=</span><span class="tok-string">"${BASE_URL}"</span>,`,
+        `    api_key<span class="tok-op">=</span><span class="tok-string">"${API_KEY}"</span>`,
+        `)`,
+        ``,
+        `result <span class="tok-op">=</span> client.images.<span class="tok-fn">generate</span>(`,
+        `    model<span class="tok-op">=</span><span class="tok-string">"${modelName}"</span>,`,
+        `    prompt<span class="tok-op">=</span><span class="tok-string">"A vast futuristic city bending upward into the sky"</span>,`,
+        `    size<span class="tok-op">=</span><span class="tok-string">"1024x1024"</span>,`,
+        `    response_format<span class="tok-op">=</span><span class="tok-string">"b64_json"</span>`,
+        `)`,
+        ``,
+        `image_bytes <span class="tok-op">=</span> base64.<span class="tok-fn">b64decode</span>(result.data[<span class="tok-num">0</span>].b64_json)`,
+        `<span class="tok-keyword">with</span> <span class="tok-fn">open</span>(<span class="tok-string">"output.png"</span>, <span class="tok-string">"wb"</span>) <span class="tok-keyword">as</span> f:`,
+        `    f.<span class="tok-fn">write</span>(image_bytes)`,
+        ``,
+        `<span class="tok-fn">print</span>(<span class="tok-string">"Image saved to output.png"</span>)`,
+      ].join('\n');
+    }
+
+    function nodejsCode(modelName, type) {
+      const t = (type || '').toLowerCase();
+      if (t === 'edit') {
+        return [
+          `<span class="tok-keyword">import</span> OpenAI <span class="tok-keyword">from</span> <span class="tok-string">'openai'</span>;`,
+          `<span class="tok-keyword">import</span> fs <span class="tok-keyword">from</span> <span class="tok-string">'node:fs'</span>;`,
+          ``,
+          `<span class="tok-keyword">const</span> client <span class="tok-op">=</span> <span class="tok-keyword">new</span> <span class="tok-fn">OpenAI</span>({`,
+          `  baseURL: <span class="tok-string">'${BASE_URL}'</span>,`,
+          `  apiKey: <span class="tok-string">'${API_KEY}'</span>,`,
+          `});`,
+          ``,
+          `<span class="tok-keyword">const</span> result <span class="tok-op">=</span> <span class="tok-keyword">await</span> client.images.<span class="tok-fn">edit</span>({`,
+          `  model: <span class="tok-string">'${modelName}'</span>,`,
+          `  image: fs.<span class="tok-fn">createReadStream</span>(<span class="tok-string">'input.png'</span>),`,
+          `  prompt: <span class="tok-string">'Your edit instruction here'</span>,`,
+          `  response_format: <span class="tok-string">'b64_json'</span>,`,
+          `});`,
+          ``,
+          `<span class="tok-keyword">const</span> data <span class="tok-op">=</span> Buffer.<span class="tok-fn">from</span>(result.data[<span class="tok-num">0</span>].b64_json, <span class="tok-string">'base64'</span>);`,
+          `fs.<span class="tok-fn">writeFileSync</span>(<span class="tok-string">'output.png'</span>, data);`,
+          `console.<span class="tok-fn">log</span>(<span class="tok-string">'Image edited successfully'</span>);`,
+        ].join('\n');
+      }
+      if (t === 'hybrid') {
+        return [
+          `<span class="tok-keyword">import</span> OpenAI <span class="tok-keyword">from</span> <span class="tok-string">'openai'</span>;`,
+          `<span class="tok-keyword">import</span> fs <span class="tok-keyword">from</span> <span class="tok-string">'node:fs'</span>;`,
+          ``,
+          `<span class="tok-keyword">const</span> client <span class="tok-op">=</span> <span class="tok-keyword">new</span> <span class="tok-fn">OpenAI</span>({`,
+          `  baseURL: <span class="tok-string">'${BASE_URL}'</span>,`,
+          `  apiKey: <span class="tok-string">'${API_KEY}'</span>,`,
+          `});`,
+          ``,
+          `<span class="tok-comment">// Text-to-Image generation</span>`,
+          `<span class="tok-keyword">const</span> generated <span class="tok-op">=</span> <span class="tok-keyword">await</span> client.images.<span class="tok-fn">generate</span>({`,
+          `  model: <span class="tok-string">'${modelName}'</span>,`,
+          `  prompt: <span class="tok-string">'A vast futuristic city bending upward into the sky'</span>,`,
+          `  size: <span class="tok-string">'1024x1024'</span>,`,
+          `});`,
+          ``,
+          `<span class="tok-comment">// Image-to-Image editing</span>`,
+          `<span class="tok-keyword">const</span> edited <span class="tok-op">=</span> <span class="tok-keyword">await</span> client.images.<span class="tok-fn">edit</span>({`,
+          `  model: <span class="tok-string">'${modelName}'</span>,`,
+          `  image: fs.<span class="tok-fn">createReadStream</span>(<span class="tok-string">'input.png'</span>),`,
+          `  prompt: <span class="tok-string">'Your edit instruction here'</span>,`,
+          `});`,
+          ``,
+          `console.<span class="tok-fn">log</span>(generated.data[<span class="tok-num">0</span>].url);`,
+        ].join('\n');
+      }
+      return [
+        `<span class="tok-keyword">import</span> OpenAI <span class="tok-keyword">from</span> <span class="tok-string">'openai'</span>;`,
+        `<span class="tok-keyword">import</span> fs <span class="tok-keyword">from</span> <span class="tok-string">'node:fs'</span>;`,
+        ``,
+        `<span class="tok-keyword">const</span> client <span class="tok-op">=</span> <span class="tok-keyword">new</span> <span class="tok-fn">OpenAI</span>({`,
+        `  baseURL: <span class="tok-string">'${BASE_URL}'</span>,`,
+        `  apiKey: <span class="tok-string">'${API_KEY}'</span>,`,
+        `});`,
+        ``,
+        `<span class="tok-keyword">const</span> result <span class="tok-op">=</span> <span class="tok-keyword">await</span> client.images.<span class="tok-fn">generate</span>({`,
+        `  model: <span class="tok-string">'${modelName}'</span>,`,
+        `  prompt: <span class="tok-string">'A vast futuristic city bending upward into the sky'</span>,`,
+        `  size: <span class="tok-string">'1024x1024'</span>,`,
+        `});`,
+        ``,
+        `<span class="tok-keyword">const</span> data <span class="tok-op">=</span> Buffer.<span class="tok-fn">from</span>(result.data[<span class="tok-num">0</span>].b64_json, <span class="tok-string">'base64'</span>);`,
+        `fs.<span class="tok-fn">writeFileSync</span>(<span class="tok-string">'output.png'</span>, data);`,
+        `console.<span class="tok-fn">log</span>(<span class="tok-string">'Image saved to output.png'</span>);`,
+      ].join('\n');
+    }
+
+    /* ── Sub-components ── */
+
+    function Topbar({ modelInfo, serverOnline, tick }) {
+      return (
+        <div className="topbar">
+          <div className="topbar-brand">
+            <div className="topbar-dot" />
+            <span className="topbar-title">AQUILES-IMAGE</span>
+            <span className="topbar-sep">/</span>
+            <span className="topbar-label">Playground</span>
+          </div>
+          <div className="topbar-right">
+            {modelInfo && (
+              <span
+                className={`type-badge ${typeClass(modelInfo.type)}`}
+                title={`Model: ${modelInfo.name}`}
+              >
+                {typeLabel(modelInfo.type)}
+              </span>
+            )}
+            <div className="status-pill">
+              <div className={`status-dot ${serverOnline ? 'online' : 'offline'}`} />
+              <span>{serverOnline ? 'Connected' : 'Disconnected'}</span>
+            </div>
+            <span className="topbar-label" style={{ color: 'rgba(237,233,223,0.25)' }}>
+              {`TICK:${String(tick).padStart(4, '0')}`}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    function ModelStrip({ modelInfo, loading }) {
+      if (loading) {
+        return (
+          <div className="model-strip" style={{ gap: 10 }}>
+            <div className="skeleton sm" style={{ flex: 1 }} />
+            <div className="skeleton" style={{ width: 48, height: 20 }} />
+          </div>
+        );
+      }
+      if (!modelInfo) return null;
+      return (
+        <div className="model-strip">
+          <span className="model-label">Model</span>
+          <span className="model-name" title={modelInfo.name}>{modelInfo.name || '—'}</span>
+          <span className={`type-badge ${typeClass(modelInfo.type)}`}>
+            {typeLabel(modelInfo.type)}
+          </span>
+        </div>
+      );
+    }
+
+    function FileUploadZone({ onFile, file, preview }) {
+      const [dragging, setDragging] = useState(false);
+
+      function handleDrop(e) {
+        e.preventDefault();
+        setDragging(false);
+        const f = e.dataTransfer.files[0];
+        if (f && f.type.startsWith('image/')) onFile(f);
+      }
+
+      return (
+        <div
+          className={`file-zone ${dragging ? 'drag-over' : ''}`}
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+        >
+          <input
+            type="file"
+            accept="image/*"
+            onChange={e => { if (e.target.files[0]) onFile(e.target.files[0]); }}
+          />
+          {preview ? (
+            <>
+              <img src={preview} className="file-preview" alt="Input preview" />
+              <span className="file-zone-name">{file.name}</span>
+            </>
+          ) : (
+            <>
+              <span className="file-zone-icon">⬆</span>
+              <span className="file-zone-text">Drop image here or click to browse</span>
+              <span className="file-zone-text" style={{ opacity: 0.5 }}>PNG, JPG, WEBP</span>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    function OutputPanel({ output, loading, error, genTime, size }) {
+      function handleDownload() {
+        const a = document.createElement('a');
+        a.href = `data:image/png;base64,${output}`;
+        a.download = `aquiles-output-${Date.now()}.png`;
+        a.click();
+      }
+
+      if (loading) {
+        return (
+          <div className="output-loading">
+            <div className="loading-bar-wrap">
+              <div className="loading-bar" />
+            </div>
+            <span className="loading-text">Generating<span className="blink">_</span></span>
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div style={{ flex: 1, minHeight: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="error-box" style={{ maxWidth: '100%' }}>
+              <span className="error-code">ERR</span>
+              <span>{error}</span>
+            </div>
+          </div>
+        );
+      }
+
+      if (!output) {
+        return (
+          <div className="output-placeholder">
+            <span style={{ fontSize: 28, opacity: 0.15 }}>◻</span>
+            <span className="output-placeholder-text">Output will appear here<br />after generation</span>
+          </div>
+        );
+      }
+
+      return (
+        <div className="output-img-wrap">
+          <img
+            src={`data:image/png;base64,${output}`}
+            className="output-img"
+            alt="Generated output"
+          />
+          <div className="output-meta">
+            <div style={{ display: 'flex', gap: 20 }}>
+              {size && (
+                <span className="output-meta-item">Size: <span>{size}</span></span>
+              )}
+              {genTime && (
+                <span className="output-meta-item">Time: <span>{genTime}s</span></span>
+              )}
+            </div>
+            <button className="download-btn" onClick={handleDownload}>
+              ↓ Download
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function CodeBlock({ modelName, modelType, activeTab, onTabChange }) {
+      const [copied, setCopied] = useState(false);
+      const code = activeTab === 'python'
+        ? pythonCode(modelName, modelType)
+        : nodejsCode(modelName, modelType);
+
+      function handleCopy() {
+        const plain = code.replace(/<[^>]+>/g, '');
+        navigator.clipboard.writeText(plain).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        });
+      }
+
+      return (
+        <div className="code-section animate-up delay-3">
+          <div className="section-label">
+            <span>// Code Examples</span>
+            <div className="line" />
+            <span>SDK_COMPAT</span>
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <div className="dot-orange" />
+              <div className="dot-solid" />
+              <div className="dot-empty" />
+              <div className="card-header-right">
+                <span className="card-header-label">openai-compatible · client examples</span>
+              </div>
+            </div>
+
+            <div className="tab-bar">
+              <button
+                className={`tab-btn ${activeTab === 'python' ? 'active' : ''}`}
+                onClick={() => onTabChange('python')}
+              >Python</button>
+              <button
+                className={`tab-btn ${activeTab === 'nodejs' ? 'active' : ''}`}
+                onClick={() => onTabChange('nodejs')}
+              >Node.js</button>
+            </div>
+
+            <div className="code-wrap">
+              <button
+                className={`copy-btn ${copied ? 'copied' : ''}`}
+                onClick={handleCopy}
+              >
+                {copied ? '✓ Copied' : 'Copy'}
+              </button>
+              <pre>
+                <code dangerouslySetInnerHTML={{ __html: code }} />
+              </pre>
+            </div>
+
+            {/* Video note */}
+            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border-lt)' }}>
+              <div className="video-note">
+                <span className="video-note-icon">ℹ</span>
+                <span>
+                  This server also supports <strong>video generation</strong> (wan2.2, HunyuanVideo, and more),
+                  but this playground is scoped to image models only. To generate videos programmatically,
+                  see the full{' '}
+                  <a
+                    href="https://aquiles-ai.github.io/aquiles-image-docs/#client-api"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Client API documentation →
+                  </a>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function StatsSection({ stats }) {
+      if (!stats) {
+        return (
+          <div className="stats-section animate-up delay-4">
+            <div className="section-label">
+              <span>// Server Stats</span>
+              <div className="line" />
+              <span>LIVE</span>
+            </div>
+            <div className="card">
+              <div className="card-header">
+                <div className="dot-orange" /><div className="dot-solid" /><div className="dot-empty" />
+                <span className="card-header-label">Loading stats...</span>
+              </div>
+              <div className="stats-grid">
+                {[0,1,2,3].map(i => (
+                  <div className="stat-card" key={i}>
+                    <div className="skeleton sm" />
+                    <div className="skeleton lg" style={{ width: '60%' }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      const isDistributed = stats.mode === 'distributed';
+      const global = isDistributed ? stats.global : stats;
+
+      const total     = global.total_requests ?? global.total_tasks ?? 0;
+      const queued    = global.queued    ?? 0;
+      const completed = global.completed ?? 0;
+      const failed    = global.failed    ?? 0;
+      const available = global.available ?? (global.processing === false);
+
+      return (
+        <div className="stats-section animate-up delay-4">
+          <div className="section-label">
+            <span>// Server Stats</span>
+            <div className="line" />
+            <span>AUTO-REFRESH · 15s</span>
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <div className="dot-orange" /><div className="dot-solid" /><div className="dot-empty" />
+              <div className="card-header-right">
+                {stats.mode && (
+                  <span className="stats-mode-badge">{stats.mode}</span>
+                )}
+                <span className="card-header-label">aquiles.stats.sys</span>
+              </div>
+            </div>
+
+            <div className="stats-grid">
+              <div className="stat-card">
+                <span className="stat-label">Total Requests</span>
+                <span className="stat-value">{total.toLocaleString()}</span>
+                <span className="stat-sub">All time</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-label">Queued</span>
+                <span className={`stat-value ${queued > 0 ? 'accent' : ''}`}>{queued}</span>
+                <span className="stat-sub">Pending</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-label">Completed</span>
+                <span className="stat-value green">{completed.toLocaleString()}</span>
+                <span className="stat-sub">Successful</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-label">Failed</span>
+                <span className={`stat-value ${failed > 0 ? 'accent' : ''}`}>{failed}</span>
+                <span className="stat-sub">Errors</span>
+              </div>
+            </div>
+
+            <div className="stats-extra">
+              <div className="stats-extra-item">
+                Status:&nbsp;
+                <span style={{ color: available ? 'var(--green)' : 'var(--accent)' }}>
+                  {available ? 'Available' : 'Busy'}
+                </span>
+              </div>
+              {stats.total_images !== undefined && (
+                <div className="stats-extra-item">
+                  Images:&nbsp;<span>{stats.total_images.toLocaleString()}</span>
+                </div>
+              )}
+              {stats.total_batches !== undefined && (
+                <div className="stats-extra-item">
+                  Batches:&nbsp;<span>{stats.total_batches.toLocaleString()}</span>
+                </div>
+              )}
+              {stats.max_concurrent !== undefined && (
+                <div className="stats-extra-item">
+                  Max Concurrent:&nbsp;<span>{stats.max_concurrent}</span>
+                </div>
+              )}
+              {global.active_batches !== undefined && (
+                <div className="stats-extra-item">
+                  Active Batches:&nbsp;<span>{global.active_batches}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Distributed: per-device cards */}
+            {isDistributed && stats.devices && (
+              <div className="device-grid">
+                {Object.entries(stats.devices).map(([id, d]) => (
+                  <div className="device-card" key={id}>
+                    <div className="device-row">
+                      <span className="device-id">{id}</span>
+                      <span
+                        style={{
+                          fontSize: '9px',
+                          letterSpacing: '.14em',
+                          textTransform: 'uppercase',
+                          color: d.available ? 'var(--green)' : 'var(--accent)'
+                        }}
+                      >
+                        {d.available ? 'Available' : 'Busy'}
+                      </span>
+                    </div>
+                    <div className="load-bar-wrap">
+                      <div
+                        className="load-bar-fill"
+                        style={{ width: `${(d.estimated_load * 100).toFixed(0)}%` }}
+                      />
+                    </div>
+                    <div className="device-row">
+                      <span className="device-metric">Load</span>
+                      <span className="device-metric device-val">
+                        {(d.estimated_load * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="device-row">
+                      <span className="device-metric">Completed</span>
+                      <span className="device-metric device-val">{d.images_completed}</span>
+                    </div>
+                    <div className="device-row">
+                      <span className="device-metric">Avg Time</span>
+                      <span className="device-metric device-val">{d.avg_batch_time.toFixed(2)}s</span>
+                    </div>
+                    {d.error_count > 0 && (
+                      <div className="device-row">
+                        <span className="device-metric" style={{ color: 'var(--accent)' }}>Errors</span>
+                        <span className="device-metric" style={{ color: 'var(--accent)' }}>{d.error_count}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Main App ── */
+    function App() {
+      const [tick,        setTick]        = useState(0);
+      const [modelInfo,   setModelInfo]   = useState(null);
+      const [modelLoading,setModelLoading]= useState(true);
+      const [serverOnline,setServerOnline]= useState(false);
+
+      const [prompt,      setPrompt]      = useState('');
+      const [imageFile,   setImageFile]   = useState(null);
+      const [imagePreview,setImagePreview]= useState(null);
+      const [size,        setSize]        = useState('1024x1024');
+
+      const [output,      setOutput]      = useState(null);
+      const [genLoading,  setGenLoading]  = useState(false);
+      const [genError,    setGenError]    = useState('');
+      const [genTime,     setGenTime]     = useState(null);
+
+      const [stats,       setStats]       = useState(null);
+      const [activeTab,   setActiveTab]   = useState('python');
+
+      /* tick */
+      useEffect(() => {
+        const id = setInterval(() => setTick(t => t + 1), 2000);
+        return () => clearInterval(id);
+      }, []);
+
+      /* fetch model */
+      const fetchModel = useCallback(async () => {
+        try {
+          const res = await fetch(`${BASE_URL}/v1/models`, {
+            headers: { 'Authorization': `Bearer ${API_KEY}` }
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          setServerOnline(true);
+          let modelId = '';
+          if (data.data && data.data.length > 0) {
+            modelId = data.data[data.data.length - 1].id;
+          }
+          const { model, type } = parseModelType(modelId);
+          setModelInfo({ name: model, type: normalizeType(type), raw: modelId });
+        } catch(e) {
+          console.error('X Error fetching model:', e);
+          setServerOnline(false);
+        } finally {
+          setModelLoading(false);
+        }
+      }, []);
+
+      /* fetch stats */
+      const fetchStats = useCallback(async () => {
+        try {
+          const res = await fetch(`${BASE_URL}/stats`, {
+            headers: { 'Authorization': `Bearer ${API_KEY}` }
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          setStats(data);
+          setServerOnline(true);
+        } catch(e) {
+          console.error('X Error fetching stats:', e);
+        }
+      }, []);
+
+      useEffect(() => {
+        fetchModel();
+        fetchStats();
+      }, [fetchModel, fetchStats]);
+
+      useEffect(() => {
+        const id = setInterval(fetchStats, 15000);
+        return () => clearInterval(id);
+      }, [fetchStats]);
+
+      /* handle file */
+      function handleFile(file) {
+        setImageFile(file);
+        const reader = new FileReader();
+        reader.onload = e => setImagePreview(e.target.result);
+        reader.readAsDataURL(file);
+      }
+
+      /* determine operation mode */
+      function getOperation() {
+        if (!modelInfo) return 'generate';
+        const t = (modelInfo.type || '').toLowerCase();
+        if (t === 'edit') return 'edit';
+        if (t === 'hybrid' && imageFile) return 'edit';
+        return 'generate';
+      }
+
+      /* validate */
+      function canSubmit() {
+        if (genLoading || !modelInfo) return false;
+        const t = (modelInfo.type || '').toLowerCase();
+        if (t === 'edit') return imageFile && prompt.trim().length > 0;
+        if (t === 'hybrid') return prompt.trim().length > 0;
+        return prompt.trim().length > 0;
+      }
+
+      /* submit */
+      async function handleGenerate() {
+        setGenLoading(true);
+        setGenError('');
+        setOutput(null);
+        setGenTime(null);
+        const t0 = Date.now();
+
+        try {
+          const op = getOperation();
+          let b64;
+
+          if (op === 'edit') {
+            const formData = new FormData();
+            formData.append('model', modelInfo.name);
+            formData.append('prompt', prompt.trim());
+            formData.append('image', imageFile);
+            formData.append('response_format', 'b64_json');
+
+            const res = await fetch(`${BASE_URL}/v1/images/edits`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${API_KEY}` },
+              body: formData
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || data.error?.message || `HTTP ${res.status}`);
+            b64 = data.data?.[0]?.b64_json;
+          } else {
+            const res = await fetch(`${BASE_URL}/v1/images/generations`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
+              },
+              body: JSON.stringify({
+                model: modelInfo.name,
+                prompt: prompt.trim(),
+                size,
+                response_format: 'b64_json'
+              })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || data.error?.message || `HTTP ${res.status}`);
+            b64 = data.data?.[0]?.b64_json;
+          }
+
+          if (!b64) throw new Error('No image data returned from server.');
+          setOutput(b64);
+          setGenTime(((Date.now() - t0) / 1000).toFixed(1));
+          fetchStats(); // refresh stats after generation
+        } catch(e) {
+          console.error('X Error generating image:', e);
+          setGenError(e.message || 'Unexpected error. Please try again.');
+        } finally {
+          setGenLoading(false);
+        }
+      }
+
+      const type   = modelInfo?.type || '';
+      const mName  = modelInfo?.name || '';
+      const showPrompt = !modelInfo || supportsPrompt(type) || (type || '').toLowerCase() === 'hybrid';
+      const showImage  = modelInfo && supportsImage(type);
+
+      const opLabel = (() => {
+        const op = getOperation();
+        if (op === 'edit') return 'Edit Image';
+        return 'Generate';
+      })();
+
+      return (
+        <div>
+          <Topbar modelInfo={modelInfo} serverOnline={serverOnline} tick={tick} />
+
+          <div className="page">
+
+            {/* ── Playground ── */}
+            <div className="animate-up delay-1">
+              <div className="section-label">
+                <span>// Playground</span>
+                <div className="line" />
+                <span>IMG_GENERATION</span>
+              </div>
+
+              <div className="card">
+                <div className="card-header">
+                  <div className="dot-orange" />
+                  <div className="dot-solid" />
+                  <div className="dot-empty" />
+                  <div className="card-header-right">
+                    {modelInfo && (
+                      <span className={`type-badge ${typeClass(type)}`}>
+                        {typeLabel(type)}
+                      </span>
+                    )}
+                    <span className="card-header-label">aquiles.playground.sys</span>
+                  </div>
+                </div>
+
+                <div className="playground-grid">
+                  {/* Left: inputs */}
+                  <div className="panel-left">
+                    <ModelStrip modelInfo={modelInfo} loading={modelLoading} />
+
+                    {/* Prompt */}
+                    {(showPrompt || !modelInfo) && (
+                      <div className="field">
+                        <div className="field-row">
+                          <label className="field-label">Prompt</label>
+                          <span className="field-tag">
+                            {(type || '').toLowerCase() === 'edit'
+                              ? 'EDIT_INSTRUCTION'
+                              : 'TEXT_PROMPT'}
+                          </span>
+                        </div>
+                        <textarea
+                          className="field-input"
+                          placeholder={
+                            (type || '').toLowerCase() === 'edit'
+                              ? 'Describe what to change in the image...'
+                              : 'A vast futuristic city curving upward into the sky...'
+                          }
+                          value={prompt}
+                          onChange={e => setPrompt(e.target.value)}
+                          rows={4}
+                        />
+                      </div>
+                    )}
+
+                    {/* Image upload */}
+                    {showImage && (
+                      <div className="field">
+                        <div className="field-row">
+                          <label className="field-label">Input Image</label>
+                          <span className="field-tag">
+                            {(type || '').toLowerCase() === 'hybrid'
+                              ? 'OPTIONAL'
+                              : 'REQUIRED'}
+                          </span>
+                        </div>
+                        <FileUploadZone
+                          file={imageFile}
+                          preview={imagePreview}
+                          onFile={handleFile}
+                        />
+                        {imageFile && (
+                          <button
+                            onClick={() => { setImageFile(null); setImagePreview(null); }}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid var(--border-lt)',
+                              color: 'var(--muted)',
+                              fontFamily: 'Geist Mono, monospace',
+                              fontSize: '9px',
+                              letterSpacing: '.14em',
+                              textTransform: 'uppercase',
+                              padding: '6px 12px',
+                              cursor: 'pointer',
+                              alignSelf: 'flex-start',
+                              transition: 'color .15s, border-color .15s'
+                            }}
+                          >
+                            ✕ Clear Image
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Size (only for T2I / generate mode) */}
+                    {(!modelInfo || getOperation() === 'generate') && (
+                      <div className="field">
+                        <div className="field-row">
+                          <label className="field-label">Output Size</label>
+                          <span className="field-tag">RESOLUTION</span>
+                        </div>
+                        <select
+                          className="field-select"
+                          value={size}
+                          onChange={e => setSize(e.target.value)}
+                        >
+                          <option value="512x512">512 × 512</option>
+                          <option value="768x768">768 × 768</option>
+                          <option value="1024x1024">1024 × 1024 (default)</option>
+                          <option value="1024x768">1024 × 768</option>
+                          <option value="768x1024">768 × 1024</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Generate button */}
+                    <div className="btn-wrap">
+                      <button
+                        className="btn"
+                        disabled={!canSubmit()}
+                        onClick={handleGenerate}
+                      >
+                        <span className="btn-icon">
+                          {genLoading ? '◌' : '→'}
+                        </span>
+                        <span className="btn-text">
+                          {genLoading
+                            ? <span>Processing<span className="blink">_</span></span>
+                            : opLabel}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Inline error (mobile) */}
+                    <div className="hide-desktop" />
+                  </div>
+
+                  {/* Right: output */}
+                  <div className="panel-right">
+                    <div className="field-row" style={{ marginBottom: 4 }}>
+                      <span className="field-label">Output</span>
+                      <span className="field-tag">IMG_RESULT</span>
+                    </div>
+
+                    {genError && !genLoading && (
+                      <div className="error-box">
+                        <span className="error-code">ERR</span>
+                        <span>{genError}</span>
+                      </div>
+                    )}
+
+                    <OutputPanel
+                      output={output}
+                      loading={genLoading}
+                      error={genLoading ? '' : genError}
+                      genTime={genTime}
+                      size={output ? size : null}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Code Examples ── */}
+            <CodeBlock
+              modelName={mName}
+              modelType={type}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+
+            {/* ── Stats ── */}
+            <StatsSection stats={stats} />
+
+            {/* ── Footer ── */}
+            <p className="footer" style={{ marginTop: 40 }}>
+              Powered by{' '}
+              <a href="https://github.com/Aquiles-ai" target="_blank" rel="noopener noreferrer">
+                Aquiles-ai
+              </a>
+              {' '}·{' '}
+              <a href="https://aquiles-ai.github.io/aquiles-image-docs/" target="_blank" rel="noopener noreferrer">
+                Docs
+              </a>
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
