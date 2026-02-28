@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from fastapi.concurrency import run_in_threadpool
-from aquilesimage.models import CreateImageRequest, ImagesResponse, Image, ImageModel, ListModelsResponse, Model, CreateVideoBody, VideoResource, VideoModels, VideoListResource, DeletedVideoResource
+from aquilesimage.models import CreateImageRequest, ImagesResponse, Image, ImageModel, ListModelsResponse, Model, CreateVideoBody, VideoResource, VideoModels, VideoListResource, DeletedVideoResource, VideoQuality
 from aquilesimage.utils import Utils, setup_colored_logger, verify_api_key, create_dev_mode_response, create_dev_mode_video_response, VideoTaskGeneration, getTypeModel
 from aquilesimage.configs import load_config_app, load_config_cli
 from aquilesimage.auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
@@ -28,7 +28,7 @@ import gc
 import time
 import base64
 import io
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Literal
 from datetime import datetime
 from aquilesimage.runtime.batch_inf import BatchPipeline
 import torch.multiprocessing as mp
@@ -846,6 +846,8 @@ async def videos(
 
     MODELS_WITH_IMAGE_SUPPORT = [VideoModels.LTX_2]
 
+    from PIL import Image
+
     pil_image = None
     if input_reference is not None:
         if model not in MODELS_WITH_IMAGE_SUPPORT:
@@ -873,7 +875,7 @@ async def videos(
         return response
     if app.state.model in Videomodel:
         try:
-            video_resource = await video_task_gen.create_task(input_r, input_reference if input_reference is not None else None)
+            video_resource = await video_task_gen.create_task(input_r, pil_image if pil_image is not None else None)
             return video_resource
         except Exception as e:
             logger.error(f"X Error creating video task: {e}")
