@@ -185,12 +185,17 @@ class VideoTaskGeneration:
             return False
 
     async def _generate_video(self, task: VideoTask) -> Any:
-        await run_in_threadpool(self.pipeline.generate,
+        kwargs = dict(
             seed=random.randint(1, 1000),
             prompt=task.prompt,
             save_result_path=task.video_path,
             negative_prompt="No deformities",
         )
+
+        if task.image is not None:
+            kwargs["image"] = task.image
+        
+        await run_in_threadpool(self.pipeline.generate, **kwargs)
 
     async def get_stats(self) -> dict:
         async with self.lock:
