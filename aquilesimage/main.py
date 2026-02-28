@@ -836,6 +836,7 @@ async def videos(request: Request):
 
     pil_image = None
     if "multipart/form-data" in content_type:
+        logger.info("Video generation from image")
         form = await request.form()
         input_r = CreateVideoBody(
             model=form.get("model", "sora-2"),
@@ -856,6 +857,7 @@ async def videos(request: Request):
             contents = await input_reference.read()
             pil_image = Image.open(io.BytesIO(contents))
     else:
+        logger.info("Video generation from text")
         body = await request.json()
         input_r = CreateVideoBody(**body)
 
