@@ -280,11 +280,11 @@ Once running, open `http://localhost:5500` in your browser. The playground lets 
 
 ##### Login
 
-<img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1772321078/Captura_de_pantalla_2122_pve72l.png" width="500"/>
+<img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1772321078/Captura_de_pantalla_2122_pve72l.png" width="700"/>
 
 ##### Playground
 
-<img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1772321078/Captura_de_pantalla_2121_t4k24e.png" width="500"/>
+<img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1772321078/Captura_de_pantalla_2121_t4k24e.png" width="700"/>
 
 ## 📊 Monitoring & Stats
 
