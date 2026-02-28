@@ -44,6 +44,17 @@ def inference_worker_loop(
                 prompts = batch_data.get('prompts')
                 images = batch_data.get('images', None)
                 params = batch_data.get('params', {})
+                seed = params.pop('seed', None)
+                num_images_per_prompt = batch_data.get('num_images_per_prompt', 1)
+                total_images = len(prompts) * num_images_per_prompt
+                generators = []
+                for _ in range(total_images):
+                    g = torch.Generator(device=device or "cuda")
+                    if seed is not None:
+                        g.manual_seed(seed)
+                    else:
+                        g.manual_seed(torch.randint(0, 10_000_000, (1,)).item())
+                    generators.append(g)
                 
                 logger.info(
                     f"[Worker-{gpu_id}] Processing batch: "

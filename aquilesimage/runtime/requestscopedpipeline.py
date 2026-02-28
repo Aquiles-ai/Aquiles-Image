@@ -347,6 +347,8 @@ class RequestScopedPipeline:
         
         mu = _calculate_shift(image_seq_len)
 
+        seed = kwargs.pop("seed", None)
+
         if not prompts:
             raise ValueError("prompts list cannot be empty")
     
@@ -410,7 +412,10 @@ class RequestScopedPipeline:
         generators = []
         for _ in range(total_images):
             g = torch.Generator(device=device or "cuda")
-            g.manual_seed(torch.randint(0, 10_000_000, (1,)).item())
+            if seed is not None:
+                g.manual_seed(seed)
+            else:
+                g.manual_seed(torch.randint(0, 10_000_000, (1,)).item())
             generators.append(g)
 
         original_tokenizers = {}

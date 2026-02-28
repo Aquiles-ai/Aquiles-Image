@@ -63,9 +63,11 @@ Videomodel = [model for model in VideoModels]
 worker_manager: Optional[Any] = None
 auto_type: str | None = None
 allow_users: bool = False
+guidance_scale_config: float | None = None
+seed: int | None = None
 
 def load_models():
-    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout, dist_inference, auto_type, allow_users
+    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout, dist_inference, auto_type, allow_users, guidance_scale_config, seed
 
     logger.info("Loading configuration...")
     
@@ -77,6 +79,8 @@ def load_models():
     dist_inference = config.get("dist_inference")
     auto_type = config.get("auto_pipeline_mode")
     allows_users_list = config.get("allows_users")
+    guidance_scale_config = config.get("guidance_scale")
+    seed = config.get("seed")
     if allows_users_list and isinstance(allows_users_list, list) and len(allows_users_list) > 0:
         allow_users = True
         logger.info(f"There are users: {len(allows_users_list)} user(s) loaded")
@@ -494,6 +498,8 @@ async def create_image(input_r: CreateImageRequest):
             device=device_param,
             timeout=600.0,
             num_images_per_prompt=n,
+            seed=seed if seed is not None else None,
+            guidance_scale=guidance_scale_config if guidance_scale_config is not None else None,
         )
 
         if isinstance(image, list):
@@ -722,10 +728,11 @@ async def create_image_edit(
             num_inference_steps=steps if steps is not None else 30,
             device=device_param,
             timeout=600.0,
-            guidance_scale=gd,
+            guidance_scale=guidance_scale_config if guidance_scale_config is not None else None,
             output_type="pil",
             num_images_per_prompt=n or 1,
             use_glm=True if model in [ ImageModel.GLM ] else False,
+            seed=seed if seed is not None else None,
         )
 
         if isinstance(image_result, list):

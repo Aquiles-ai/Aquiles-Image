@@ -21,6 +21,7 @@ class PendingRequest:
     timestamp: float = field(default_factory=time.time)
     future: asyncio.Future = field(default_factory=asyncio.Future)
     num_images: int = 1 
+    seed: int | None = None
     
     def params_key(self) -> Tuple:
         has_image = self.image is not None
@@ -38,7 +39,8 @@ class PendingRequest:
             has_image,
             num_input_images,
             self.num_images,
-            self.params.get('use_glm', False)
+            self.params.get('use_glm', False),
+            self.params.get('seed', None)
         )
 
 class BatchPipeline:    
@@ -171,6 +173,7 @@ class BatchPipeline:
         request_id: Optional[str] = None,
         timeout: float = 60.0,
         num_images_per_prompt: int = 1,
+        seed: int | None = None,
         **kwargs
     ) -> Any:
         req_id = request_id or str(uuid.uuid4())[:8]
@@ -189,6 +192,7 @@ class BatchPipeline:
                 'num_images_per_prompt': num_images_per_prompt,
                 **kwargs
             },
+            seed=seed,
             timestamp=time.time(),
             num_images=num_images_per_prompt
         )
@@ -403,9 +407,10 @@ class BatchPipeline:
                         'width': params['width'],
                         'num_inference_steps': params['num_inference_steps'],
                         'num_images_per_prompt': params['num_images_per_prompt'],
+                        'seed': params.get('seed', None),
                         **{k: v for k, v in params.items() 
-                           if k not in ['height', 'width', 'num_inference_steps', 'device', 'num_images_per_prompt', 'use_glm']}
-                    }
+                           if k not in ['height', 'width', 'num_inference_steps', 'device', 'num_images_per_prompt', 'use_glm', 'seed']}
+                    },
                 }
 
                 result_future = asyncio.Future()
