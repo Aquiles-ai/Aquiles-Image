@@ -22,6 +22,7 @@ class VideoTask:
     created_at: int = field(default_factory=lambda: int(time.time()))
     error: Optional[dict] = None
     video_path: Optional[str] = None
+    image: Optional[Any] = None
     
     def to_video_resource(self) -> VideoResource:
         return VideoResource(
@@ -35,7 +36,8 @@ class VideoTask:
             seconds=self.seconds,
             quality=self.quality,
             error=self.error,
-            prompt=self.prompt
+            prompt=self.prompt,
+            image=self.image
         )
 
 class VideoTaskGeneration:
@@ -122,7 +124,7 @@ class VideoTaskGeneration:
         task = self.tasks.get(task_id)
         return task.to_video_resource() if task else None
 
-    async def create_task(self, request: CreateVideoBody) -> VideoResource:
+    async def create_task(self, request: CreateVideoBody, image=None) -> VideoResource:
         async with self.lock:
             task_id = f"video_{uuid.uuid4().hex[:12]}"
 
@@ -133,7 +135,8 @@ class VideoTaskGeneration:
                 size=request.size,
                 seconds=request.seconds,
                 quality=request.quality or VideoQuality.standard,
-                video_path=get_path_save_video(task_id)
+                video_path=get_path_save_video(task_id),
+                image=image if image is not None else None
             )
             
             self.tasks[task_id] = task

@@ -37,7 +37,7 @@ class LTX_2_Pipeline:
                 spatial_upsampler_path=f"{data_dir}/ltx-2-spatial-upscaler-x2-1.0.safetensors"
             )
 
-    def generate(self, seed: int, prompt: str, save_result_path: str, negative_prompt: str):
+    def generate(self, seed: int, prompt: str, save_result_path: str, negative_prompt: str, image=None):
         try:
             import os
             output_dir = os.path.dirname(save_result_path)
@@ -56,7 +56,7 @@ class LTX_2_Pipeline:
                     num_frames=300,
                     frame_rate=25.0,
                     num_inference_steps=40,
-                    images=[],
+                    images=[image] if image is not None else [],
                     video_guider_params=MultiModalGuiderParams(
                         cfg_scale=3.0,
                         stg_scale=1.0,

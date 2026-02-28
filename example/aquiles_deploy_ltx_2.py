@@ -29,8 +29,8 @@ aquiles_image = (
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
         "bitsandbytes==0.49.0",
         "accelerate==1.12.0",
-        "git+https://github.com/Lightricks/LTX-2.git#subdirectory=packages/ltx-core",
-        "git+https://github.com/Lightricks/LTX-2.git#subdirectory=packages/ltx-pipelines",
+        "git+https://github.com/FredyRivera-dev/LTX-2.git#subdirectory=packages/ltx-core",
+        "git+https://github.com/FredyRivera-dev/LTX-2.git#subdirectory=packages/ltx-pipelines",
         "av==16.0.1"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1",
