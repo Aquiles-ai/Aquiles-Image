@@ -278,6 +278,8 @@ Once running, open `http://localhost:5500` in your browser. The playground lets 
 
 > **Note**: The playground is only available for image models.
 
+<div align="center">
+
 ##### Login
 
 <img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1772321078/Captura_de_pantalla_2122_pve72l.png" width="700"/>
@@ -285,6 +287,8 @@ Once running, open `http://localhost:5500` in your browser. The playground lets 
 ##### Playground
 
 <img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1772321078/Captura_de_pantalla_2121_t4k24e.png" width="700"/>
+
+</div>
 
 ## 📊 Monitoring & Stats
 
