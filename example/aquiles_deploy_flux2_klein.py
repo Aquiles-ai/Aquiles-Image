@@ -11,8 +11,8 @@ aquiles_image = (
     .uv_pip_install(
         "torch==2.8",
         "git+https://github.com/huggingface/diffusers.git",
-        "transformers==4.57.3",
-        "tokenizers==0.22.1",
+        "transformers==4.57.6",
+        "tokenizers==0.22.2",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
         "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl",
         "kernels"
@@ -20,7 +20,7 @@ aquiles_image = (
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
 )
 
-MODEL_NAME = "black-forest-labs/FLUX.2-klein-4B"
+MODEL_NAME = "black-forest-labs/FLUX.2-klein-9B"
 
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
 aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=True)
@@ -36,14 +36,14 @@ AQUILES_PORT = 5500
     gpu=f"H100:{N_GPU}",
     secrets=[modal.Secret.from_name("huggingface-secret")],
     scaledown_window=6 * MINUTES, 
-    timeout=10 * MINUTES,
+    timeout=20 * MINUTES,
     volumes={
         "/root/.cache/huggingface": hf_cache_vol,
         "/root/.local/share": aquiles_config_vol,
     },
 )
 @modal.concurrent(max_inputs=100)
-@modal.web_server(port=AQUILES_PORT, startup_timeout=10 * MINUTES)
+@modal.web_server(port=AQUILES_PORT, startup_timeout=20 * MINUTES)
 def serve():
     import subprocess
 
