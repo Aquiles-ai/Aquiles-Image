@@ -1443,7 +1443,7 @@
       /* fetch model */
       const fetchModel = useCallback(async () => {
         try {
-          const res = await fetch(`${BASE_URL}/v1/models`, {
+          const res = await fetch(`${BASE_URL}/models`, {
             headers: { 'Authorization': `Bearer ${API_KEY}` }
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1533,7 +1533,7 @@
             formData.append('image', imageFile);
             formData.append('response_format', 'b64_json');
 
-            const res = await fetch(`${BASE_URL}/v1/images/edits`, {
+            const res = await fetch(`${BASE_URL}/images/edits`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${API_KEY}` },
               body: formData
@@ -1542,7 +1542,7 @@
             if (!res.ok) throw new Error(data.detail || data.error?.message || `HTTP ${res.status}`);
             b64 = data.data?.[0]?.b64_json;
           } else {
-            const res = await fetch(`${BASE_URL}/v1/images/generations`, {
+            const res = await fetch(`${BASE_URL}/images/generations`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
