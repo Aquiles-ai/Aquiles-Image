@@ -91,7 +91,7 @@ class VideoTaskGeneration:
             task.progress = 0
             
             # Simulate progress
-            for progress in range(0, 101, 10):
+            for progress in range(0, 91, 10):
                 task.progress = progress
                 await asyncio.sleep(0.5)
             
@@ -102,6 +102,7 @@ class VideoTaskGeneration:
             
         except Exception as e:
             task.status = VideoStatus.failed
+            task.progress = 0
             task.error = {
                 "code": "generation_error",
                 "message": str(e)
