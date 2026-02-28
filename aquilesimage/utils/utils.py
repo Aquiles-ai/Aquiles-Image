@@ -280,3 +280,22 @@ def create_dev_mode_video_response(
     
     
     return response_data
+
+def _build_allowed_users(
+    username: Optional[str],
+    password: Optional[str],
+    conf: dict,
+) -> Optional[list]:
+    import click
+    if username and password:
+        return [{"username": username, "password": password}]
+    
+    if username and not password:
+        click.echo("Warning: --username provided without --password. Playground will not be enabled.", err=True)
+        return conf.get("allows_users")
+    
+    if password and not username:
+        click.echo("Warning: --password provided without --username. Playground will not be enabled.", err=True)
+        return conf.get("allows_users")
+    
+    return conf.get("allows_users")

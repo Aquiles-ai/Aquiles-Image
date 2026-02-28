@@ -29,11 +29,17 @@ def greet(name):
 @click.option("--batch-timeout", type=float, default=None, help="Maximum time (in seconds) to wait before processing a batch even if not full")
 @click.option("--worker-sleep", type=float, default=None, help="Time (in seconds) the worker sleeps between checking for new batch requests")
 @click.option("--auto-pipeline-type", type=click.Choice(["t2i", "i2i"]), default=None, help="You must specify the AutoPipeline type with '--auto-pipeline-type t2i (Text to Image) or i2i (Image to Image)'")
+@click.option("--username", type=str, default=None, help="Username for the playground (enables playground if set along with --password)")
+@click.option("--password", type=str, default=None, help="Password for the playground (enables playground if set along with --username)")
+@click.option("--guidance-scale", type=float, default=None, help="Guidance scale value for image generation")
+@click.option("--seed", type=int, default=None, help="Seed for reproducible image generation")
 def serve(host: str, port: int, model: Optional[str], api_key: Optional[str], 
          max_concurrent_infer: Optional[int], block_request: Optional[bool], force: bool, 
          no_load_model: bool, set_steps: Optional[int], auto_pipeline: Optional[bool], 
          device_map: Optional[str], dist_inference: Optional[bool], max_batch_size: Optional[int], 
-         batch_timeout: Optional[float], worker_sleep: Optional[float], auto_pipeline_type: Optional[str],):
+         batch_timeout: Optional[float], worker_sleep: Optional[float], auto_pipeline_type: Optional[str],
+         username: Optional[str], password: Optional[str],
+         guidance_scale: Optional[float], seed: Optional[int],):
     """Start the Aquiles-Image server."""
     try:
         from aquilesimage.configs import (
@@ -43,6 +49,7 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
             create_basic_config_if_not_exists
         )
         from aquilesimage.models import ConfigsServe
+        from aquilesimage.utils import _build_allowed_users
     except ImportError as e:
         click.echo(f"X Error importing configuration modules: {e}", err=True)
         sys.exit(1)
@@ -94,6 +101,10 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
         batch_timeout is not None,
         worker_sleep is not None,
         auto_pipeline_type is not None,
+        username is not None,
+        password is not None,
+        guidance_scale is not None,
+        seed is not None,
     ])
 
     if config_needs_update:
@@ -117,6 +128,9 @@ def serve(host: str, port: int, model: Optional[str], api_key: Optional[str],
                 batch_timeout=batch_timeout if batch_timeout is not None else conf.get("batch_timeout"),
                 worker_sleep=worker_sleep if worker_sleep is not None else conf.get("worker_sleep"),
                 auto_pipeline_mode=auto_pipeline_type if auto_pipeline_type is not None else conf.get("auto_pipeline_mode"),
+                guidance_scale=guidance_scale if guidance_scale is not None else conf.get("guidance_scale"),
+                seed=seed if seed is not None else conf.get("seed"),
+                allows_users=_build_allowed_users(username, password, conf)
             )
 
             configs_image_serve(updated_conf, force=True)
