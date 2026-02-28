@@ -100,6 +100,7 @@ class BatchPipeline:
         self.pending_results: Dict[str, asyncio.Future] = {}
         self.result_lock = asyncio.Lock()
         self.result_listener_task: Optional[asyncio.Task] = None
+        self.stats_lock = asyncio.Lock()
         
         logger.info(f"BatchCoordinator configuration:")
         logger.info(f"  max_batch_size={max_batch_size}")
@@ -456,9 +457,10 @@ class BatchPipeline:
                     device_stats.complete_batch(total_expected_images)
                     self.dist_cor.notify_device_available()
                 
-                self.total_batches += 1
-                self.total_images += total_expected_images
-                self.total_complete += 1
+                async with self.stats_lock:
+                    self.total_batches += 1
+                    self.total_images += total_expected_images
+                    self.total_complete += 1
                 
                 logger.info(
                     f"Group completed on {device_to_use}: {total_expected_images} images "
@@ -516,9 +518,10 @@ class BatchPipeline:
                     device_stats.complete_batch(total_expected_images)
                     self.dist_cor.notify_device_available()
                 
-                self.total_batches += 1
-                self.total_images += total_expected_images
-                self.total_complete += 1
+                async with self.stats_lock:
+                    self.total_batches += 1
+                    self.total_images += total_expected_images
+                    self.total_complete += 1
                 
                 logger.info(
                     f"Group completed on {device_to_use}: {total_expected_images} images "
@@ -532,7 +535,8 @@ class BatchPipeline:
                 device_stats.register_error(str(e))
                 self.dist_cor.notify_device_available()
             
-            self.total_failed += 1 
+            async with self.stats_lock:
+                self.total_failed += 1
 
             for i, req in enumerate(group):
                 if not req.future.done():
