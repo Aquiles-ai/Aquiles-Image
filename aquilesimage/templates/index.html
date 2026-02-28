@@ -796,7 +796,7 @@
 <body>
   <div id="root"></div>
 
-  <!-- Jinja2 server-side injection -->
+  <!-- Jinja2 server-side injection (outside raw block so {{ api_key }} is resolved) -->
   <script>
     window.__AQUILES__ = {
       apiKey:  "{{ api_key }}",
@@ -804,6 +804,7 @@
     };
   </script>
 
+  {% raw %}
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
@@ -1778,5 +1779,6 @@
 
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
+  {% endraw %}
 </body>
 </html>
