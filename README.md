@@ -149,11 +149,24 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `Aquiles-ai/HunyuanVideo-1.5-720p` (50 steps - start with `--model "hunyuanVideo-1.5-720p"`)
 - `Aquiles-ai/HunyuanVideo-1.5-720p-fp8` (50 steps, FP8 optimized - start with `--model "hunyuanVideo-1.5-720p-fp8"`)
 
-#### LTX-2 (Joint Audio-Visual Generation - Experimental)
+#### LTX-2 (Joint Audio-Visual Generation)
 
 - `Lightricks/ltx-2-19b-dev` (40 steps - start with `--model "ltx-2"`)
 
-> **Special Features**: LTX-2 is the first **open-source** model supporting synchronized audio-video generation in a single model, comparable to closed models like [Sora-2](https://openai.com/index/sora-2/) and [Veo 3.1](https://gemini.google/cl/overview/video-generation/). For best results with this model, please follow the [prompts guide](https://ltx.io/model/model-blog/prompting-guide-for-ltx-2) provided by the Lightricks team.
+> **Special Features**: LTX-2 is the first **open-source** model supporting synchronized audio-video generation in a single model, comparable to closed models like [Sora-2](https://openai.com/index/sora-2/) and [Veo 3.1](https://gemini.google/cl/overview/video-generation/). Additionally, LTX-2 supports **image input as the first frame** of the video — pass a reference image via `input_reference` to guide the visual starting point of the generation. For best results with this model, please follow the [prompts guide](https://ltx.io/model/model-blog/prompting-guide-for-ltx-2) provided by the Lightricks team.
+
+**Image-to-Video example:**
+
+```bash
+curl -X POST "https://YOUR_BASE_URL_DEPLOY/videos" \
+  -H "Authorization: Bearer dummy-api-key" \
+  -H "Content-Type: multipart/form-data" \
+  -F prompt="She turns around and smiles, then slowly walks out of the frame." \
+  -F model="ltx-2" \
+  -F size="1280x720" \
+  -F seconds="8" \
+  -F input_reference="@sample_720p.jpeg;type=image/jpeg"
+```
 
 > **VRAM Requirements**: Most models need 24GB+ VRAM. All video models require H100/A100-80GB. FP8 optimized versions offer better memory efficiency.
 
@@ -228,6 +241,50 @@ aquiles-image serve --no-load-model
 - Returns test images that simulate real responses
 - All endpoints functional with realistic formats
 - Same API structure as production
+
+### API Key Protection & Playground
+
+#### Securing Your Server with an API Key
+
+You can protect your server by requiring an API key on every request. Simply pass `--api-key` when starting the server:
+
+```bash
+aquiles-image serve --model "stabilityai/stable-diffusion-3.5-medium" --api-key "your-api-key"
+```
+
+All requests must then include the key in the `Authorization` header:
+
+```bash
+curl -X POST "http://localhost:5500/images/generations" \
+  -H "Authorization: Bearer your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "stabilityai/stable-diffusion-3.5-medium", "prompt": "a white siamese cat"}'
+```
+
+#### Built-in Playground
+
+Aquiles-Image ships with a built-in interactive playground for testing image models and monitoring server stats — protected by login to prevent unauthorized access. Enable it with `--username` and `--password`:
+
+```bash
+aquiles-image serve --model "stabilityai/stable-diffusion-3.5-medium" \
+  --api-key "your-api-key" \
+  --username "root" \
+  --password "root"
+```
+
+Once running, open `http://localhost:5500` in your browser. The playground lets you:
+- **Generate images** interactively using any loaded image model
+- **Visualize server stats** in real time
+
+> **Note**: The playground is only available for image models.
+
+##### Login
+
+<img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1772321078/Captura_de_pantalla_2122_pve72l.png" width="500"/>
+
+##### Playground
+
+<img src="https://res.cloudinary.com/dmtomxyvm/image/upload/v1772321078/Captura_de_pantalla_2121_t4k24e.png" width="500"/>
 
 ## 📊 Monitoring & Stats
 
