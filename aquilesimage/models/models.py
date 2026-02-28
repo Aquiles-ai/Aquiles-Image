@@ -300,6 +300,8 @@ class ConfigsServe(BaseModel):
     worker_sleep: float | None = Field(default=0.001, description="Time (in seconds) the worker sleeps between checking for new batch requests")
     auto_pipeline_mode: str | None = Field(default=None) # Only t2i or i2i
     allows_users: List[AllowedUser] | None = Field(default=None)
+    guidance_scale: float | None = Field(default=None)
+    seed: int | None = Field(default=None)
 
 class Model(BaseModel):
     id: str = Field(..., description="Unique identifier of the model")
