@@ -828,37 +828,36 @@ async def get_models():
     )
 
 @app.post("/videos", response_model=VideoResource, dependencies=[Depends(verify_api_key)], tags=["Video APIs"])
-async def videos(
-    prompt: str = Form(..., description="Prompt of the video to be generated"),
-    model: str = Form(default="sora-2", description="Model to use to generate the video"),
-    size: Literal['1024x1792', '1280x720', '1792x1024', '720x1280'] | None = Form(None, description="Video size"),
-    seconds: str | None = Form(None, description="Video duration in seconds"),
-    quality: VideoQuality | None = Form(VideoQuality.standard, description="Video quality"),
-    input_reference: UploadFile | None = File(default=None, description="Image to use as first frame"),
-):
-    input_r = CreateVideoBody(
-        model=model,
-        prompt=prompt,
-        size=size,
-        seconds=seconds,
-        quality=quality,
-    )
-
+async def videos(request: Request):
+    content_type = request.headers.get("content-type", "")
     MODELS_WITH_IMAGE_SUPPORT = [VideoModels.LTX_2]
 
     from PIL import Image
 
     pil_image = None
-    if input_reference is not None:
-        if model not in MODELS_WITH_IMAGE_SUPPORT:
-            raise HTTPException(
-                status_code=400,
-                detail=f"The model '{model}' does not support 'input_reference'. Supported models: {', '.join(MODELS_WITH_IMAGE_SUPPORT)}"
-            )
-        if input_reference.content_type not in ("image/jpeg", "image/png", "image/webp"):
-            raise HTTPException(status_code=400, detail="Unsupported image format. Use image/jpeg, image/png or image/webp")
-        contents = await input_reference.read()
-        pil_image = Image.open(io.BytesIO(contents))
+    if "multipart/form-data" in content_type:
+        form = await request.form()
+        input_r = CreateVideoBody(
+            model=form.get("model", "sora-2"),
+            prompt=form.get("prompt"),
+            size=form.get("size"),
+            seconds=form.get("seconds"),
+            quality=form.get("quality", VideoQuality.standard),
+        )
+        input_reference = form.get("input_reference")
+        if input_reference is not None:
+            if input_r.model not in MODELS_WITH_IMAGE_SUPPORT:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"The model '{input_r.model}' does not support 'input_reference'. Supported models: {', '.join(MODELS_WITH_IMAGE_SUPPORT)}"
+                )
+            if input_reference.content_type not in ("image/jpeg", "image/png", "image/webp"):
+                raise HTTPException(status_code=400, detail="Unsupported image format. Use image/jpeg, image/png or image/webp")
+            contents = await input_reference.read()
+            pil_image = Image.open(io.BytesIO(contents))
+    else:
+        body = await request.json()
+        input_r = CreateVideoBody(**body)
 
     if app.state.load_model is False:
         logger.info("[DEV MODE] Generating mock videos response")
