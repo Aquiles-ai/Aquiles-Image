@@ -56,7 +56,7 @@ class LTX_2_Pipeline:
                     num_frames=300,
                     frame_rate=25.0,
                     num_inference_steps=40,
-                    images=[image, 0, 1.0] if image is not None else [],
+                    images=[(image, 0, 1.0)] if image is not None else [],
                     video_guider_params=MultiModalGuiderParams(
                         cfg_scale=3.0,
                         stg_scale=1.0,
