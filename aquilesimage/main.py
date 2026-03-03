@@ -499,7 +499,7 @@ async def create_image(input_r: CreateImageRequest):
             timeout=600.0,
             num_images_per_prompt=n,
             seed=seed if seed is not None else None,
-            guidance_scale=guidance_scale_config if guidance_scale_config is not None else None,
+            guidance_scale=guidance_scale_config if guidance_scale_config is not None else 4,
         )
 
         if isinstance(image, list):
