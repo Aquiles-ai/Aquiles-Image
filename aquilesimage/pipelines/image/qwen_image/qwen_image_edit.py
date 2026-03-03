@@ -6,6 +6,7 @@ except ImportError as e:
     print("Error import QwenImageEditPlusPipeline")
     pass
 from aquilesimage.utils import setup_colored_logger
+from aquilesimage.models import ImageModel
 import logging
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)

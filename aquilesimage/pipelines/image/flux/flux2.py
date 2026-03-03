@@ -7,6 +7,7 @@ except ImportError as e:
     print("Error import Flux2Pipeline")
     pass
 from transformers import Mistral3ForConditionalGeneration
+from diffusers.models.auto_model import AutoModel
 from aquilesimage.utils import setup_colored_logger
 import os
 import logging
