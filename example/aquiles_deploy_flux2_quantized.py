@@ -12,8 +12,8 @@ aquiles_image = (
     .uv_pip_install(
         "torch==2.8",
         "git+https://github.com/huggingface/diffusers.git",
-        "transformers==4.57.3",
-        "tokenizers==0.22.1",
+        "transformers==4.57.6",
+        "tokenizers==0.22.2",
         "bitsandbytes==0.48.2",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
         "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl"

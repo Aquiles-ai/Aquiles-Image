@@ -728,7 +728,7 @@ async def create_image_edit(
             num_inference_steps=steps if steps is not None else 30,
             device=device_param,
             timeout=600.0,
-            guidance_scale=guidance_scale_config if guidance_scale_config is not None else None,
+            guidance_scale=guidance_scale_config if guidance_scale_config is not None else gd,
             output_type="pil",
             num_images_per_prompt=n or 1,
             use_glm=True if model in [ ImageModel.GLM ] else False,
