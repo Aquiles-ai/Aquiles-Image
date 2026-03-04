@@ -191,9 +191,9 @@ class BatchPipeline:
                 'num_inference_steps': num_inference_steps,
                 'device': device or 'cuda',
                 'num_images_per_prompt': num_images_per_prompt,
+                'seed': seed,
                 **kwargs
             },
-            seed=seed,
             timestamp=time.time(),
             num_images=num_images_per_prompt
         )
