@@ -105,6 +105,8 @@ class VideoModels(str, Enum):
 
     LTX_2 = "ltx-2"
 
+    LTX_2_3 = "ltx-2.3"
+
 class ResponseFormat(str, Enum):
     URL = "url"
     B64_JSON = "b64_json"
