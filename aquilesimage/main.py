@@ -285,7 +285,7 @@ async def lifespan(app: FastAPI):
         )
 
     if model_name in Videomodel:
-        if model_name == "ltx-2":
+        if model_name in ["ltx-2", "ltx-2.3"]:
             video_task_gen = VideoTaskGeneration(
                 pipeline=model_pipeline,
                 max_concurrent_tasks=1,
