@@ -195,6 +195,9 @@ class VideoTaskGeneration:
 
         if task.image is not None:
             kwargs["image"] = task.image
+
+        if task.seconds is not None and task.model in ["ltx-2", "ltx-2.3"]:
+            kwargs["seconds"] = task.seconds
         
         await run_in_threadpool(self.pipeline.generate, **kwargs)
 

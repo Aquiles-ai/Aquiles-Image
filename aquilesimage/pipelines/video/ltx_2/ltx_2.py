@@ -18,6 +18,11 @@ class LTX_2_Pipeline:
         self.pipeline: TI2VidTwoStagesPipeline | None = None
         self.model_name = model_name
         self.verify_model()
+        self.seconds_map = {
+            "4": 125,
+            "8": 200,
+            "12": 300
+        }
 
     def start(self):
         data_dir = get_path_file_video_model(self.model_name)
@@ -37,15 +42,16 @@ class LTX_2_Pipeline:
                 spatial_upsampler_path=f"{data_dir}/ltx-2-spatial-upscaler-x2-1.0.safetensors"
             )
 
-    def generate(self, seed: int, prompt: str, save_result_path: str, negative_prompt: str, image=None):
+    def generate(self, seed: int, prompt: str, save_result_path: str, negative_prompt: str, image=None, seconds=None):
         try:
             import os
             output_dir = os.path.dirname(save_result_path)
             if output_dir:
                 os.makedirs(output_dir, exist_ok=True)
             with torch.no_grad():
+                num_frames = self.seconds_map[seconds] if seconds is not None else 300
                 tiling_config = TilingConfig.default()
-                video_chunks_number = get_video_chunks_number(300, tiling_config)
+                video_chunks_number = get_video_chunks_number(num_frames, tiling_config)
 
                 video, audio = self.pipeline(
                     prompt=prompt,
@@ -53,7 +59,7 @@ class LTX_2_Pipeline:
                     seed=seed,
                     height=1088,
                     width=1920,
-                    num_frames=300,
+                    num_frames=num_frames,
                     frame_rate=25.0,
                     num_inference_steps=40,
                     images=[ImageConditioningInput(image, 0, 1.0)] if image is not None else [],
