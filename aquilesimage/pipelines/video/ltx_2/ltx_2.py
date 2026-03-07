@@ -7,6 +7,7 @@ try:
     from ltx_core.model.video_vae import TilingConfig, get_video_chunks_number
     from ltx_core.loader import LoraPathStrengthAndSDOps, LTXV_LORA_COMFY_RENAMING_MAP
     from ltx_core.components.guiders import MultiModalGuiderParams
+    from ltx_pipelines.utils.args import ImageConditioningInput
 except ImportError as e:
     print("Error importing components for LTX-2")
     pass
@@ -56,7 +57,7 @@ class LTX_2_Pipeline:
                     num_frames=300,
                     frame_rate=25.0,
                     num_inference_steps=40,
-                    images=[(image, 0, 1.0)] if image is not None else [],
+                    images=[ImageConditioningInput(image, 0, 1.0)] if image is not None else [],
                     video_guider_params=MultiModalGuiderParams(
                         cfg_scale=3.0,
                         stg_scale=1.0,
