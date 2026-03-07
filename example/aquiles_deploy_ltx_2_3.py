@@ -43,7 +43,7 @@ hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=Tru
 aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=True)
 aquiles_video_vol = modal.Volume.from_name("aquiles-video-cache", create_if_missing=True)
 
-app = modal.App("aquiles-image-server-ltx-2")
+app = modal.App("aquiles-image-server-ltx-2.3")
  
 N_GPU = 1
 MINUTES = 60
