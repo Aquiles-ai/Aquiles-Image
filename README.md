@@ -125,7 +125,7 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 
 > **\* Note on FLUX.2-dev**: Requires NVIDIA H200.
 
-### Text-to-Video (`/videos`)
+### Text-to-Video and Image-to-Video (Only LTX-2/LTX-2.3 accept T2V and I2V, other models only accept T2V) (`/videos`)
 
 #### Wan2.2 Series
 - `Wan-AI/Wan2.2-T2V-A14B` (High quality, 40 steps - start with `--model "wan2.2"`)
@@ -149,11 +149,12 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `Aquiles-ai/HunyuanVideo-1.5-720p` (50 steps - start with `--model "hunyuanVideo-1.5-720p"`)
 - `Aquiles-ai/HunyuanVideo-1.5-720p-fp8` (50 steps, FP8 optimized - start with `--model "hunyuanVideo-1.5-720p-fp8"`)
 
-#### LTX-2 (Joint Audio-Visual Generation)
+#### LTX-2/LTX-2.3 (Joint Audio-Visual Generation)
 
-- `Lightricks/ltx-2-19b-dev` (40 steps - start with `--model "ltx-2"`)
+- `Lightricks/LTX-2` (40 steps - start with `--model "ltx-2"`)
+- `Lightricks/LTX-2.3` (40 steps - start with `--model "ltx-2.3"`)
 
-> **Special Features**: LTX-2 is the first **open-source** model supporting synchronized audio-video generation in a single model, comparable to closed models like [Sora-2](https://openai.com/index/sora-2/) and [Veo 3.1](https://gemini.google/cl/overview/video-generation/). Additionally, LTX-2 supports **image input as the first frame** of the video — pass a reference image via `input_reference` to guide the visual starting point of the generation. For best results with this model, please follow the [prompts guide](https://ltx.io/model/model-blog/prompting-guide-for-ltx-2) provided by the Lightricks team.
+> **Special Features**: LTX-2/LTX-2.3 are the first **open-sources** models supporting synchronized audio-video generation in a single model, comparable to closed models like [Sora-2](https://openai.com/index/sora-2/) and [Veo 3.1](https://gemini.google/cl/overview/video-generation/). Additionally, LTX-2 supports **image input as the first frame** of the video — pass a reference image via `input_reference` to guide the visual starting point of the generation. For best results with this model, please follow the [prompts guide](https://ltx.io/model/model-blog/prompting-guide-for-ltx-2) provided by the Lightricks team.
 
 **Image-to-Video example:**
 

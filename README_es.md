@@ -125,7 +125,7 @@ print(f"Image URL: {result.data[0].url}")
 
 > **\* Nota sobre FLUX.2-dev**: Requiere NVIDIA H200.
 
-### Texto a Video (`/videos`)
+### Texto a Video y Imagen a Video (Solo LTX-2/LTX-2.3 aceptan T2V y I2V, los demás modelos solo T2V) (`/videos`)
 
 #### Serie Wan2.2
 - `Wan-AI/Wan2.2-T2V-A14B` (Alta calidad, 40 pasos - inicia con `--model "wan2.2"`)
@@ -149,11 +149,12 @@ print(f"Image URL: {result.data[0].url}")
 - `Aquiles-ai/HunyuanVideo-1.5-720p` (50 pasos - inicia con `--model "hunyuanVideo-1.5-720p"`)
 - `Aquiles-ai/HunyuanVideo-1.5-720p-fp8` (50 pasos, optimizado con FP8 - inicia con `--model "hunyuanVideo-1.5-720p-fp8"`)
 
-#### LTX-2 (Generación conjunta de audio y video)
+#### LTX-2/LTX-2.3 (Generación conjunta de audio y video)
 
-- `Lightricks/ltx-2-19b-dev` (40 pasos - inicia con `--model "ltx-2"`)
+- `Lightricks/LTX-2` (40 steps - start with `--model "ltx-2"`)
+- `Lightricks/LTX-2.3` (40 steps - start with `--model "ltx-2.3"`)
 
-> **Características especiales**: LTX-2 es el primer modelo **open-source** que soporta generación sincronizada de audio y video en un único modelo, comparable a modelos cerrados como [Sora-2](https://openai.com/index/sora-2/) y [Veo 3.1](https://gemini.google/cl/overview/video-generation/). Además, LTX-2 soporta **imagen de entrada como primer fotograma** del video — pasa una imagen de referencia mediante `input_reference` para guiar el punto de partida visual de la generación. Para mejores resultados con este modelo, consulta la [guía de prompts](https://ltx.io/model/model-blog/prompting-guide-for-ltx-2) proporcionada por el equipo de Lightricks.
+> **Características especiales**: LTX-2/LTX-2.3 son los primeros modelos **open-source** que soporta generación sincronizada de audio y video en un único modelo, comparable a modelos cerrados como [Sora-2](https://openai.com/index/sora-2/) y [Veo 3.1](https://gemini.google/cl/overview/video-generation/). Además, LTX-2 soporta **imagen de entrada como primer fotograma** del video — pasa una imagen de referencia mediante `input_reference` para guiar el punto de partida visual de la generación. Para mejores resultados con este modelo, consulta la [guía de prompts](https://ltx.io/model/model-blog/prompting-guide-for-ltx-2) proporcionada por el equipo de Lightricks.
 
 **Ejemplo de imagen a video:**
 
