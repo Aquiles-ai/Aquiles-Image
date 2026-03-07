@@ -3,7 +3,6 @@ from typing import Literal
 try:
     from ltx_pipelines.ti2vid_two_stages import TI2VidTwoStagesPipeline
     from ltx_pipelines.utils.media_io import encode_video
-    from ltx_pipelines.utils.constants import AUDIO_SAMPLE_RATE
     from ltx_core.model.video_vae import TilingConfig, get_video_chunks_number
     from ltx_core.loader import LoraPathStrengthAndSDOps, LTXV_LORA_COMFY_RENAMING_MAP
     from ltx_core.components.guiders import MultiModalGuiderParams
@@ -82,7 +81,6 @@ class LTX_2_Pipeline:
                     video=video,
                     fps=25.0,
                     audio=audio,
-                    audio_sample_rate=AUDIO_SAMPLE_RATE,
                     output_path=save_result_path,
                     video_chunks_number=video_chunks_number,
                 )
