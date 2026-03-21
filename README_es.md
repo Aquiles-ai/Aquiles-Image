@@ -110,6 +110,7 @@ print(f"Image URL: {result.data[0].url}")
 - `black-forest-labs/FLUX.2-klein-9B`
 - `zai-org/GLM-Image` - (Este modelo suele ser el más lento de ejecutar en términos relativos)
 - `Tongyi-MAI/Z-Image`
+- `black-forest-labs/FLUX.2-klein-9b-kv`
 
 ### Imagen a Imagen (`/images/edits`)
 
@@ -121,6 +122,7 @@ print(f"Image URL: {result.data[0].url}")
 - `Qwen/Qwen-Image-Edit-2511` - Soporta edición de múltiples imágenes. Máximo 3 imágenes de entrada.
 - `black-forest-labs/FLUX.2-klein-4B` - Soporta edición de múltiples imágenes. Máximo 10 imágenes de entrada.
 - `black-forest-labs/FLUX.2-klein-9B` - Soporta edición de múltiples imágenes. Máximo 10 imágenes de entrada.
+- `black-forest-labs/FLUX.2-klein-9b-kv` - Soporta edición de múltiples imágenes. Máximo 10 imágenes de entrada.
 - `zai-org/GLM-Image` - Soporta edición de múltiples imágenes. Máximo 5 imágenes de entrada. (Este modelo suele ser el más lento de ejecutar en términos relativos)
 
 > **\* Nota sobre FLUX.2-dev**: Requiere NVIDIA H200.
