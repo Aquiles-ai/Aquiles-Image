@@ -98,7 +98,7 @@ def load_models():
         except RuntimeError as e:
             logger.info(f"Multiprocessing already configured: {e}")
 
-    flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B]
+    flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B, ImageModel.FLUX_2_KLEIN_9B_KV]
 
     max_concurrent_infer = config.get("max_concurrent_infer")
 
@@ -617,7 +617,7 @@ async def create_image_edit(
 
     if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, 
                      ImageModel.QWEN_IMAGE_EDIT_BASE, ImageModel.QWEN_IMAGE_EDIT_2511, ImageModel.QWEN_IMAGE_EDIT_2509, 
-                     ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B, ImageModel.GLM, model_name if auto_pipeline is True and auto_type == "i2i" else None]:
+                     ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B, ImageModel.GLM, model_name if auto_pipeline is True and auto_type == "i2i" else None, ImageModel.FLUX_2_KLEIN_9B_KV]:
         raise HTTPException(500, f"X Model not available")
 
     
