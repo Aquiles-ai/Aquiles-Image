@@ -98,7 +98,7 @@ def load_models():
         except RuntimeError as e:
             logger.info(f"Multiprocessing already configured: {e}")
 
-    flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B]
+    flux_models = [ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B, ImageModel.FLUX_2_KLEIN_9B_KV]
 
     max_concurrent_infer = config.get("max_concurrent_infer")
 
@@ -490,17 +490,29 @@ async def create_image(input_r: CreateImageRequest):
             device_param = initializer.device if initializer else "cuda"
 
         
-        image = await batch_pipeline.submit(
-            prompt=prompt,
-            height=h,
-            width=w,
-            num_inference_steps=steps if steps is not None else 30,
-            device=device_param,
-            timeout=600.0,
-            num_images_per_prompt=n,
-            seed=seed if seed is not None else None,
-            guidance_scale=guidance_scale_config if guidance_scale_config is not None else 4,
-        )
+        if model in [ImageModel.FLUX_2_KLEIN_9B_KV]:
+            image = await batch_pipeline.submit(
+                prompt=prompt,
+                height=h,
+                width=w,
+                num_inference_steps=steps if steps is not None else 30,
+                device=device_param,
+                timeout=600.0,
+                num_images_per_prompt=n,
+                seed=seed if seed is not None else None,
+            )
+        else:
+            image = await batch_pipeline.submit(
+                prompt=prompt,
+                height=h,
+                width=w,
+                num_inference_steps=steps if steps is not None else 30,
+                device=device_param,
+                timeout=600.0,
+                num_images_per_prompt=n,
+                seed=seed if seed is not None else None,
+                guidance_scale=guidance_scale_config if guidance_scale_config is not None else 4,
+            )
 
         if isinstance(image, list):
             output = DummyOutput(image)
@@ -617,7 +629,7 @@ async def create_image_edit(
 
     if model not in [ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, 
                      ImageModel.QWEN_IMAGE_EDIT_BASE, ImageModel.QWEN_IMAGE_EDIT_2511, ImageModel.QWEN_IMAGE_EDIT_2509, 
-                     ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B, ImageModel.GLM, model_name if auto_pipeline is True and auto_type == "i2i" else None]:
+                     ImageModel.FLUX_2_KLEIN_4B, ImageModel.FLUX_2_KLEIN_9B, ImageModel.GLM, model_name if auto_pipeline is True and auto_type == "i2i" else None, ImageModel.FLUX_2_KLEIN_9B_KV]:
         raise HTTPException(500, f"X Model not available")
 
     
@@ -719,21 +731,35 @@ async def create_image_edit(
         else:
             device_param = initializer.device if initializer else "cuda"
 
-
-        image_result = await batch_pipeline.submit(
-            prompt=prompt,
-            image=image_to_use,
-            height=h,
-            width=w,
-            num_inference_steps=steps if steps is not None else 30,
-            device=device_param,
-            timeout=600.0,
-            guidance_scale=guidance_scale_config if guidance_scale_config is not None else gd,
-            output_type="pil",
-            num_images_per_prompt=n or 1,
-            use_glm=True if model in [ ImageModel.GLM ] else False,
-            seed=seed if seed is not None else None,
-        )
+        if model in [ImageModel.FLUX_2_KLEIN_9B_KV]:
+            image_result = await batch_pipeline.submit(
+                prompt=prompt,
+                image=image_to_use,
+                height=h,
+                width=w,
+                num_inference_steps=steps if steps is not None else 30,
+                device=device_param,
+                timeout=600.0,
+                output_type="pil",
+                num_images_per_prompt=n or 1,
+                use_glm=True if model in [ ImageModel.GLM ] else False,
+                seed=seed if seed is not None else None,
+            )
+        else:
+            image_result = await batch_pipeline.submit(
+                prompt=prompt,
+                image=image_to_use,
+                height=h,
+                width=w,
+                num_inference_steps=steps if steps is not None else 30,
+                device=device_param,
+                timeout=600.0,
+                guidance_scale=guidance_scale_config if guidance_scale_config is not None else gd,
+                output_type="pil",
+                num_images_per_prompt=n or 1,
+                use_glm=True if model in [ ImageModel.GLM ] else False,
+                seed=seed if seed is not None else None,
+            )
 
         if isinstance(image_result, list):
             output = DummyOutput(image_result)

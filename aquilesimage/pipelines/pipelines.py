@@ -3,7 +3,7 @@ import logging
 from aquilesimage.models import ImageModel
 from aquilesimage.utils import setup_colored_logger
 from aquilesimage.pipelines.image.stable_diff_3_5 import PipelineSD3
-from aquilesimage.pipelines.image.flux import PipelineFlux, PipelineFlux2Klein, PipelineFlux2, PipelineFluxKontext
+from aquilesimage.pipelines.image.flux import PipelineFlux, PipelineFlux2Klein, PipelineFlux2, PipelineFluxKontext, PipelineFlux2KleinKV
 from aquilesimage.pipelines.image.z_image import PipelineZImageTurbo, PipelineZImage
 from aquilesimage.pipelines.image.qwen_image import PipelineQwenImage, PipelineQwenImageEdit
 from aquilesimage.pipelines.image.glm import PipelineGLMImage
@@ -72,6 +72,10 @@ class ModelPipelineInit:
             self.models.FLUX_2_KLEIN_9B
         ]
 
+        self.flux2_klein_kv = [
+            self.models.FLUX_2_KLEIN_9B_KV
+        ]
+
         self.glm_image = [
             self.models.GLM
         ]
@@ -105,6 +109,8 @@ class ModelPipelineInit:
             self.pipeline = PipelineGLMImage(self.model)
         elif self.model in self.z_image_base:
             self.pipeline = PipelineZImage(self.model)
+        elif self.model in self.flux2_klein_kv:
+            self.pipeline = PipelineFlux2KleinKV(self.model)
         elif self.auto_pipeline:
             if self.auto_type is not None:
                 if self.auto_type == "t2i":
