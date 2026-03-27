@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pydantic import BaseModel, Field, RootModel
 from typing import Optional, List, Literal, Union
 from enum import Enum
@@ -311,7 +312,7 @@ class ConfigsServe(BaseModel):
     lora_config_path: str | None = Field(default=None)
 
 class LoRAScaleMap(RootModel):
-    root: dict[str, Union[float, list[float], LoRAScaleMap]]
+    root: dict[str, Union[float, list[float], "LoRAScaleMap"]]
 
     def __getitem__(self, key: str):
         return self.root[key]
