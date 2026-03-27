@@ -4,13 +4,6 @@ import sys
 
 app = typer.Typer()
 
-
-@app.callback()
-def cli():
-    """A sample CLI application."""
-    pass
-
-
 @app.command("hello")
 def greet(name: str = typer.Option(..., help="Name to greet")):
     typer.echo(f"Hello, {name}!")
