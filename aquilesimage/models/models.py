@@ -1,4 +1,4 @@
-from __future__ import annotations
+#from __future__ import annotations
 from pydantic import BaseModel, Field, RootModel
 from typing import Optional, List, Literal, Union
 from enum import Enum
@@ -311,13 +311,13 @@ class ConfigsServe(BaseModel):
     load_lora: bool | None = Field(default=None)
     lora_config_path: str | None = Field(default=None)
 
-class LoRAScaleMap(RootModel):
-    root: dict[str, Union[float, list[float], "LoRAScaleMap"]]
+#class LoRAScaleMap(RootModel):
+#    root: dict[str, Union[float, list[float], "LoRAScaleMap"]]
 
-    def __getitem__(self, key: str):
-        return self.root[key]
+#    def __getitem__(self, key: str):
+#        return self.root[key]
 
-LoRAScaleMap.model_rebuild()
+#LoRAScaleMap.model_rebuild()
 
 class LoRAConfig(BaseModel):
     repo_id: str = Field(
@@ -336,7 +336,7 @@ class LoRAConfig(BaseModel):
         None,
         description="Filter which component to load the LoRA into (e.g. 'unet', 'transformer'). Uses load_lora_adapter under the hood."
     )
-    scale: Union[float, LoRAScaleMap] = Field(
+    scale: Union[float] = Field(
         1.0,
         description="Global scale (float) or per-component scale (generic map)"
     )
