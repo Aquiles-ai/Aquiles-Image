@@ -1043,7 +1043,7 @@ if allow_users:
 
     @app.get("/login", response_class=HTMLResponse, tags=["HTML"])
     async def login(request: Request):
-        return templates.TemplateResponse("login.html", {"request": request})
+        return templates.TemplateResponse(request=request, name="login.html")
 
     @app.get("/", response_class=HTMLResponse, tags=["HTML"])
     async def home(request: Request, user: str = Depends(get_current_user)):
@@ -1057,7 +1057,11 @@ if allow_users:
             else:
                 api_key = valid_keys[0]
         
-            return templates.TemplateResponse("index.html", {"request": request, "api_key": api_key})
+            return templates.TemplateResponse(
+                request=request,
+                name="index.html",
+                context={"api_key": api_key}
+            )
         except HTTPException:
             return RedirectResponse(url="/login", status_code=302)
 
