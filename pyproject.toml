@@ -33,7 +33,7 @@ dependencies = [
     "transformers",
     "sentencepiece",
     "fastapi",
-    "click>=8.0.0",
+    "typer",
     "uvicorn",
     "ftfy",
     "accelerate",
