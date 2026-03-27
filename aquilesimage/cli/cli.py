@@ -5,7 +5,6 @@ import sys
 app = typer.Typer()
 
 
-# Equivalente a @click.group() — se ejecuta antes de cualquier subcomando
 @app.callback()
 def cli():
     """A sample CLI application."""
