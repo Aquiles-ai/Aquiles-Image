@@ -307,6 +307,8 @@ class ConfigsServe(BaseModel):
     allows_users: List[AllowedUser] | None = Field(default=None)
     guidance_scale: float | None = Field(default=None)
     seed: int | None = Field(default=None)
+    load_lora: bool | None = Field(default=None)
+    lora_config_path: str | None = Field(default=None)
 
 class LoRAScaleMap(RootModel):
     root: dict[str, Union[float, list[float], LoRAScaleMap]]
