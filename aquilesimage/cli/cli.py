@@ -31,11 +31,17 @@ def serve(
     password: Optional[str] = typer.Option(None, help="Password for the playground (enables playground if set along with --username)"),
     guidance_scale: Optional[float] = typer.Option(None, help="Guidance scale value for image generation"),
     seed: Optional[int] = typer.Option(None, help="Seed for reproducible image generation"),
+    load_lora: Optional[bool] = typer.Option(None, "--load-lora/--no-load-lora", help="Enable LoRA loading from a config file"),
+    lora_config: Optional[str] = typer.Option(None, "--lora-config", help="Path to the LoRA config JSON file (relative or absolute)"),
 ):
     """Start the Aquiles-Image server."""
 
     if auto_pipeline_type is not None and auto_pipeline_type not in ("t2i", "i2i"):
         typer.echo("X Error: --auto-pipeline-type must be 't2i' or 'i2i'.", err=True)
+        raise typer.Exit(code=1)
+
+    if load_lora and lora_config is None:
+        typer.echo("X Error: --load-lora requires --lora-config to be specified.", err=True)
         raise typer.Exit(code=1)
 
     try:
@@ -102,6 +108,8 @@ def serve(
         password is not None,
         guidance_scale is not None,
         seed is not None,
+        load_lora is not None,
+        lora_config is not None,
     ])
 
     if config_needs_update:
@@ -127,7 +135,9 @@ def serve(
                 auto_pipeline_mode=auto_pipeline_type if auto_pipeline_type is not None else conf.get("auto_pipeline_mode"),
                 guidance_scale=guidance_scale if guidance_scale is not None else conf.get("guidance_scale"),
                 seed=seed if seed is not None else conf.get("seed"),
-                allows_users=_build_allowed_users(username, password, conf)
+                allows_users=_build_allowed_users(username, password, conf),
+                load_lora=load_lora if load_lora is not None else conf.get("load_lora"),
+                lora_config_path=lora_config if lora_config is not None else conf.get("lora_config_path"),
             )
 
             configs_image_serve(updated_conf, force=True)
