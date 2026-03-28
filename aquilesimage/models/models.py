@@ -1,5 +1,4 @@
-#from __future__ import annotations
-from pydantic import BaseModel, Field, RootModel
+from pydantic import BaseModel, Field
 from typing import Optional, List, Literal, Union
 from enum import Enum
 from pydantic import field_validator
@@ -311,20 +310,12 @@ class ConfigsServe(BaseModel):
     load_lora: bool | None = Field(default=None)
     lora_config_path: str | None = Field(default=None)
 
-#class LoRAScaleMap(RootModel):
-#    root: dict[str, Union[float, list[float], "LoRAScaleMap"]]
-
-#    def __getitem__(self, key: str):
-#        return self.root[key]
-
-#LoRAScaleMap.model_rebuild()
-
 class LoRAConfig(BaseModel):
     repo_id: str = Field(
         ...,
         description="HuggingFace repo ID or local path to the LoRA"
     )
-    weight_name: Optional[str] = Field(
+    weight_name: str | None = Field(
         None,
         description="Name of the weights file (.safetensors, etc.)"
     )
@@ -332,13 +323,13 @@ class LoRAConfig(BaseModel):
         ...,
         description="Name used to register the adapter in the pipeline"
     )
-    prefix: Optional[str] = Field(
+    prefix: str | None = Field(
         None,
         description="Filter which component to load the LoRA into (e.g. 'unet', 'transformer'). Uses load_lora_adapter under the hood."
     )
-    scale: Union[float] = Field(
+    scale: float | None = Field(
         1.0,
-        description="Global scale (float) or per-component scale (generic map)"
+        description="Global scale (float)"
     )
 
 class Model(BaseModel):
