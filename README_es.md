@@ -156,7 +156,7 @@ print(f"Image URL: {result.data[0].url}")
 - `Lightricks/LTX-2` (40 steps - start with `--model "ltx-2"`)
 - `Lightricks/LTX-2.3` (40 steps - start with `--model "ltx-2.3"`)
 
-> **Características especiales**: LTX-2/LTX-2.3 son los primeros modelos **open-source** que soporta generación sincronizada de audio y video en un único modelo, comparable a modelos cerrados como [Sora-2](https://openai.com/index/sora-2/) y [Veo 3.1](https://gemini.google/cl/overview/video-generation/). Además, LTX-2 soporta **imagen de entrada como primer fotograma** del video — pasa una imagen de referencia mediante `input_reference` para guiar el punto de partida visual de la generación. Para mejores resultados con este modelo, consulta la [guía de prompts](https://ltx.io/model/model-blog/prompting-guide-for-ltx-2) proporcionada por el equipo de Lightricks.
+> **Características especiales**: LTX-2/LTX-2.3 son los primeros modelos **open-source** que soporta generación sincronizada de audio y video en un único modelo, comparable a modelos cerrados como [Sora-2](https://openai.com/index/sora-2/) y [Veo 3.1](https://gemini.google/cl/overview/video-generation/). Además, LTX-2 soporta **imagen de entrada como primer fotograma** del video - pasa una imagen de referencia mediante `input_reference` para guiar el punto de partida visual de la generación. Para mejores resultados con este modelo, consulta la [guía de prompts](https://ltx.io/model/model-blog/prompting-guide-for-ltx-2) proporcionada por el equipo de Lightricks.
 
 **Ejemplo de imagen a video:**
 
@@ -174,6 +174,12 @@ curl -X POST "https://TU_BASE_URL_DEPLOY/videos" \
 > **Requisitos de VRAM**: La mayoría de los modelos requieren 24GB+ de VRAM. Todos los modelos de video requieren H100/A100-80GB. Las versiones optimizadas con FP8 ofrecen mejor eficiencia de memoria.
 
 [**📖 Documentación completa de modelos**](https://aquiles-ai.github.io/aquiles-image-docs/#models) y más modelos en [**🎬 Aquiles-Studio**](https://huggingface.co/collections/Aquiles-ai/aquiles-studio)
+
+### 🔍 ¿No encuentras el modelo que buscas?
+
+Si el modelo que necesitas no está en la lista nativa, puedes ejecutar prácticamente **cualquier arquitectura** basada en Diffusers (SD 1.5, SDXL, etc.) utilizando nuestra implementación de **AutoPipeline**. 
+
+Consulta la sección de [**🧪 Funcionalidades Avanzadas**](#-funcionalidades-avanzadas) para aprender cómo desplegar cualquier modelo de Hugging Face con un solo comando.
 
 ## 💡 Ejemplos
 
