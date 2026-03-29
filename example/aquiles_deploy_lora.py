@@ -36,7 +36,7 @@ AQUILES_PORT = 5500
 LORA_PATH = "/root/.local/share/aquiles/lora.json"
 
 def genLoRA():
-    with image.imports():
+    with aquiles_image.imports():
         from aquilesimage.utils import save_lora_config
         from aquilesimage.models import LoRAConfig
 
