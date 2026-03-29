@@ -17,7 +17,8 @@ aquiles_image = (
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git@feature/Add-support-for-loading-LoRA#",
         "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl",
         "kernels",
-        "uvicorn"
+        "uvicorn",
+        "peft"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
 )

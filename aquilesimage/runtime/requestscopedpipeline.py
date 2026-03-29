@@ -229,11 +229,22 @@ class RequestScopedPipeline:
                 "_cached_hidden_states",     
                 "_name_or_path",             
                 "_class_name",              
-                "_diffusers_version",       
+                "_diffusers_version",
+                "_merged_adapters",
+                "_lora_loadable_modules",
+                "_active_adapter",
+                "fused_loras",       
             }
             logger.info("Using safe cloning strategy for generic pipeline")
         else:
-            EXCLUDE_ATTRS = {"components"}
+            EXCLUDE_ATTRS = {
+                "components", 
+                "config",
+                "_merged_adapters",
+                "_lora_loadable_modules",
+                "_active_adapter",
+                "fused_loras",
+            }
 
         for attr in attrs_to_clone:
             if attr in EXCLUDE_ATTRS:
