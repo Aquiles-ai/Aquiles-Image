@@ -11,6 +11,8 @@ from diffusers.models.auto_model import AutoModel
 from aquilesimage.utils import setup_colored_logger
 import os
 import logging
+from aquilesimage.models import LoRAConfig
+from aquilesimage.runtime import loadLoRA
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 

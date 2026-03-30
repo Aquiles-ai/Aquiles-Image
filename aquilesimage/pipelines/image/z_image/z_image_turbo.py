@@ -12,6 +12,8 @@ import logging
 import gc
 from diffusers.schedulers.scheduling_flow_match_euler_discrete import FlowMatchEulerDiscreteScheduler
 from diffusers.models.autoencoders.autoencoder_kl import AutoencoderKL
+from aquilesimage.models import LoRAConfig
+from aquilesimage.runtime import loadLoRA
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 

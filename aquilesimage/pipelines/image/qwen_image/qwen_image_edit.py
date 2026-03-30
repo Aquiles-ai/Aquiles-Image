@@ -8,6 +8,8 @@ except ImportError as e:
 from aquilesimage.utils import setup_colored_logger
 from aquilesimage.models import ImageModel
 import logging
+from aquilesimage.models import LoRAConfig
+from aquilesimage.runtime import loadLoRA
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
