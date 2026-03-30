@@ -43,6 +43,7 @@
 - **🚀 Soporte Multi-GPU** - Inferencia distribuida con balanceo de carga dinámico entre GPUs (modelos de imagen) para escalado horizontal
 - **🛠️ Excelente Experiencia de Desarrollo** - CLI simple, modo dev para pruebas, monitoreo integrado
 - **🎬 Video Avanzado** - Texto a video con las series Wan2.x y HunyuanVideo (+ variantes Turbo)
+- **🧩 Soporte de LoRA** - Carga cualquier LoRA desde HuggingFace o un path local mediante un archivo JSON de configuración, compatible con todos los modelos nativos y AutoPipeline
 
 ## 🚀 Inicio Rápido
 
@@ -230,8 +231,55 @@ aquiles-image serve \
 
 **Consideraciones:**
 - ⚠️ Inferencia más lenta que las implementaciones nativas
-- ⚠️ Sin soporte para LoRA ni adaptadores
 - ⚠️ Experimental - puede tener problemas de estabilidad
+
+### Soporte de LoRA
+
+Carga cualquier LoRA desde HuggingFace o un path local pasando un archivo JSON de configuración al iniciar el servidor. Compatible con todos los modelos de imagen nativos y AutoPipeline.
+
+**1. Crea un archivo de configuración de LoRA:**
+
+De forma manual:
+```json
+{
+  "repo_id": "brushpenbob/Flux-retro-Disney-v2",
+  "weight_name": "Flux_retro_Disney_v2.safetensors",
+  "adapter_name": "flux-retro-disney-v2",
+  "scale": 1.0
+}
+```
+
+O de forma programática usando el helper de Python:
+```python
+from aquilesimage.utils import save_lora_config
+from aquilesimage.models import LoRAConfig
+
+save_lora_config(
+    LoRAConfig(
+        repo_id="brushpenbob/Flux-retro-Disney-v2",
+        weight_name="Flux_retro_Disney_v2.safetensors",
+        adapter_name="flux-retro-disney-v2"
+    ),
+    "./lora_config.json"
+)
+```
+
+**2. Inicia el servidor con LoRA habilitado:**
+```bash
+aquiles-image serve \
+  --model "black-forest-labs/FLUX.1-dev" \
+  --load-lora \
+  --lora-config "./lora_config.json"
+```
+
+Funciona tanto en modo de dispositivo único como en modo distribuido:
+```bash
+aquiles-image serve \
+  --model "black-forest-labs/FLUX.1-dev" \
+  --load-lora \
+  --lora-config "./lora_config.json" \
+  --dist-inference
+```
 
 ### Modo Dev - Prueba Sin Cargar Modelos
 

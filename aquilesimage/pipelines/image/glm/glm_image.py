@@ -25,6 +25,8 @@ class PipelineGLMImage:
         self.proccesor: GlmImageProcessor | None = None
         self.transformer: GlmImageTransformer2DModel | None = None
         self.vae: AutoencoderKL | None = None
+        self.load_lora = load_lora
+        self.conf_lora = conf_lora
 
     def start(self):
         if torch.cuda.is_available():
@@ -61,6 +63,9 @@ class PipelineGLMImage:
                 processor=self.proccesor,
                 transformer=self.transformer,
                 vae=self.vae, device_map="cuda")
+
+            if self.load_lora:
+                loadLoRA(self.pipeline, self.conf_lora)
 
             # For now, only these optimizations are being applied, as GLM-Image has errors with FlashAttention.
 

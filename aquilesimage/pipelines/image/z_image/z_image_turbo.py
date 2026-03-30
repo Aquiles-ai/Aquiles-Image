@@ -36,6 +36,8 @@ class PipelineZImageTurbo:
         self.tokenizer: AutoTokenizer | None = None
         self.scheduler: FlowMatchEulerDiscreteScheduler | None
         self.pipelines = {}
+        self.load_lora = load_lora
+        self.conf_lora = conf_lora
 
     def start(self):
         if torch.cuda.is_available():
@@ -53,11 +55,16 @@ class PipelineZImageTurbo:
             )
                 
             self.pipeline.to("cuda")
-            self.pipeline.vae.disable_tiling()
+           
             self.load_transformer()
-            self.enable_flash_attn()
+
             self.load_scheduler()
 
+            if self.load_lora:
+                loadLoRA(self.pipeline, self.conf_lora)
+
+            self.enable_flash_attn()
+            self.pipeline.vae.disable_tiling()
             self._warmup()
 
     def enable_flash_attn(self):

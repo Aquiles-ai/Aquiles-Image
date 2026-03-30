@@ -43,6 +43,7 @@
 - **🚀 Multi-GPU Support** - Distributed inference with dynamic load balancing across GPUs (image models) for horizontal scaling
 - **🛠️ Superior DevX** - Simple CLI, dev mode for testing, built-in monitoring
 - **🎬 Advanced Video** - Text-to-video with Wan2.x and HunyuanVideo series (+ Turbo variants)
+- **🧩 LoRA Support** - Load any LoRA from HuggingFace or a local path via a simple JSON config file, compatible with all native models and AutoPipeline
 
 ## 🚀 Quick Start
 
@@ -234,8 +235,55 @@ aquiles-image serve \
 
 **Trade-offs:**
 - ⚠️ Slower inference than native implementations
-- ⚠️ No LoRA or adapter support
 - ⚠️ Experimental - may have stability issues
+
+### LoRA Support
+
+Load any LoRA from HuggingFace or a local path by passing a JSON config file at startup. Compatible with all native image models and AutoPipeline.
+
+**1. Create a LoRA config file:**
+
+Manually:
+```json
+{
+  "repo_id": "brushpenbob/Flux-retro-Disney-v2",
+  "weight_name": "Flux_retro_Disney_v2.safetensors",
+  "adapter_name": "flux-retro-disney-v2",
+  "scale": 1.0
+}
+```
+
+Or programmatically using the Python helper:
+```python
+from aquilesimage.utils import save_lora_config
+from aquilesimage.models import LoRAConfig
+
+save_lora_config(
+    LoRAConfig(
+        repo_id="brushpenbob/Flux-retro-Disney-v2",
+        weight_name="Flux_retro_Disney_v2.safetensors",
+        adapter_name="flux-retro-disney-v2"
+    ),
+    "./lora_config.json"
+)
+```
+
+**2. Start the server with LoRA enabled:**
+```bash
+aquiles-image serve \
+  --model "black-forest-labs/FLUX.1-dev" \
+  --load-lora \
+  --lora-config "./lora_config.json"
+```
+
+Works in both single-device and distributed mode:
+```bash
+aquiles-image serve \
+  --model "black-forest-labs/FLUX.1-dev" \
+  --load-lora \
+  --lora-config "./lora_config.json" \
+  --dist-inference
+```
 
 ### Dev Mode - Test Without Loading Models
 

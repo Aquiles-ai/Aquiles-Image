@@ -17,7 +17,9 @@ from aquilesimage.runtime import loadLoRA
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
 class PipelineFlux2:
-    def __init__(self, model_path: str | None = None, low_vram: bool = False, device_map: str | None = None, dist_inf: bool = False):
+    def __init__(self, model_path: str | None = None, low_vram: bool = False, 
+                device_map: str | None = None, dist_inf: bool = False,
+                load_lora: bool = False, conf_lora: LoRAConfig | None = None):
 
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.dist_inf = dist_inf
@@ -36,6 +38,8 @@ class PipelineFlux2:
         self.low_vram = low_vram
         self.device_map = device_map
         self.pipelines = {}
+        self.load_lora = load_lora
+        self.conf_lora = conf_lora
 
     def start(self):
         if torch.cuda.is_available():
@@ -72,6 +76,9 @@ class PipelineFlux2:
                     self.model_path, text_encoder=self.text_encoder, transformer=self.dit, vae=self.vae, dtype=torch.bfloat16
                 ).to(device="cuda")
 
+                if self.load_lora:
+                    loadLoRA(self.pipeline, self.conf_lora)
+
                 self.optimization()
 
     def start_low_vram(self):
@@ -89,6 +96,9 @@ class PipelineFlux2:
         self.pipeline = Flux2Pipeline.from_pretrained(
             self.model_path, text_encoder=self.text_encoder, transformer=self.dit, torch_dtype=torch.bfloat16
         )
+
+        if self.load_lora:
+            loadLoRA(self.pipeline, self.conf_lora)
 
         logger_p.info("Enabling model CPU offload...")
         self.pipeline.enable_model_cpu_offload()
@@ -147,5 +157,8 @@ class PipelineFlux2:
         self.pipeline = Flux2Pipeline.from_pretrained(
             self.model_path, text_encoder=self.text_encoder, transformer=self.dit, dtype=torch.bfloat16
         ).to(device="cuda")
+
+        if self.load_lora:
+            loadLoRA(self.pipeline, self.conf_lora)
 
         self.optimization()

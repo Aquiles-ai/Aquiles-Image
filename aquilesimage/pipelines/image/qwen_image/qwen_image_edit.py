@@ -19,6 +19,8 @@ class PipelineQwenImageEdit:
         self.model_name = model_path
         self.pipelines = {}
         self.dist_inf = dist_inf
+        self.load_lora = load_lora
+        self.conf_lora = conf_lora
 
     def start(self):
         if torch.cuda.is_available():
@@ -34,6 +36,11 @@ class PipelineQwenImageEdit:
                 ).to("cuda")
             else:
                 raise ValueError("Unsupported model")
+
+            if self.load_lora:
+                loadLoRA(self.pipeline, self.conf_lora)
+
+            
             self.optimization()
         else:
             raise ValueError("CUDA not available")

@@ -13,6 +13,8 @@ class AutoPipelineI2IDiffusers:
         self.model_name = model_path
         self.dist_inf = dist_inf
         self.pipelines = {}
+        self.load_lora = load_lora
+        self.conf_lora = conf_lora
 
     def start(self):
         if torch.cuda.is_available():
@@ -21,6 +23,10 @@ class AutoPipelineI2IDiffusers:
                 device_map="cuda", 
                 trust_remote_code=True,
                 torch_dtype=torch.bfloat16)
+            
+            if self.load_lora:
+                loadLoRA(self.pipeline, self.conf_lora)
+
             self.optimization()
 
     def optimization(self):
