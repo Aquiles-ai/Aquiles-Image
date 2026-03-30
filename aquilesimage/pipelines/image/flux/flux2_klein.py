@@ -9,11 +9,14 @@ except ImportError as e:
 from aquilesimage.utils import setup_colored_logger
 import logging
 from transformers import Qwen3ForCausalLM
+from aquilesimage.models import LoRAConfig
+from aquilesimage.runtime import loadLoRA
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
 class PipelineFlux2Klein:
-    def __init__(self, model_path: str | None = None, dist_inf: bool = False):
+    def __init__(self, model_path: str | None = None, dist_inf: bool = False,
+                load_lora: bool = False, conf_lora: LoRAConfig | None = None):
         self.model_name = model_path
         try:
             self.pipeline: Flux2KleinPipeline | None = None
@@ -25,6 +28,8 @@ class PipelineFlux2Klein:
         self.dit: Flux2Transformer2DModel | None = None
         self.vae: AutoencoderKLFlux2 | None
         self.device: str | None = None
+        self.load_lora = load_lora
+        self.conf_lora = conf_lora
 
     def start(self):
         torch._inductor.config.conv_1x1_as_mm = True
@@ -59,6 +64,9 @@ class PipelineFlux2Klein:
         self.pipeline = Flux2KleinPipeline.from_pretrained(
             self.model_name, text_encoder=self.text_encoder, transformer=self.dit, vae=self.vae, dtype=torch.bfloat16
         ).to(device="cuda")
+
+        if self.load_lora:
+            loadLoRA(self.pipeline, self.conf_lora)
 
         self.optimization()
 

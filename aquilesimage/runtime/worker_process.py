@@ -149,6 +149,17 @@ def _load_pipeline_in_worker(model_name: str, gpu_id: int, config: Dict[str, Any
     low_vram = config.get('low_vram', False)
     auto_pipeline = config.get('auto_pipeline', False)
     device_map_flux2 = config.get('device_map')
+
+    load_lora = config.get('load_lora', False)
+    lora_config_path = config.get('lora_config_path', None)
+
+    conf_lora = None
+    if load_lora and lora_config_path:
+        from aquilesimage.configs import load_lora_config
+        conf_lora = load_lora_config(lora_config_path)
+        if conf_lora is None:
+            logger.warning("LoRA config could not be loaded. Continuing without LoRA.")
+            load_lora = False
     
     logger.info(f"[Worker-{gpu_id}] Initializing pipeline...")
 
@@ -156,19 +167,25 @@ def _load_pipeline_in_worker(model_name: str, gpu_id: int, config: Dict[str, Any
         initializer = ModelPipelineInit(
             model=model_name,
             auto_pipeline=True,
-            dist_inf=False
+            dist_inf=False,
+            load_lora=load_lora,
+            conf_lora=conf_lora
         )
     elif device_map_flux2 == 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
         initializer = ModelPipelineInit(
             model=model_name,
             device_map_flux2='cuda',
-            dist_inf=False
+            dist_inf=False,
+            load_lora=load_lora,
+            conf_lora=conf_lora
         )
     else:
         initializer = ModelPipelineInit(
             model=model_name,
             low_vram=low_vram,
-            dist_inf=False
+            dist_inf=False,
+            load_lora=load_lora,
+            conf_lora=conf_lora
         )
 
     model_pipeline = initializer.initialize_pipeline()

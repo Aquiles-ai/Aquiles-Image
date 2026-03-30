@@ -3,6 +3,8 @@ from diffusers.pipelines.stable_diffusion_3.pipeline_stable_diffusion_3 import S
 from aquilesimage.utils import setup_colored_logger
 import os
 import logging
+from aquilesimage.models import LoRAConfig
+from aquilesimage.runtime import loadLoRA
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
@@ -13,6 +15,8 @@ class PipelineSD3:
         self.device: str | None = None
         self.dist_inf = dist_inf
         self.pipelines = {}
+        self.load_lora = load_lora
+        self.conf_lora = conf_lora
 
     def start(self):
         torch.set_float32_matmul_precision("high")
@@ -41,6 +45,9 @@ class PipelineSD3:
                 model_path,
                 torch_dtype=torch.float16,
             ).to(device=self.device)
+
+            if self.load_lora:
+                loadLoRA(self.pipeline, self.conf_lora)
 
             torch.cuda.empty_cache()
 

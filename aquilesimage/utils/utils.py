@@ -14,7 +14,9 @@ from PIL import Image as PILImage
 import io
 import base64
 import time
-from aquilesimage.models import VideoModels, ImageModelBase, ImageModelEdit, ImageModelHybrid
+from aquilesimage.models import VideoModels, ImageModelBase, ImageModelEdit, ImageModelHybrid, LoRAConfig
+import json
+from pathlib import Path
 
 async def getTypeModel(name: str):
     if name in VideoModels:
@@ -299,3 +301,10 @@ def _build_allowed_users(
         return conf.get("allows_users")
     
     return conf.get("allows_users")
+
+def save_lora_config(config: LoRAConfig, target_path: str | Path) -> None:
+    target_path = Path(target_path)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(target_path, "w", encoding="utf-8") as f:
+        json.dump(config.model_dump(), f, indent=4)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aquiles-image"
-version = "0.5.6"
+version = "0.6.0"
 description = "A high-performance, memory-efficient inference server for diffusion models, compatible with the OpenAI client"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -33,7 +33,7 @@ dependencies = [
     "transformers",
     "sentencepiece",
     "fastapi",
-    "click>=8.0.0",
+    "typer",
     "uvicorn",
     "ftfy",
     "accelerate",
@@ -47,7 +47,8 @@ dependencies = [
     "dm-tree",
     "pymongo",
     "pydantic-settings",
-    "PyJWT"
+    "PyJWT",
+    "peft"
 ]
 
 [project.optional-dependencies]

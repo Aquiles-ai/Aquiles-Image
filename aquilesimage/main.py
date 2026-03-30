@@ -65,9 +65,11 @@ auto_type: str | None = None
 allow_users: bool = False
 guidance_scale_config: float | None = None
 seed: int | None = None
+load_lora: bool | None = None
+lora_config_path: str | None = None
 
 def load_models():
-    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout, dist_inference, auto_type, allow_users, guidance_scale_config, seed
+    global model_pipeline, request_pipe, initializer, config, max_concurrent_infer, load_model, steps, model_name, auto_pipeline, device_map_flux2, Videomodel, batch_mode, batch_pipeline, max_batch_size, worker_sleep, batch_timeout, dist_inference, auto_type, allow_users, guidance_scale_config, seed, load_lora, lora_config_path
 
     logger.info("Loading configuration...")
     
@@ -81,6 +83,17 @@ def load_models():
     allows_users_list = config.get("allows_users")
     guidance_scale_config = config.get("guidance_scale")
     seed = config.get("seed")
+    load_lora = config.get("load_lora")
+    lora_config_path = config.get("lora_config_path")
+
+    conf_lora = None
+    if load_lora and lora_config_path:
+        from aquilesimage.configs import load_lora_config
+        conf_lora = load_lora_config(lora_config_path)
+        if conf_lora is None:
+            logger.warning("LoRA config could not be loaded. Continuing without LoRA.")
+            load_lora = False
+
     if allows_users_list and isinstance(allows_users_list, list) and len(allows_users_list) > 0:
         allow_users = True
         logger.info(f"There are users: {len(allows_users_list)} user(s) loaded")
@@ -204,11 +217,15 @@ def load_models():
                     from aquilesimage.runtime import RequestScopedPipeline
                     from aquilesimage.pipelines import ModelPipelineInit
                     if auto_pipeline is True:
-                        initializer = ModelPipelineInit(model=model_name, auto_pipeline=True, auto_type=auto_type)
+                        initializer = ModelPipelineInit(model=model_name, auto_pipeline=True, 
+                        auto_type=auto_type, load_lora=load_lora or False,
+                        conf_lora=conf_lora)
                     elif device_map_flux2 == 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
-                        initializer = ModelPipelineInit(model=model_name, device_map_flux2='cuda')
+                        initializer = ModelPipelineInit(model=model_name, device_map_flux2='cuda',
+                        load_lora=load_lora or False, conf_lora=conf_lora)
                     else:
-                        initializer = ModelPipelineInit(model=model_name)
+                        initializer = ModelPipelineInit(model=model_name,
+                        load_lora=load_lora or False, conf_lora=conf_lora)
 
                     model_pipeline = initializer.initialize_pipeline()
                     model_pipeline.start()
@@ -1043,7 +1060,7 @@ if allow_users:
 
     @app.get("/login", response_class=HTMLResponse, tags=["HTML"])
     async def login(request: Request):
-        return templates.TemplateResponse("login.html", {"request": request})
+        return templates.TemplateResponse(request=request, name="login.html")
 
     @app.get("/", response_class=HTMLResponse, tags=["HTML"])
     async def home(request: Request, user: str = Depends(get_current_user)):
@@ -1057,7 +1074,11 @@ if allow_users:
             else:
                 api_key = valid_keys[0]
         
-            return templates.TemplateResponse("index.html", {"request": request, "api_key": api_key})
+            return templates.TemplateResponse(
+                request=request,
+                name="index.html",
+                context={"api_key": api_key}
+            )
         except HTTPException:
             return RedirectResponse(url="/login", status_code=302)
 

@@ -307,6 +307,30 @@ class ConfigsServe(BaseModel):
     allows_users: List[AllowedUser] | None = Field(default=None)
     guidance_scale: float | None = Field(default=None)
     seed: int | None = Field(default=None)
+    load_lora: bool | None = Field(default=None)
+    lora_config_path: str | None = Field(default=None)
+
+class LoRAConfig(BaseModel):
+    repo_id: str = Field(
+        ...,
+        description="HuggingFace repo ID or local path to the LoRA"
+    )
+    weight_name: str | None = Field(
+        None,
+        description="Name of the weights file (.safetensors, etc.)"
+    )
+    adapter_name: str = Field(
+        ...,
+        description="Name used to register the adapter in the pipeline"
+    )
+    prefix: str | None = Field(
+        None,
+        description="Filter which component to load the LoRA into (e.g. 'unet', 'transformer'). Uses load_lora_adapter under the hood."
+    )
+    scale: float | None = Field(
+        1.0,
+        description="Global scale (float)"
+    )
 
 class Model(BaseModel):
     id: str = Field(..., description="Unique identifier of the model")

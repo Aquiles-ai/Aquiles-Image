@@ -3,17 +3,22 @@ from diffusers.pipelines.flux.pipeline_flux_kontext import FluxKontextPipeline
 from aquilesimage.utils import setup_colored_logger
 import os
 import logging
+from aquilesimage.models import LoRAConfig
+from aquilesimage.runtime import loadLoRA
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
 class PipelineFluxKontext:
-    def __init__(self, model_path: str | None = None, low_vram: bool = False, dist_inf: bool = False):
+    def __init__(self, model_path: str | None = None, low_vram: bool = False, 
+                dist_inf: bool = False, load_lora: bool = False, conf_lora: LoRAConfig | None = None):
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: FluxKontextPipeline | None = None
         self.device: str | None = None
         self.low_vram = low_vram
         self.dist_inf = dist_inf
         self.pipelines = {}
+        self.load_lora = load_lora
+        self.conf_lora = conf_lora
 
     def start(self):
         if torch.cuda.is_available():
@@ -25,6 +30,10 @@ class PipelineFluxKontext:
                 model_path,
                 torch_dtype=torch.float16,
             ).to(device=self.device)
+
+            if self.load_lora:
+                loadLoRA(self.pipeline, self.conf_lora)
+
             if self.low_vram:
                 self.pipeline.enable_model_cpu_offload()
             else:

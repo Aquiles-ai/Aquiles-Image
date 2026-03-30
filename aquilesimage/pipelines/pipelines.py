@@ -1,6 +1,6 @@
 import torch
 import logging
-from aquilesimage.models import ImageModel
+from aquilesimage.models import ImageModel, LoRAConfig
 from aquilesimage.utils import setup_colored_logger
 from aquilesimage.pipelines.image.stable_diff_3_5 import PipelineSD3
 from aquilesimage.pipelines.image.flux import PipelineFlux, PipelineFlux2Klein, PipelineFlux2, PipelineFluxKontext, PipelineFlux2KleinKV
@@ -13,7 +13,10 @@ from typing import Literal
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
 class ModelPipelineInit:
-    def __init__(self, model: str, low_vram: bool = False, auto_pipeline: bool = False, device_map_flux2: str | None = None, dist_inf: bool = False, auto_type: Literal["t2i", "i2i"] | None = None):
+    def __init__(self, model: str, low_vram: bool = False, auto_pipeline: bool = False, 
+                device_map_flux2: str | None = None, dist_inf: bool = False, 
+                auto_type: Literal["t2i", "i2i"] | None = None, load_lora: bool = False,
+                conf_lora: LoRAConfig | None = None):
         self.model = model
         self.pipeline = None
         self.device = "cuda" if torch.cuda.is_available() else "mps"
@@ -23,6 +26,8 @@ class ModelPipelineInit:
         self.device_map_flux2 = device_map_flux2
         self.dist_inf = dist_inf
         self.auto_type = auto_type
+        self.load_lora = load_lora
+        self.conf_lora = conf_lora
 
         self.models = ImageModel
 
@@ -89,7 +94,7 @@ class ModelPipelineInit:
         if self.model in self.stablediff3:
             self.pipeline = PipelineSD3(self.model, self.dist_inf)
         elif self.model in self.flux:
-            self.pipeline = PipelineFlux(self.model, self.low_vram, False, self.dist_inf)
+            self.pipeline = PipelineFlux(self.model, self.low_vram, False, self.dist_inf, self.load_lora, self.conf_lora)
         elif self.model in self.z_image:
             self.pipeline = PipelineZImageTurbo(self.model, self.dist_inf)
         elif self.model in self.flux2:

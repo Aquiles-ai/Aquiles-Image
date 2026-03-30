@@ -4,11 +4,15 @@ from aquilesimage.utils import setup_colored_logger
 import os
 import logging
 import gc
+from aquilesimage.models import LoRAConfig
+from aquilesimage.runtime import loadLoRA
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
 class PipelineFlux:
-    def __init__(self, model_path: str | None = None, low_vram: bool = False, compile_flag: bool = False, dist_inf: bool = False):
+    def __init__(self, model_path: str | None = None, low_vram: bool = False, 
+                compile_flag: bool = False, dist_inf: bool = False,
+                load_lora: bool = False, conf_lora: LoRAConfig | None = None):
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: FluxPipeline | None = None
         self.device: str | None = None
@@ -16,6 +20,8 @@ class PipelineFlux:
         self.compile_flag = compile_flag
         self.dist_inf = dist_inf
         self.pipelines = {}
+        self.load_lora = load_lora
+        self.conf_lora = conf_lora
 
     def start(self):
         if torch.cuda.is_available():
@@ -28,6 +34,9 @@ class PipelineFlux:
                 model_path,
                 torch_dtype=torch.float16,
             ).to(device=self.device)
+
+            if self.load_lora:
+                loadLoRA(self.pipeline, self.conf_lora)
 
             if self.low_vram:
                 self.pipeline.enable_model_cpu_offload()

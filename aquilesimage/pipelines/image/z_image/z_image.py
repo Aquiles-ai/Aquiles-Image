@@ -6,6 +6,8 @@ except ImportError as e:
     pass
 from aquilesimage.utils import setup_colored_logger
 import logging
+from aquilesimage.models import LoRAConfig
+from aquilesimage.runtime import loadLoRA
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
@@ -13,6 +15,8 @@ class PipelineZImage:
     def __init__(self, model_path: str):
         self.model_name = model_path
         self.pipeline: ZImagePipeline | None = None
+        self.load_lora = load_lora
+        self.conf_lora = conf_lora
 
     def start(self):
         if torch.cuda.is_available():
@@ -30,6 +34,10 @@ class PipelineZImage:
             self.pipeline = ZImagePipeline.from_pretrained(self.model_name,
                         torch_dtype=torch.bfloat16,
                         device_map="cuda")
+
+            if self.load_lora:
+                loadLoRA(self.pipeline, self.conf_lora)
+            
             self.optimization()
 
     def optimization(self):

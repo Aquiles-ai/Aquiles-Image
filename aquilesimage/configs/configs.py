@@ -4,7 +4,7 @@ import aiofiles
 import asyncio
 from pathlib import Path
 import os
-from aquilesimage.models import ConfigsServe
+from aquilesimage.models import ConfigsServe, LoRAConfig
 from typing import Dict, Any
 import time
 import threading
@@ -19,6 +19,29 @@ _cached_config: Optional[Dict[str, Any]] = None
 _cache_timestamp: float = 0
 _cache_mtime: float = 0
 
+def load_lora_config(path: str) -> LoRAConfig | None:
+    try:
+        resolved = Path(path).resolve()
+
+        if not resolved.exists():
+            logger.error(f"X LoRA config file not found: {resolved}")
+            return None
+
+        if not resolved.is_file():
+            logger.error(f"X LoRA config path is not a file: {resolved}")
+            return None
+
+        with open(resolved, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        return LoRAConfig(**data)
+
+    except json.JSONDecodeError as e:
+        logger.error(f"X Invalid JSON in LoRA config file: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"X Error loading LoRA config: {e}")
+        return None
 
 def config_file_exists() -> bool:
     return Path(AQUILES_CONFIG).exists()
