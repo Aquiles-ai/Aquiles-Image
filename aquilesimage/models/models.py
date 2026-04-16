@@ -50,6 +50,8 @@ class ImageModel(str, Enum):
 
     FLUX_2_KLEIN_9B_KV = 'black-forest-labs/FLUX.2-klein-9b-kv'
 
+    NUCLEUS_IMAGE = 'NucleusAI/Nucleus-Image'
+
 class ImageModelBase(str, Enum):
     SD3_MEDIUM = 'stabilityai/stable-diffusion-3-medium'
     SD3_5_LARGE = 'stabilityai/stable-diffusion-3.5-large'
@@ -62,6 +64,7 @@ class ImageModelBase(str, Enum):
     QWEN_IMAGE = 'Qwen/Qwen-Image'
     QWEN_IMAGE_2512 = 'Qwen/Qwen-Image-2512'
     Z_IMAGE_BASE = 'Tongyi-MAI/Z-Image'
+    NUCLEUS_IMAGE = 'NucleusAI/Nucleus-Image'
 
 class ImageModelEdit(str, Enum):
     QWEN_IMAGE_EDIT_BASE = 'Qwen/Qwen-Image-Edit'
