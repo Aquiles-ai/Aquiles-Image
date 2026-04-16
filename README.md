@@ -113,6 +113,8 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `Tongyi-MAI/Z-Image`
 - `black-forest-labs/FLUX.2-klein-9b-kv`
 - `NucleusAI/Nucleus-Image`
+- `baidu/ERNIE-Image`
+- `baidu/ERNIE-Image-Turbo`
 
 ### Image-to-Image (`/images/edits`)
 

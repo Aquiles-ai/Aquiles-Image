@@ -1,31 +1,30 @@
+
 import torch
 try:
-    from diffusers.pipelines.nucleusmoe_image.pipeline_nucleusmoe_image import NucleusMoEImagePipeline
+    from diffusers.pipelines.ernie_image.pipeline_ernie_image import ErnieImagePipeline
 except ImportError as e:
-    print("Error import NucleusMoEImagePipeline")
+    print("Error import ErnieImagePipeline")
     pass
 from aquilesimage.utils import setup_colored_logger
 import logging
-from diffusers.hooks.text_kv_cache import TextKVCacheConfig
 from aquilesimage.models import LoRAConfig
 from aquilesimage.runtime import loadLoRA
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
-class PipelineNucelusImage:
+class PipelineErnieImage:
     def __init__(self, model_path: str | None = None, dist_inf: bool = False,
                 load_lora: bool = False, conf_lora: LoRAConfig | None = None):
         self.model_name = model_path
         try:
-            self.pipeline: NucleusMoEImagePipeline | None = None
+            self.pipeline: ErnieImagePipeline | None = None
         except Exception as e:
             self.pipeline = None
-            print("Error import NucleusMoEImagePipeline")
+            print("Error import ErnieImagePipeline")
             pass
         self.device: str | None = None
         self.load_lora = load_lora
         self.conf_lora = conf_lora
-        self.cache_config = TextKVCacheConfig()
 
     def start(self):
         torch._inductor.config.conv_1x1_as_mm = True
@@ -36,12 +35,10 @@ class PipelineNucelusImage:
         torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
         torch._inductor.config.triton.cudagraphs = False
 
-        logger_p.info("Loading Nucleus-Image... (CUDA)")
+        logger_p.info(f"Loading {self.model_name}... (CUDA)")
 
-        self.pipeline = NucleusMoEImagePipeline.from_pretrained(
+        self.pipeline = ErnieImagePipeline.from_pretrained(
             self.model_name, torch_dtype=torch.bfloat16).to(device="cuda")
-
-        self.pipeline.transformer.enable_cache(self.cache_config)
 
         if self.load_lora:
             loadLoRA(self.pipeline, self.conf_lora)
