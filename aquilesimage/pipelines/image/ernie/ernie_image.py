@@ -35,7 +35,7 @@ class PipelineErnieImage:
         torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
         torch._inductor.config.triton.cudagraphs = False
 
-        logger_p.info("Loading Nucleus-Image... (CUDA)")
+        logger_p.info(f"Loading {self.model_name}... (CUDA)")
 
         self.pipeline = ErnieImagePipeline.from_pretrained(
             self.model_name, torch_dtype=torch.bfloat16).to(device="cuda")
