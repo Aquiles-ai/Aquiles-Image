@@ -112,6 +112,7 @@ print(f"Image URL: {result.data[0].url}")
 - `zai-org/GLM-Image` - (Este modelo suele ser el más lento de ejecutar en términos relativos)
 - `Tongyi-MAI/Z-Image`
 - `black-forest-labs/FLUX.2-klein-9b-kv`
+- `NucleusAI/Nucleus-Image`
 
 ### Imagen a Imagen (`/images/edits`)
 
