@@ -14,7 +14,10 @@ authors = [
 ]
 keywords = [
     "fastapi",
-    "ai", 
+    "ai",
+    "deep learning",
+    "diffusion",
+    "pytorch"
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
