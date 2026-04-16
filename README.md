@@ -112,6 +112,7 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `zai-org/GLM-Image` - (This model is usually the slowest to execute in relative terms)
 - `Tongyi-MAI/Z-Image`
 - `black-forest-labs/FLUX.2-klein-9b-kv`
+- `NucleusAI/Nucleus-Image`
 
 ### Image-to-Image (`/images/edits`)
 
