@@ -13,7 +13,7 @@ aquiles_image = (
         "git+https://github.com/huggingface/diffusers.git",
         "transformers==5.5.4",
         "tokenizers==0.22.2",
-        "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
+        "git+https://github.com/Aquiles-ai/Aquiles-Image.git@feature/add-compatibility-Nucleus-Image",
         "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl",
         "kernels"
     )
@@ -58,7 +58,9 @@ def serve():
         MODEL_NAME,
         "--set-steps", "50",
         "--api-key", "dummy-api-key",
-        "--guidance-scale", "4.0"        
+        "--guidance-scale", "4.0",
+        "--username", "root",
+        "--password", "root"   
     ]
 
     print(f"Starting Aquiles-Image with the model:{MODEL_NAME}")

@@ -39,7 +39,7 @@ class PipelineNucelusImage:
         logger_p.info("Loading Nucleus-Image... (CUDA)")
 
         self.pipeline = NucleusMoEImagePipeline.from_pretrained(
-            self.model_name, dtype=torch.bfloat16).to(device="cuda")
+            self.model_name, torch_dtype=torch.bfloat16).to(device="cuda")
 
         self.pipeline.transformer.enable_cache(self.cache_config)
 
