@@ -19,6 +19,7 @@ keywords = [
     "diffusion",
     "pytorch"
 ]
+
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
