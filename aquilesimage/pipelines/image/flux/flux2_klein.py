@@ -7,6 +7,7 @@ except ImportError as e:
     print("Error import Flux2KleinPipeline")
     pass
 from aquilesimage.utils import setup_colored_logger
+from aquilesimage.models import BasePipeline
 import logging
 from transformers import Qwen3ForCausalLM
 from aquilesimage.models import LoRAConfig
@@ -14,7 +15,7 @@ from aquilesimage.runtime import loadLoRA
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
-class PipelineFlux2Klein:
+class PipelineFlux2Klein(BasePipeline):
     def __init__(self, model_path: str | None = None, dist_inf: bool = False,
                 load_lora: bool = False, conf_lora: LoRAConfig | None = None):
         self.model_name = model_path

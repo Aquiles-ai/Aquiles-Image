@@ -6,3 +6,5 @@ from .models import (ImageModel, ResponseFormat, OutputFormat, BackgroundType, Q
                     VideoStatus, VideoContentVariant, VideoQuality, ListVideosParams, RetrieveVideoContentParams,
                     CreateVideoBody, VideoResource, VideoListResource, DeletedVideoResource, VideoPathParams, VideoModels,
                     ImageModelBase, ImageModelEdit, ImageModelHybrid, LoRAConfig)
+
+from .base_pipe import BasePipeline
