@@ -56,10 +56,11 @@ def serve():
         str(AQUILES_PORT),
         "--model",
         MODEL_NAME,
-        "--set-steps", "50",
+        "--set-steps", "4",
         "--api-key", "dummy-api-key",
         "--device-map", "cuda",
-        
+        "--username", "root", 
+        "--password", "root",
     ]
 
     print(f"Starting Aquiles-Image with the model:{MODEL_NAME}")

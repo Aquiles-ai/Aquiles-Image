@@ -5,11 +5,12 @@ import os
 import logging
 from aquilesimage.models import LoRAConfig
 from aquilesimage.runtime import loadLoRA
+from aquilesimage.models import BasePipeline
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
-class PipelineSD3:
-    def __init__(self, model_path: str | None = None, dist_inf: bool = False):
+class PipelineSD3(BasePipeline):
+    def __init__(self, model_path: str | None = None, dist_inf: bool = False, load_lora: bool = False, conf_lora: LoRAConfig | None = None):
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: StableDiffusion3Pipeline | None = None
         self.device: str | None = None
@@ -77,6 +78,9 @@ class PipelineSD3:
             ).to(device=self.device)
         else:
             raise Exception("No CUDA or MPS device available")
+
+    def optimization(self):
+        pass
 
     def enable_flash_attn(self):
         try:

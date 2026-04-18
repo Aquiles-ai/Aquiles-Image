@@ -114,17 +114,17 @@ class ModelPipelineInit:
             else:
                 self.pipeline = PipelineFlux2(self.model, False, None, self.dist_inf, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.qwen_image:
-            self.pipeline = PipelineQwenImage(self.model, self.dist_inf)
+            self.pipeline = PipelineQwenImage(self.model, self.dist_inf, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.qwen_image_edit:
-            self.pipeline = PipelineQwenImageEdit(self.model, self.dist_inf)
+            self.pipeline = PipelineQwenImageEdit(self.model, self.dist_inf, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.flux_kontext:
             self.pipeline = PipelineFluxKontext(self.model, self.low_vram, self.dist_inf, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.flux2_klein:
             self.pipeline = PipelineFlux2Klein(self.model, self.dist_inf, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.glm_image:
-            self.pipeline = PipelineGLMImage(self.model)
+            self.pipeline = PipelineGLMImage(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.z_image_base:
-            self.pipeline = PipelineZImage(self.model)
+            self.pipeline = PipelineZImage(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.flux2_klein_kv:
             self.pipeline = PipelineFlux2KleinKV(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.nucleus_image:

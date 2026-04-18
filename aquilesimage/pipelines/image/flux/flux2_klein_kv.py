@@ -11,10 +11,11 @@ import logging
 from transformers import Qwen3ForCausalLM
 from aquilesimage.models import LoRAConfig
 from aquilesimage.runtime import loadLoRA
+from aquilesimage.models import BasePipeline
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
-class PipelineFlux2KleinKV:
+class PipelineFlux2KleinKV(BasePipeline):
     def __init__(self, model_path: str | None = None, dist_inf: bool = False,
                 load_lora: bool = False, conf_lora: LoRAConfig | None = None):
         self.model_name = model_path

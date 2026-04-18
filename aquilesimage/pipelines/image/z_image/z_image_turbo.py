@@ -14,11 +14,13 @@ from diffusers.schedulers.scheduling_flow_match_euler_discrete import FlowMatchE
 from diffusers.models.autoencoders.autoencoder_kl import AutoencoderKL
 from aquilesimage.models import LoRAConfig
 from aquilesimage.runtime import loadLoRA
+from aquilesimage.models import BasePipeline
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
-class PipelineZImageTurbo:
-    def __init__(self, model_path: str | None = None, dist_inf: bool = False):
+class PipelineZImageTurbo(BasePipeline):
+    def __init__(self, model_path: str | None = None, dist_inf: bool = False,
+            load_lora: bool = False, conf_lora: LoRAConfig | None = None):
 
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.dist_inf = dist_inf

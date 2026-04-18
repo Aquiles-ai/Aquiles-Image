@@ -13,10 +13,11 @@ import os
 import logging
 from aquilesimage.models import LoRAConfig
 from aquilesimage.runtime import loadLoRA
+from aquilesimage.models import BasePipeline
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
-class PipelineFlux2:
+class PipelineFlux2(BasePipeline):
     def __init__(self, model_path: str | None = None, low_vram: bool = False, 
                 device_map: str | None = None, dist_inf: bool = False,
                 load_lora: bool = False, conf_lora: LoRAConfig | None = None):
