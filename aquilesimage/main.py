@@ -108,7 +108,6 @@ pipeline_lock = threading.Lock()
 video_task_gen: Optional[VideoTaskGeneration] = None
 
 def parse_size(size: Optional[str]) -> tuple[int, int, str]:
-    """Return (height, width, canonical_size_string)."""
     h, w = SIZE_MAP.get(size or "", (1024, 1024))
     canonical = size if size in SIZE_MAP else "1024x1024"
     return h, w, canonical

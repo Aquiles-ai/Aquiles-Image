@@ -52,7 +52,7 @@ If you find a bug, please open an [issue](https://github.com/Aquiles-ai/Aquiles-
 2. Call endpoint '...'
 3. See error
 
-## Expected Behavior
+## Expected behavior
 [What you expected to happen]
 
 ## Actual Behavior
@@ -86,6 +86,7 @@ Before adding a new model, make sure that:
 2. **It's an image model**: For now we only accept image models (Text-to-Image or Image-to-Image)
 3. **You tested the model locally**: Verify that it works correctly with your implementation
 4. **Open an issue first**: For large changes, open an issue describing which model you want to add and why
+5. **Your pipeline extends `BasePipeline`**: All pipelines must inherit from `aquilesimage.pipelines.base.BasePipeline` — see details below
 
 #### 1. Implement the Pipeline (`aquilesimage/pipelines/image/`)
 
@@ -109,18 +110,49 @@ aquilesimage/pipelines/image/
 
 **Step 1 - Create your pipeline file (`aquilesimage/pipelines/image/your_model/your_model.py`):**
 
+All pipelines **must** extend `BasePipeline`, which is located at `aquilesimage/pipelines/base.py`. This base class enforces that every pipeline implements the two required methods: `start()` and `optimization()`. If either is missing, Python will raise a `TypeError` at instantiation time.
+
+```python
+from aquilesimage.models import BasePipeline
+```
+
+`BasePipeline` is defined as:
+
+```python
+from abc import ABC, abstractmethod
+
+class BasePipeline(ABC):
+
+    def __init__(self, **kwargs):
+        self.pipeline = None
+
+    @abstractmethod
+    def start(self):
+        """Loads the model and prepares the pipeline for inference."""
+
+    @abstractmethod
+    def optimization(self):
+        """Applies the optimizations specific to each pipeline."""
+```
+
+Your pipeline class must:
+- Inherit from `BasePipeline`
+- Implement `start()` to load and initialize the model
+- Implement `optimization()` to apply optimizations (FlashAttention, QKV fusion, etc.)
+
 ```python
 from diffusers import AutoPipelineForText2Image
 import torch
 import logging
 from aquilesimage.utils import setup_colored_logger
+from aquilesimage.models import BasePipeline
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
-class PipelineYourModel:
+class PipelineYourModel(BasePipeline):
     def __init__(self, model_path: str | None = None, dist_inf: bool = False):
+        super().__init__()
         self.model_path = model_path or os.getenv("MODEL_PATH")
-        self.pipeline: AutoPipelineForText2Image | None = None
         self.device: str | None = None
         self.dist_inf = dist_inf
         self.pipelines = {}  # For distributed inference
@@ -196,6 +228,8 @@ from aquilesimage.pipelines.image.your_model.your_model import PipelineYourModel
 **Important tips:**
 - Each pipeline lives in its **own folder** inside `aquilesimage/pipelines/image/`
 - Each folder must have an `__init__.py` that exposes the pipeline class
+- **All pipelines must extend `BasePipeline`** — PRs that don't follow this will not be accepted
+- Call `super().__init__()` in your `__init__` so `self.pipeline` is initialized to `None` by default
 - Implement `start()` to load and initialize the model
 - Implement `optimization()` to apply optimizations (FlashAttention, QKV fusion, etc.)
 - Implement `enable_flash_attn()` to attempt to enable FlashAttention
@@ -223,8 +257,9 @@ except ImportError as e:
 **Example of protected initialization in the class:**
 
 ```python
-class PipelineYourModel:
+class PipelineYourModel(BasePipeline):
     def __init__(self, model_path: str | None = None, dist_inf: bool = False):
+        super().__init__()
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.dist_inf = dist_inf
         try:
@@ -470,6 +505,7 @@ Check the [`examples/`](https://github.com/Aquiles-ai/Aquiles-Image/tree/main/ex
    - [ ] I tested the model/fix locally
    - [ ] I updated the documentation (README.md)
    - [ ] I added a Modal deployment example (`examples/` folder)
+   - [ ] My pipeline extends `BasePipeline` and calls `super().__init__()`
    - [ ] Imports use try-except if the model is only in `main` of diffusers
    - [ ] Commits are descriptive
    - [ ] I followed the existing file structure
@@ -500,6 +536,7 @@ Check the [`examples/`](https://github.com/Aquiles-ai/Aquiles-Image/tree/main/ex
 - [ ] I tested locally
 - [ ] I updated the documentation
 - [ ] I added a Modal deployment example (if new model)
+- [ ] My pipeline extends `BasePipeline` and calls `super().__init__()`
 - [ ] Imports use try-except (if model only in `main` of diffusers)
 - [ ] Descriptive commits
 - [ ] I followed the project structure
@@ -529,6 +566,7 @@ For now we maintain basic standards:
 - Follow the existing file structure
 - Maintain consistency with current code
 - Comment complex sections when necessary
+- **All pipelines must extend `BasePipeline`** — this is a hard requirement, not a suggestion
 
 ## Questions?
 
