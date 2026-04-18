@@ -11,11 +11,12 @@ from aquilesimage.utils import setup_colored_logger
 import logging
 from aquilesimage.models import LoRAConfig
 from aquilesimage.runtime import loadLoRA
+from aquilesimage.models import BasePipeline
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
-class PipelineGLMImage:
-    def __init__(self, model_path: str):
+class PipelineGLMImage(BasePipeline):
+    def __init__(self, model_path: str, load_lora: bool = False, conf_lora: LoRAConfig | None = None):
         self.model_name = model_path
 
         self.pipeline: GlmImagePipeline | None = None
@@ -69,9 +70,9 @@ class PipelineGLMImage:
 
             # For now, only these optimizations are being applied, as GLM-Image has errors with FlashAttention.
 
-            self.optimize_memory_format()
+            self.optimization()
         
-    def optimize_memory_format(self):
+    def optimization(self):
         try:
             logger_p.info("channels_last memory format")
             if hasattr(self.pipeline, 'vae'):

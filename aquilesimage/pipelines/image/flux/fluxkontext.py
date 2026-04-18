@@ -5,10 +5,11 @@ import os
 import logging
 from aquilesimage.models import LoRAConfig
 from aquilesimage.runtime import loadLoRA
+from aquilesimage.models import BasePipeline
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
-class PipelineFluxKontext:
+class PipelineFluxKontext(BasePipeline):
     def __init__(self, model_path: str | None = None, low_vram: bool = False, 
                 dist_inf: bool = False, load_lora: bool = False, conf_lora: LoRAConfig | None = None):
         self.model_path = model_path or os.getenv("MODEL_PATH")
