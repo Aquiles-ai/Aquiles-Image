@@ -219,6 +219,8 @@ https://github.com/user-attachments/assets/b7104dc3-5306-4e6a-97e5-93a6c1e73f54
 
 
 
+**Beyond the output examples shown above, you can check the [Example](https://github.com/Aquiles-ai/Aquiles-Image/tree/main/example) folder where you'll find examples of how to deploy Aquiles-Image with [Modal](https://modal.com/).**
+
 ## 🧪 Advanced Features
 
 ### AutoPipeline - Run Any Diffusers Model
