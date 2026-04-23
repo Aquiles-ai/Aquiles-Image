@@ -23,7 +23,9 @@
 
 ## 🎯 What is Aquiles-Image?
 
-**Aquiles-Image** is a production-ready API server that lets you run state-of-the-art image generation models on your own infrastructure. OpenAI-compatible by design, you can switch from external services to self-hosted in under 5 minutes.
+**Aquiles-Image** is a production-ready API server that lets you run state-of-the-art image and video generation models on your own infrastructure. OpenAI-compatible by design, switch from external APIs to self-hosted in under 5 minutes with zero code changes.
+
+> External image APIs are expensive, slow, and send your data to third parties. Aquiles-Image runs on your hardware, costs nothing per request, and works with the OpenAI client you already use.
 
 ### Why Aquiles-Image?
 
@@ -467,8 +469,8 @@ The response varies depending on the model type and configuration:
 |-----|------|
 | 🚀 **AI Startups** | Build image generation features without API costs |
 | 👨‍💻 **Developers** | Prototype with multiple models using one interface |
-| 🏢 **Enterprises** | Scalable, private image AI infrastructure |
 | 🔬 **Researchers** | Experiment with cutting-edge models easily |
+| 🏢 **Enterprises** | Need a full private AI platform beyond image generation? [Check out Ishikawa](https://ishikawaai.vercel.app), deploy chat, agents, and multimodal AI entirely on your infrastructure. |
 
 
 ## 📋 Prerequisites
@@ -497,6 +499,6 @@ Please read our [**Contributing Guide**](CONTRIBUTING.md) to get started.
 
 **[⭐ Star this project](https://github.com/Aquiles-ai/Aquiles-Image)** • **[🐛 Report issues](https://github.com/Aquiles-ai/Aquiles-Image/issues)** • **[🤝 Contribute](CONTRIBUTING.md)**
 
-*Built with ❤️ for the AI community*
+*Built with ❤️ for the AI community, as part of the [Aquiles-ai](https://aquiles-ai.vercel.app) open source ecosystem.*
 
 </div>
