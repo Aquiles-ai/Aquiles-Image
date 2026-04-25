@@ -683,6 +683,38 @@ async def get_stats():
     return await batch_pipeline.get_stats()
 
 
+@app.get("/health", tags=["Stats APIs"])
+async def health_check():
+    status = "loading" if app.state.load_model is False else "ok"
+    
+    health: dict[str, Any] = {
+        "status": status,
+        "model": cfg.model_name,
+        "mode": "video" if cfg.model_name in VIDEO_MODELS else ("distributed" if cfg.dist_inference else "single-device"),
+        "timestamp": int(time.time()),
+    }
+
+    if torch.cuda.is_available():
+        try:
+            health["devices"] = [
+                {
+                    "id": f"cuda:{i}",
+                    "name": torch.cuda.get_device_name(i),
+                    "vram_total_gb": round(torch.cuda.get_device_properties(i).total_memory / 1024**3, 2),
+                    "vram_free_gb": round((torch.cuda.get_device_properties(i).total_memory - torch.cuda.memory_allocated(i)) / 1024**3, 2),
+                }
+                for i in range(torch.cuda.device_count())
+            ]
+        except Exception as e:
+            logger.error(f"X Error retrieving GPU info in health check: {e}")
+            health["devices"] = "error"
+    else:
+        health["devices"] = []
+
+    code = 200 if status == "ok" else 503
+    return JSONResponse(content=health, status_code=code)
+
+
 # Playground
 
 if cfg.allow_users:

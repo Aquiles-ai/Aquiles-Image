@@ -356,6 +356,36 @@ Once running, open `http://localhost:5500` in your browser. The playground lets 
 
 ## 📊 Monitoring & Stats
 
+### `/health` - Server Health Check
+
+A public endpoint (no API key required) designed for orchestrators like Kubernetes, Docker, Modal, etc.
+
+- Returns `200 OK` when the server is ready to accept requests
+- Returns `503 Service Unavailable` while the model is still loading
+
+```bash
+curl http://localhost:5500/health
+```
+
+```json
+{
+  "status": "ok",
+  "model": "black-forest-labs/FLUX.1-dev",
+  "mode": "single-device",
+  "timestamp": 1745623410,
+  "devices": [
+    {
+      "id": "cuda:0",
+      "name": "NVIDIA H100 80GB",
+      "vram_total_gb": 79.2,
+      "vram_free_gb": 51.4
+    }
+  ]
+}
+```
+
+### `/stats` - Real-Time Inference Metrics
+
 Aquiles-Image provides a custom `/stats` endpoint for real-time monitoring:
 
 ```python
