@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aquiles-image"
-version = "0.6.6"
+version = "0.6.7"
 description = "A high-performance, memory-efficient inference server for diffusion models, compatible with the OpenAI client"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -41,7 +41,6 @@ dependencies = [
     "uvicorn",
     "ftfy",
     "accelerate",
-    "xformers",
     "protobuf",
     "diffusers",
     "platformdirs",
@@ -61,6 +60,9 @@ dev = [
     "black",
     "isort",
     "mypy",
+]
+extras = [
+    "xformers",
 ]
 
 [project.urls]
