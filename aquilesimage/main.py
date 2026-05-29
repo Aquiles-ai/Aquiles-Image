@@ -576,15 +576,19 @@ async def serve_image(filename: str):
 @app.get("/models", response_model=ListModelsResponse,
          dependencies=[Depends(verify_api_key)], tags=["Models"])
 async def get_models():
+    return ListModelsResponse(
+        object="list",
+        data=[Model(id=f"{cfg.model_name}", object="model",
+                    created=int(datetime.now().timestamp()), owned_by="custom")]
+    )
+
+@app.get("/model/type")
+async def get_type_model():
     if cfg.auto_pipeline:
         type_model = "Image" if cfg.auto_type == "t2i" else "Edit"
     else:
         type_model = await getTypeModel(cfg.model_name)
-    return ListModelsResponse(
-        object="list",
-        data=[Model(id=f"{cfg.model_name} | {type_model}", object="model",
-                    created=int(datetime.now().timestamp()), owned_by="custom")]
-    )
+    return {"type": type_model}
 
 
 def _require_video_model():
