@@ -27,11 +27,8 @@ class Ideogram4PipelineAlwaysUpsample(Ideogram4Pipeline):
             args = ()
 
         kwargs.setdefault("prompt_upsampling", True)
-
-        if kwargs.get("guidance_scale") is not None:
-            kwargs.pop("guidance_schedule", None)
-        elif kwargs.get("guidance_schedule") is not None:
-            kwargs.pop("guidance_scale", None)
+        kwargs.pop("guidance_scale", None)
+        kwargs.setdefault("guidance_schedule", (7.0,) * 45 + (3.0,) * 3)
 
         return super().__call__(**kwargs)
 
