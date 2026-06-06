@@ -53,7 +53,7 @@ class PipelineIdeogram4(BasePipeline):
         logger_p.info("Loading Ideogram4PipelineAlwaysUpsample...")
 
         self.pipeline = Ideogram4PipelineAlwaysUpsample.from_pretrained(
-            self.model_path,
+            self.model_name,
             prompt_enhancer_head=prompt_enhancer_head,
             torch_dtype=torch.bfloat16,
         ).to("cuda")
