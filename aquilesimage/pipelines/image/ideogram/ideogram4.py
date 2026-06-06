@@ -18,6 +18,10 @@ logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 class Ideogram4PipelineAlwaysUpsample(Ideogram4Pipeline):
     def __call__(self, *args, **kwargs):
         kwargs.setdefault("prompt_upsampling", True)
+        if "guidance_scale" in kwargs and kwargs["guidance_scale"] is not None:
+            kwargs.pop("guidance_schedule", None)
+        elif "guidance_schedule" in kwargs and kwargs["guidance_schedule"] is not None:
+            kwargs.pop("guidance_scale", None)
         return super().__call__(*args, **kwargs)
 
 class PipelineIdeogram4(BasePipeline):
