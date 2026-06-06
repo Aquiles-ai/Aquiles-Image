@@ -115,6 +115,7 @@ print(f"Image URL: {result.data[0].url}")
 - `NucleusAI/Nucleus-Image`
 - `baidu/ERNIE-Image`
 - `baidu/ERNIE-Image-Turbo`
+- `ideogram-ai/ideogram-4-nf4-diffusers`
 
 ### Imagen a Imagen (`/images/edits`)
 

@@ -117,6 +117,7 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `NucleusAI/Nucleus-Image`
 - `baidu/ERNIE-Image`
 - `baidu/ERNIE-Image-Turbo`
+- `ideogram-ai/ideogram-4-nf4-diffusers`
 
 ### Image-to-Image (`/images/edits`)
 
