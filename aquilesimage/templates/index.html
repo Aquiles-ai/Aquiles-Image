@@ -812,21 +812,6 @@
     const BASE_URL = window.__AQUILES__.baseUrl;
 
     /* ── Helpers ── */
-    function parseModelType(input) {
-      if (typeof input !== 'string') return { model: '', type: null };
-      const s = input.trim();
-      if (!s) return { model: '', type: null };
-      const idx = s.lastIndexOf('|');
-      if (idx === -1) return { model: s, type: null };
-      const model = s.slice(0, idx).trim();
-      let type = s.slice(idx + 1).trim();
-      if (!type) type = null;
-      if (type) {
-        type = type.replace(/^[\[\(\{<\s]+|[\]\)\}>]+$/g, '').trim();
-        if (!type) type = null;
-      }
-      return { model, type };
-    }
 
     function normalizeType(raw) {
       if (!raw) return 'unknown';
@@ -1443,18 +1428,31 @@
       /* fetch model */
       const fetchModel = useCallback(async () => {
         try {
-          const res = await fetch(`${BASE_URL}/models`, {
-            headers: { 'Authorization': `Bearer ${API_KEY}` }
+          const [modelsRes, typeRes] = await Promise.all([
+            fetch(`${BASE_URL}/models`, {
+              headers: { 'Authorization': `Bearer ${API_KEY}` }
+            }),
+            fetch(`${BASE_URL}/model/type`)
+        ]);
+
+        if (!modelsRes.ok) throw new Error(`HTTP ${modelsRes.status}`);
+        if (!typeRes.ok)   throw new Error(`HTTP ${typeRes.status}`);
+
+        const modelsData = await modelsRes.json();
+        const typeData   = await typeRes.json();
+
+        setServerOnline(true);
+
+        let modelId = '';
+        if (modelsData.data && modelsData.data.length > 0) {
+          modelId = modelsData.data[modelsData.data.length - 1].id;
+        }
+
+          setModelInfo({
+            name: modelId,
+            type: normalizeType(typeData.type),
+            raw:  modelId
           });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          setServerOnline(true);
-          let modelId = '';
-          if (data.data && data.data.length > 0) {
-            modelId = data.data[data.data.length - 1].id;
-          }
-          const { model, type } = parseModelType(modelId);
-          setModelInfo({ name: model, type: normalizeType(type), raw: modelId });
         } catch(e) {
           console.error('X Error fetching model:', e);
           setServerOnline(false);
