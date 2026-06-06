@@ -10,6 +10,7 @@ from aquilesimage.pipelines.image.glm import PipelineGLMImage
 from aquilesimage.pipelines.image.auto import AutoPipelineDiffusers, AutoPipelineI2IDiffusers
 from aquilesimage.pipelines.image.nucleus import PipelineNucelusImage
 from aquilesimage.pipelines.image.ernie import PipelineErnieImage
+from aquilesimage.pipelines.image.ideogram4 import PipelineIdeogram4
 from typing import Literal
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
@@ -96,6 +97,10 @@ class ModelPipelineInit:
             self.models.ERNIE_IMAGE_TURBO
         ]
 
+        self.ideogram4 = [
+            self.models.IDEOGRAM4
+        ]
+
 
     def initialize_pipeline(self):
         if not self.model:
@@ -131,6 +136,8 @@ class ModelPipelineInit:
             self.pipeline = PipelineNucelusImage(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.ernie_image:
             self.pipeline = PipelineErnieImage(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
+        elif self.model in self.ideogram4:
+            self.pipeline = PipelineIdeogram4(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.auto_pipeline:
             if self.auto_type is not None:
                 if self.auto_type == "t2i":

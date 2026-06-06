@@ -51,7 +51,8 @@ dependencies = [
     "pymongo",
     "pydantic-settings",
     "PyJWT",
-    "peft"
+    "peft",
+    "outlines"
 ]
 
 [project.optional-dependencies]
