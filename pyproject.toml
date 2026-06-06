@@ -52,7 +52,7 @@ dependencies = [
     "pydantic-settings",
     "PyJWT",
     "peft",
-    "outlines"
+    "outlines[transformers]==1.3.0",
 ]
 
 [project.optional-dependencies]
