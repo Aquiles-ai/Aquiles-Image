@@ -10,7 +10,7 @@ from aquilesimage.pipelines.image.glm import PipelineGLMImage
 from aquilesimage.pipelines.image.auto import AutoPipelineDiffusers, AutoPipelineI2IDiffusers
 from aquilesimage.pipelines.image.nucleus import PipelineNucelusImage
 from aquilesimage.pipelines.image.ernie import PipelineErnieImage
-from aquilesimage.pipelines.image.ideogram4 import PipelineIdeogram4
+from aquilesimage.pipelines.image.ideogram import PipelineIdeogram4
 from typing import Literal
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
