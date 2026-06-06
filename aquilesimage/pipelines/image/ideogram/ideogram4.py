@@ -2,6 +2,7 @@ import torch
 try:
     from diffusers.pipelines.ideogram4.pipeline_ideogram4 import Ideogram4Pipeline
     from diffusers.pipelines.ideogram4.prompt_enhancer import Ideogram4PromptEnhancerHead
+    from diffusers.pipelines.ideogram4 import pipeline_ideogram4 as _ideogram4_module
 except ImportError as e:
     print("Error import Ideogram4Pipeline")
     pass
@@ -30,7 +31,12 @@ class Ideogram4PipelineAlwaysUpsample(Ideogram4Pipeline):
         kwargs.pop("guidance_scale", None)
         kwargs.setdefault("guidance_schedule", (7.0,) * 45 + (3.0,) * 3)
 
-        return super().__call__(**kwargs)
+        original = _ideogram4_module.is_outlines_available
+        _ideogram4_module.is_outlines_available = lambda: False
+        try:
+            return super().__call__(**kwargs)
+        finally:
+            _ideogram4_module.is_outlines_available = original
 
 class PipelineIdeogram4(BasePipeline):
     def __init__(self, model_path: str | None = None, dist_inf: bool = False,
