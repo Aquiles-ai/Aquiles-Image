@@ -6,6 +6,7 @@ except ImportError as e:
     print("Error import Ideogram4Pipeline")
     pass
 from aquilesimage.utils import setup_colored_logger
+import logging
 from aquilesimage.models import LoRAConfig
 from aquilesimage.runtime import loadLoRA
 from aquilesimage.models import BasePipeline
