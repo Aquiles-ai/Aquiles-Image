@@ -10,6 +10,7 @@ import logging
 from aquilesimage.models import LoRAConfig
 from aquilesimage.runtime import loadLoRA
 from aquilesimage.models import BasePipeline
+import inspect
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
@@ -17,12 +18,22 @@ logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
 class Ideogram4PipelineAlwaysUpsample(Ideogram4Pipeline):
     def __call__(self, *args, **kwargs):
+        if args:
+            sig = inspect.signature(Ideogram4Pipeline.__call__)
+            params = list(sig.parameters.keys())[1:]  # skip 'self'
+            for i, val in enumerate(args):
+                if i < len(params):
+                    kwargs[params[i]] = val
+            args = ()
+
         kwargs.setdefault("prompt_upsampling", True)
-        if "guidance_scale" in kwargs and kwargs["guidance_scale"] is not None:
+
+        if kwargs.get("guidance_scale") is not None:
             kwargs.pop("guidance_schedule", None)
-        elif "guidance_schedule" in kwargs and kwargs["guidance_schedule"] is not None:
+        elif kwargs.get("guidance_schedule") is not None:
             kwargs.pop("guidance_scale", None)
-        return super().__call__(*args, **kwargs)
+
+        return super().__call__(**kwargs)
 
 class PipelineIdeogram4(BasePipeline):
     def __init__(self, model_path: str | None = None, dist_inf: bool = False,
