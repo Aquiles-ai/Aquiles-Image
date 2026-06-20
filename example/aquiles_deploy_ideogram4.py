@@ -54,6 +54,7 @@ def serve():
         str(AQUILES_PORT),
         "--model",
         MODEL_NAME,
+        # For Ideogram 4: 12 steps - Turbo, 20 steps - Default, 48 steps - Quality
         "--set-steps", "12",
         "--api-key", "dummy-api-key",
         "--device-map", "cuda",
