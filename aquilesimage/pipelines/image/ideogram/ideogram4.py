@@ -29,7 +29,11 @@ class Ideogram4PipelineAlwaysUpsample(Ideogram4Pipeline):
 
         kwargs.setdefault("prompt_upsampling", True)
         kwargs.pop("guidance_scale", None)
-        kwargs.setdefault("guidance_schedule", (7.0,) * 45 + (3.0,) * 3)
+        if "guidance_schedule" not in kwargs:
+            num_steps = kwargs.get("num_inference_steps", 48)
+            high_steps = max(num_steps - 3, 0)
+            low_steps = num_steps - high_steps
+            kwargs["guidance_schedule"] = (7.0,) * high_steps + (3.0,) * low_steps
 
         original = _ideogram4_module.is_outlines_available
         _ideogram4_module.is_outlines_available = lambda: False
