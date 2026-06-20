@@ -12,7 +12,7 @@ aquiles_image = (
         "torch==2.9",
         "git+https://github.com/huggingface/diffusers.git",
         "transformers==5.10.2",
-        "git+https://github.com/Aquiles-ai/Aquiles-Image.git@feature/Add-compatibility-Ideogram4",
+        "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
         "bitsandbytes",
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
@@ -54,7 +54,7 @@ def serve():
         str(AQUILES_PORT),
         "--model",
         MODEL_NAME,
-        "--set-steps", "48",
+        "--set-steps", "12",
         "--api-key", "dummy-api-key",
         "--device-map", "cuda",
         "--guidance-scale", "4.0",
