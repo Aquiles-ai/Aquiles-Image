@@ -62,7 +62,7 @@ class PipelineGGUFAuto(BasePipeline):
             self.entry["base_repo"],
             transformer=transformer,
             torch_dtype=torch.bfloat16,
-        )
+        ).to("cuda")
  
         if self.load_lora:
             loadLoRA(self.pipeline, self.conf_lora)
