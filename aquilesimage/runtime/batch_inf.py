@@ -14,33 +14,6 @@ import queue
 logger = setup_colored_logger("Aquiles-Image-BatchPipeline", logging.INFO)
 
 
-class DfPipeline(Any):
-    def __call__(self, *args, **kwargs):
-        if args:
-            sig = inspect.signature(Ideogram4Pipeline.__call__)
-            params = list(sig.parameters.keys())[1:]  # skip 'self'
-            for i, val in enumerate(args):
-                if i < len(params):
-                    kwargs[params[i]] = val
-            args = ()
-        
-        seed = kwargs.pop("seed", None)
-        num_images_per_prompt = kwargs.get('num_images_per_prompt', 1)
-        logger.info(f"generate_batch - num_images_per_prompt:{num_images_per_prompt}")
-        total_images = len(prompts) * num_images_per_prompt
-        generators = []
-        for _ in range(total_images):
-            g = torch.Generator(device=device or "cuda")
-            if seed is not None:
-                g.manual_seed(seed)
-            else:
-                g.manual_seed(torch.randint(0, 10_000_000, (1,)).item())
-            generators.append(g)
-
-        kwargs["generator"] = generators
-
-        return super().__call__(**kwargs)
-
 @dataclass
 class PendingRequest:
     id: str
@@ -75,7 +48,7 @@ class PendingRequest:
 class BatchPipeline:    
     def __init__(
         self,
-        request_scoped_pipeline: DfPipeline = None,
+        request_scoped_pipeline: Any = None,
         work_queues: Optional[List[mp.Queue]] = None,
         result_queues: Optional[List[mp.Queue]] = None,
         max_batch_size: int = 4,
@@ -500,6 +473,20 @@ class BatchPipeline:
                 from fastapi.concurrency import run_in_threadpool
                 
                 def batch_infer():
+                    seed = params.get('seed', None)
+                    total_images = len(prompts) * params.get('num_images_per_prompt', 1)
+
+                    generators = []
+                    for _ in range(total_images):
+                        g = torch.Generator(device=device_to_use or "cuda")
+                        g.manual_seed(seed if seed is not None else torch.randint(0, 10_000_000, (1,)).item())
+                        generators.append(g)
+
+                    shared_params = {
+                        k: v for k, v in params.items()
+                        if k not in ['height', 'width', 'num_inference_steps', 'device',
+                            'image', 'images', 'num_images_per_prompt', 'seed']
+                    }
                     if images is not None:
                         return self.pipeline(
                             prompt=prompts,
@@ -508,8 +495,8 @@ class BatchPipeline:
                             width=params['width'],
                             num_inference_steps=params['num_inference_steps'],
                             num_images_per_prompt=params['num_images_per_prompt'],
-                            **{k: v for k, v in params.items() 
-                                if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images', 'num_images_per_prompt']}
+                            generator=generators,
+                            **shared_params
                         )
                     else:
                         return self.pipeline(
@@ -518,8 +505,8 @@ class BatchPipeline:
                             width=params['width'],
                             num_inference_steps=params['num_inference_steps'],
                             num_images_per_prompt=params['num_images_per_prompt'],
-                            **{k: v for k, v in params.items() 
-                                if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images', 'num_images_per_prompt']}
+                            generator=generators,
+                            **shared_params      
                         )
 
                 output = await run_in_threadpool(batch_infer)
