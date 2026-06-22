@@ -13,6 +13,7 @@ from aquilesimage.pipelines.image.ernie import PipelineErnieImage
 from aquilesimage.pipelines.image.ideogram import PipelineIdeogram4
 from aquilesimage.pipelines.image.gguf import PipelineGGUFAuto
 from typing import Literal
+import json
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
