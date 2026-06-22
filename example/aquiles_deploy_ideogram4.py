@@ -55,7 +55,7 @@ def serve():
         "--model",
         MODEL_NAME,
         # For Ideogram 4: 12 steps - Turbo, 20 steps - Default, 48 steps - Quality
-        "--set-steps", "12",
+        "--set-steps", "20",
         "--api-key", "dummy-api-key",
         "--device-map", "cuda",
         "--guidance-scale", "4.0",

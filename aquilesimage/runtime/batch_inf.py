@@ -473,7 +473,7 @@ class BatchPipeline:
                 def batch_infer():
                     if images is not None:
                         return self.pipeline(
-                            prompts=prompts,
+                            prompt=prompts,
                             image=images,
                             height=params['height'],
                             width=params['width'],
@@ -484,7 +484,7 @@ class BatchPipeline:
                         )
                     else:
                         return self.pipeline(
-                            prompts=prompts,
+                            prompt=prompts,
                             height=params['height'],
                             width=params['width'],
                             num_inference_steps=params['num_inference_steps'],
