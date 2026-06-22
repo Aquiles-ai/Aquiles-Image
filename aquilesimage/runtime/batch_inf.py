@@ -8,9 +8,38 @@ from aquilesimage.utils import setup_colored_logger
 import logging
 from aquilesimage.runtime.distributed_inference import DistributedCoordinator
 import torch.multiprocessing as mp
+import torch
 import queue
 
 logger = setup_colored_logger("Aquiles-Image-BatchPipeline", logging.INFO)
+
+
+class DfPipeline(Any):
+    def __call__(self, *args, **kwargs):
+        if args:
+            sig = inspect.signature(Ideogram4Pipeline.__call__)
+            params = list(sig.parameters.keys())[1:]  # skip 'self'
+            for i, val in enumerate(args):
+                if i < len(params):
+                    kwargs[params[i]] = val
+            args = ()
+        
+        seed = kwargs.pop("seed", None)
+        num_images_per_prompt = kwargs.get('num_images_per_prompt', 1)
+        logger.info(f"generate_batch - num_images_per_prompt:{num_images_per_prompt}")
+        total_images = len(prompts) * num_images_per_prompt
+        generators = []
+        for _ in range(total_images):
+            g = torch.Generator(device=device or "cuda")
+            if seed is not None:
+                g.manual_seed(seed)
+            else:
+                g.manual_seed(torch.randint(0, 10_000_000, (1,)).item())
+            generators.append(g)
+
+        kwargs["generator"] = generators
+
+        return super().__call__(**kwargs)
 
 @dataclass
 class PendingRequest:
@@ -46,7 +75,7 @@ class PendingRequest:
 class BatchPipeline:    
     def __init__(
         self,
-        request_scoped_pipeline: Any = None,
+        request_scoped_pipeline: DfPipeline = None,
         work_queues: Optional[List[mp.Queue]] = None,
         result_queues: Optional[List[mp.Queue]] = None,
         max_batch_size: int = 4,
