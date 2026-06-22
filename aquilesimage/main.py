@@ -587,7 +587,7 @@ async def get_models():
 async def get_type_model():
     if cfg.auto_pipeline:
         type_model = "Image" if cfg.auto_type == "t2i" else "Edit"
-    elif cfg.model.startswith("gguf:"):
+    elif cfg.model_name.startswith("gguf:"):
         type_model = "Hybrid"
     else:
         type_model = await getTypeModel(cfg.model_name)
