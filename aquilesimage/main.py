@@ -202,7 +202,6 @@ def _load_distributed_pipeline(cfg: AppConfig):
 
 def _load_single_pipeline(cfg: AppConfig, conf_lora):
     from aquilesimage.pipelines import ModelPipelineInit
-    from aquilesimage.runtime import RequestScopedPipeline
 
     kwargs = dict(load_lora=cfg.load_lora, conf_lora=conf_lora)
     if cfg.auto_pipeline:
@@ -215,13 +214,9 @@ def _load_single_pipeline(cfg: AppConfig, conf_lora):
     pipeline = init.initialize_pipeline()
     pipeline.start()
 
-    use_kontext = cfg.model_name == ImageModel.FLUX_1_KONTEXT_DEV
-    use_flux = cfg.model_name in FLUX_MODELS
-    rp = RequestScopedPipeline(pipeline.pipeline, use_kontext=use_kontext, use_flux=use_flux)
-
-    bp = _init_batch_pipeline(rp, [], cfg)
+    bp = _init_batch_pipeline(pipeline.pipeline, [], cfg)
     logger.info(f"Model '{cfg.model_name}' loaded successfully")
-    return pipeline, rp, init, bp
+    return pipeline, pipeline.pipeline, init, bp
 
 
 def load_models():

@@ -472,24 +472,22 @@ class BatchPipeline:
                 
                 def batch_infer():
                     if images is not None:
-                        return self.pipeline.generate_batch(
+                        return self.pipeline(
                             prompts=prompts,
                             image=images,
                             height=params['height'],
                             width=params['width'],
                             num_inference_steps=params['num_inference_steps'],
-                            device=device_to_use,
                             num_images_per_prompt=params['num_images_per_prompt'],
                             **{k: v for k, v in params.items() 
                                 if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images', 'num_images_per_prompt']}
                         )
                     else:
-                        return self.pipeline.generate_batch(
+                        return self.pipeline(
                             prompts=prompts,
                             height=params['height'],
                             width=params['width'],
                             num_inference_steps=params['num_inference_steps'],
-                            device=device_to_use,
                             num_images_per_prompt=params['num_images_per_prompt'],
                             **{k: v for k, v in params.items() 
                                 if k not in ['height', 'width', 'num_inference_steps', 'device', 'image', 'images', 'num_images_per_prompt']}
