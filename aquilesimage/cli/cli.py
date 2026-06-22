@@ -245,6 +245,67 @@ def validate():
         typer.echo(f"Configuration validation failed: {e}", err=True)
         raise typer.Exit(code=1)
 
+@app.command("gguf-download")
+def gguf_download(
+    model_id: str = typer.Option(..., help="Model ID from the Aquiles GGUF registry (e.g. 'flux1-dev-q4k')"),
+):
+    """Download a GGUF model from the Aquiles registry."""
+    try:
+        from aquilesimage.utils.gguf_utils import verify_registry, AQUILES_GGUF_REGISTRY
+        from huggingface_hub import hf_hub_download
+        import json
+    except ImportError as e:
+        typer.echo(f"X Error importing required modules: {e}", err=True)
+        raise typer.Exit(code=1)
+ 
+    try:
+        verify_registry()
+    except Exception as e:
+        typer.echo(f"Error verifying registry: {e}", err=True)
+        raise typer.Exit(code=1)
+ 
+    try:
+        with open(AQUILES_GGUF_REGISTRY, "r", encoding="utf-8") as f:
+            registry = json.load(f)
+    except Exception as e:
+        typer.echo(f"Error reading registry: {e}", err=True)
+        raise typer.Exit(code=1)
+ 
+    if model_id not in registry:
+        typer.echo(f"X Model '{model_id}' not found in registry.", err=True)
+        typer.echo(f"Available models: {', '.join(registry.keys())}")
+        raise typer.Exit(code=1)
+ 
+    entry = registry[model_id]
+ 
+    typer.echo(f"Downloading '{model_id}' from {entry['gguf_repo']}/{entry['gguf_file']}...")
+    try:
+        path = hf_hub_download(
+            repo_id=entry["gguf_repo"],
+            filename=entry["gguf_file"],
+        )
+        typer.echo(f"Downloaded to: {path}")
+    except Exception as e:
+        typer.echo(f"Error downloading GGUF file: {e}", err=True)
+        raise typer.Exit(code=1)
+ 
+ 
+@app.command("gguf-update")
+def gguf_update():
+    """Update the local Aquiles GGUF registry from HuggingFace."""
+    try:
+        from aquilesimage.utils.gguf_utils import update_registry
+    except ImportError as e:
+        typer.echo(f"Error importing required modules: {e}", err=True)
+        raise typer.Exit(code=1)
+ 
+    typer.echo("Updating GGUF registry...")
+    try:
+        update_registry()
+        typer.echo("Registry updated successfully.")
+    except Exception as e:
+        typer.echo(f"Error updating registry: {e}", err=True)
+        raise typer.Exit(code=1)
 
 def cli():
     app()

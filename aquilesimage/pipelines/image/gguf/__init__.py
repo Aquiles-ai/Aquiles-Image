@@ -1,0 +1,1 @@
+from .gguf_pipeline import PipelineGGUFAuto
