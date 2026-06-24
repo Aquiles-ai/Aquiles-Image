@@ -12,6 +12,7 @@ from aquilesimage.pipelines.image.nucleus import PipelineNucelusImage
 from aquilesimage.pipelines.image.ernie import PipelineErnieImage
 from aquilesimage.pipelines.image.ideogram import PipelineIdeogram4
 from aquilesimage.pipelines.image.gguf import PipelineGGUFAuto
+from aquilesimage.pipelines.image.krea2 import PipelineKrea2
 from typing import Literal
 import json
 
@@ -103,6 +104,10 @@ class ModelPipelineInit:
             self.models.IDEOGRAM4
         ]
 
+        self.krea2 = [
+            self.models.KREA2TURBO
+        ]
+
 
     def initialize_pipeline(self):
         if not self.model:
@@ -140,6 +145,8 @@ class ModelPipelineInit:
             self.pipeline = PipelineErnieImage(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.ideogram4:
             self.pipeline = PipelineIdeogram4(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
+        elif self.model in self.krea2:
+            self.pipeline = PipelineKrea2(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model.startswith("gguf:"):
             from aquilesimage.utils.gguf_utils import verify_registry, AQUILES_GGUF_REGISTRY
  

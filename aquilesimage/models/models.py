@@ -58,6 +58,8 @@ class ImageModel(str, Enum):
     
     IDEOGRAM4 = 'ideogram-ai/ideogram-4-nf4-diffusers'
 
+    KREA2TURBO = 'krea/Krea-2-Turbo'
+
 class ImageModelBase(str, Enum):
     SD3_MEDIUM = 'stabilityai/stable-diffusion-3-medium'
     SD3_5_LARGE = 'stabilityai/stable-diffusion-3.5-large'
@@ -74,6 +76,7 @@ class ImageModelBase(str, Enum):
     ERNIE_IMAGE = 'baidu/ERNIE-Image'
     ERNIE_IMAGE_TURBO = 'baidu/ERNIE-Image-Turbo'
     IDEOGRAM4 = 'ideogram-ai/ideogram-4-nf4-diffusers'
+    KREA2TURBO = 'krea/Krea-2-Turbo'
 
 class ImageModelEdit(str, Enum):
     QWEN_IMAGE_EDIT_BASE = 'Qwen/Qwen-Image-Edit'
