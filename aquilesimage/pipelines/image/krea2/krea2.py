@@ -45,14 +45,6 @@ class PipelineKrea2(BasePipeline):
         self.conf_lora = conf_lora
 
     def start(self):
-        torch._inductor.config.conv_1x1_as_mm = True
-        torch._inductor.config.coordinate_descent_tuning = True
-        torch._inductor.config.epilogue_fusion = False
-        torch._inductor.config.coordinate_descent_check_all_directions = True
-        torch._inductor.config.max_autotune_gemm = True
-        torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
-        torch._inductor.config.triton.cudagraphs = False
-
         self.pipeline = Krea2Pipeline.from_pretrained(self.model_name, 
                 torch_dtype=torch.bfloat16).to("cuda")
 
@@ -81,12 +73,13 @@ class PipelineKrea2(BasePipeline):
 
     def optimization(self):
         try:
-            logger_p.info("QKV projections fused")
-            self.pipeline.transformer.fuse_qkv_projections()
-            self.pipeline.vae.fuse_qkv_projections()
-            logger_p.info("Channels last memory format enabled")
-            self.pipeline.transformer.to(memory_format=torch.channels_last)
-            self.pipeline.vae.to(memory_format=torch.channels_last)
+            logger_p.info("Skip QKV projections fused & Channels last memory format enabled")
+            #logger_p.info("QKV projections fused")
+            #self.pipeline.transformer.fuse_qkv_projections()
+            #self.pipeline.vae.fuse_qkv_projections()
+            #logger_p.info("Channels last memory format enabled")
+            #self.pipeline.transformer.to(memory_format=torch.channels_last)
+            #self.pipeline.vae.to(memory_format=torch.channels_last)
             try:
                 logger_p.info("FlashAttention")
                 self.enable_flash_attn()

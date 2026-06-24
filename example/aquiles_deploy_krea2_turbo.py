@@ -13,7 +13,6 @@ aquiles_image = (
         "git+https://github.com/huggingface/diffusers.git",
         "transformers==5.10.2",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
-        "bitsandbytes",
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
 )
