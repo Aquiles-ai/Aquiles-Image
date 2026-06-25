@@ -14,21 +14,6 @@ except ImportError as e:
     logger_p.info("Error import Krea2Pipeline")
     pass
 
-class CustomKrea2Pipeline(Krea2Pipeline):
-    def __call__(self, *args, **kwargs):
-        if args:
-            sig = inspect.signature(Krea2Pipeline.__call__)
-            params = list(sig.parameters.keys())[1:]  # skip 'self'
-            for i, val in enumerate(args):
-                if i < len(params):
-                    kwargs[params[i]] = val
-            args = ()
-
-        kwargs.setdefault("guidance_scale", 0.0)
-        kwargs.setdefault("num_inference_steps", 8)
-
-        return super().__call__(**kwargs)
-
 
 class PipelineKrea2(BasePipeline):
     def __init__(self, model_path: str | None = None, dist_inf: bool = False,
@@ -36,7 +21,7 @@ class PipelineKrea2(BasePipeline):
         self.model_name = model_path
 
         try:
-            self.pipeline: CustomKrea2Pipeline | None = None
+            self.pipeline: Krea2Pipeline | None = None
         except Exception as e:
             self.pipeline = None
             logger_p.info("Error import Krea2Pipeline")
@@ -51,7 +36,7 @@ class PipelineKrea2(BasePipeline):
         if self.load_lora:
             loadLoRA(self.pipeline, self.conf_lora)
 
-        self.optimization()
+        #self.optimization()
 
 
     def enable_flash_attn(self):
