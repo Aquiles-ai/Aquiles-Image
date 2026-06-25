@@ -110,12 +110,12 @@ class ModelPipelineInit:
 
         self.krea2lora = [
             self.models.KREA2RETROANIME,
-            self.models.KREA2SUNSET
-            self.models.KREA2VINTAGE
-            self.models.KREA2RAINBOW
-            self.models.KREA2DARKB
-            self.models.KREA2DOTMA
-            self.models.KREA2KDS
+            self.models.KREA2SUNSET,
+            self.models.KREA2VINTAGE,
+            self.models.KREA2RAINBOW,
+            self.models.KREA2DARKB,
+            self.models.KREA2DOTMA,
+            self.models.KREA2KDS,
             self.models.KREA2SOFT
         ]
 
