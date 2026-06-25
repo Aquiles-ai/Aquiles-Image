@@ -430,7 +430,7 @@ async def create_image(input_r: CreateImageRequest):
         seed=cfg.seed,
     )
     if input_r.model not in [ImageModel.FLUX_2_KLEIN_9B_KV]:
-        submit_kwargs["guidance_scale"] = cfg.guidance_scale or 4
+        submit_kwargs["guidance_scale"] = cfg.guidance_scale if cfg.guidance_scale is not None else 4
 
     try:
         async with app.state.metrics_lock:
@@ -539,7 +539,7 @@ async def create_image_edit(
         seed=cfg.seed,
     )
     if model not in [ImageModel.FLUX_2_KLEIN_9B_KV]:
-        submit_kwargs["guidance_scale"] = cfg.guidance_scale or gd
+        submit_kwargs["guidance_scale"] = cfg.guidance_scale if cfg.guidance_scale is not None else gd
 
     skip_size = model == ImageModel.FLUX_1_KONTEXT_DEV
 

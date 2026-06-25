@@ -13,7 +13,6 @@ aquiles_image = (
         "git+https://github.com/huggingface/diffusers.git",
         "transformers==5.12.1",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git@feature/Add-GGUF-Support",
-        "fastapi"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
 )
