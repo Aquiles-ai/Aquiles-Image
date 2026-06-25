@@ -31,7 +31,8 @@ class PipelineKrea2(BasePipeline):
 
     def start(self):
         self.pipeline = Krea2Pipeline.from_pretrained(self.model_name, 
-                torch_dtype=torch.bfloat16).to("cuda")
+                torch_dtype=torch.bfloat16,
+                quantization_config=None).to("cuda")
 
         if self.load_lora:
             loadLoRA(self.pipeline, self.conf_lora)

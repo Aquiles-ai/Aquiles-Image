@@ -17,7 +17,8 @@ keywords = [
     "ai",
     "deep learning",
     "diffusion",
-    "pytorch"
+    "pytorch",
+    "image generation"
 ]
 
 classifiers = [

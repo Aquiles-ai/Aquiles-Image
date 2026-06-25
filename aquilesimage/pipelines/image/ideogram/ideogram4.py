@@ -77,7 +77,7 @@ class PipelineIdeogram4(BasePipeline):
         self.pipeline = Ideogram4PipelineAlwaysUpsample.from_pretrained(
             self.model_name,
             prompt_enhancer_head=prompt_enhancer_head,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=torch.bfloat16
         ).to("cuda")
 
         if self.load_lora:

@@ -2,7 +2,7 @@ import modal
 
 aquiles_image = (
     modal.Image.from_registry("nvidia/cuda:12.8.0-devel-ubuntu22.04", add_python="3.12")
-    .apt_install("git", "curl", "build-essential",)
+    .apt_install("git", "curl", "build-essential", "libgl1", "libglib2.0-0")
     .entrypoint([])
     .run_commands(
         "python -m pip install --upgrade pip",
@@ -11,8 +11,8 @@ aquiles_image = (
     .uv_pip_install(
         "torch==2.9",
         "git+https://github.com/huggingface/diffusers.git",
-        "transformers==5.10.2",
-        "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
+        "transformers==5.12.1",
+        "git+https://github.com/Aquiles-ai/Aquiles-Image.git@feature/Add-GGUF-Support",
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
 )
@@ -30,7 +30,7 @@ AQUILES_PORT = 5500
 
 @app.function(
     image=aquiles_image,
-    gpu=f"RTX-PRO-6000:{N_GPU}",
+    gpu=f"H100:{N_GPU}",
     secrets=[modal.Secret.from_name("huggingface-secret")],
     scaledown_window=6 * MINUTES, 
     timeout=20 * MINUTES,
