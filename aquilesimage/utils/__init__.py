@@ -1,2 +1,2 @@
-from .utils import Utils, setup_colored_logger, verify_api_key, create_dev_mode_response, create_dev_mode_video_response, getTypeModel, _build_allowed_users, save_lora_config
+from .utils import Utils, setup_colored_logger, verify_api_key, create_dev_mode_response, create_dev_mode_video_response, getTypeModel, _build_allowed_users, save_lora_config, _lora_conf_krea2
 from .task import VideoTaskGeneration

@@ -4,6 +4,7 @@ import logging
 from aquilesimage.models import LoRAConfig
 from aquilesimage.runtime import loadLoRA
 from aquilesimage.models import BasePipeline
+from aquilesimage.utils import _lora_conf_krea2
 import inspect
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
@@ -15,19 +16,47 @@ except ImportError as e:
     pass
 
 
-class PipelineKrea2(BasePipeline):
-    def __init__(self, model_path: str | None = None, dist_inf: bool = False,
-                load_lora: bool = False, conf_lora: LoRAConfig | None = None):
-        self.model_name = model_path
+class Krea2PipelineWithLoRA(Krea2Pipeline):
 
+    @classmethod
+    def from_pretrained(cls, pretrained_model_name_or_path, *args, **kwargs):
+        lora: str | None = kwargs.pop("lora", None)
+
+        pipeline = super().from_pretrained(pretrained_model_name_or_path, *args, **kwargs)
+        pipeline._lora_name = lora
+
+        return pipeline
+
+    def __call__(self, *args, **kwargs):
+        if args:
+            sig = inspect.signature(Krea2Pipeline.__call__)
+            params = list(sig.parameters.keys())[1:]  # skip 'self'
+            for i, val in enumerate(args):
+                if i < len(params):
+                    kwargs[params[i]] = val
+            args = ()
+
+        if self._lora_name and self._lora_name in _lora_conf_krea2:
+            trigger = _lora_conf_krea2[self._lora_name]["trigger"]
+            prompt = kwargs.get("prompt")
+
+            if isinstance(prompt, list):
+                kwargs["prompt"] = [f"{p}, {trigger}" for p in prompt]
+            elif isinstance(prompt, str):
+                kwargs["prompt"] = f"{prompt}, {trigger}"
+
+        return super().__call__(*args, **kwargs)
+
+class PipelineKrea2LoRA(BasePipeline):
+    def __init__(self, model_path: str | None = None, dist_inf: bool = False):
+        self.model_name = "krea/Krea-2-Turbo"
+        self.lora_name = model_path
         try:
-            self.pipeline: Krea2Pipeline | None = None
+            self.pipeline: Krea2PipelineWithLoRA | None = None
         except Exception as e:
             self.pipeline = None
             logger_p.info("Error import Krea2Pipeline")
             pass
-        self.load_lora = load_lora
-        self.conf_lora = conf_lora
 
     def start(self):
         from diffusers.quantizers import DiffusersAutoQuantizer
@@ -39,13 +68,16 @@ class PipelineKrea2(BasePipeline):
             self.pipeline = Krea2Pipeline.from_pretrained(
                 self.model_name,
                 torch_dtype=torch.bfloat16,
+                lora=self.lora_name
             ).to("cuda")
         finally:
             DiffusersAutoQuantizer.from_config = original_from_config
-        
 
-        if self.load_lora:
-            loadLoRA(self.pipeline, self.conf_lora)
+        wg = _lora_conf_krea2[self.lora_name]["weight_name"]
+
+        self.pipeline.transformer.load_lora_adapter(self.lora_name, wg)
+
+        self.pipeline.transformer.set_adapters("default", weights=1.0)
 
         self.optimization()
 

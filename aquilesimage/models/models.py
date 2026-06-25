@@ -60,6 +60,22 @@ class ImageModel(str, Enum):
 
     KREA2TURBO = 'krea/Krea-2-Turbo'
 
+    KREA2RETROANIME = 'krea/Krea-2-LoRA-retroanime'
+
+    KREA2SUNSET = 'krea/Krea-2-LoRA-sunsetblur'
+
+    KREA2VINTAGE = 'krea/Krea-2-LoRA-vintagetarot'
+
+    KREA2RAINBOW = 'krea/Krea-2-LoRA-rainywindow'
+
+    KREA2DARKB = 'krea/Krea-2-LoRA-darkbrush'
+
+    KREA2DOTMA = 'krea/Krea-2-LoRA-dotmatrix'
+
+    KREA2KDS = 'krea/Krea-2-LoRA-kidsdrawing'
+
+    KREA2SOFT = 'krea/Krea-2-LoRA-softwatercolor'
+
 class ImageModelBase(str, Enum):
     SD3_MEDIUM = 'stabilityai/stable-diffusion-3-medium'
     SD3_5_LARGE = 'stabilityai/stable-diffusion-3.5-large'
@@ -77,6 +93,14 @@ class ImageModelBase(str, Enum):
     ERNIE_IMAGE_TURBO = 'baidu/ERNIE-Image-Turbo'
     IDEOGRAM4 = 'ideogram-ai/ideogram-4-nf4-diffusers'
     KREA2TURBO = 'krea/Krea-2-Turbo'
+    KREA2RETROANIME = 'krea/Krea-2-LoRA-retroanime'
+    KREA2SUNSET = 'krea/Krea-2-LoRA-sunsetblur'
+    KREA2VINTAGE = 'krea/Krea-2-LoRA-vintagetarot'
+    KREA2RAINBOW = 'krea/Krea-2-LoRA-rainywindow'
+    KREA2DARKB = 'krea/Krea-2-LoRA-darkbrush'
+    KREA2DOTMA = 'krea/Krea-2-LoRA-dotmatrix'
+    KREA2KDS = 'krea/Krea-2-LoRA-kidsdrawing'
+    KREA2SOFT = 'krea/Krea-2-LoRA-softwatercolor'
 
 class ImageModelEdit(str, Enum):
     QWEN_IMAGE_EDIT_BASE = 'Qwen/Qwen-Image-Edit'
