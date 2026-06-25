@@ -76,6 +76,8 @@ class ImageModel(str, Enum):
 
     KREA2SOFT = 'krea/Krea-2-LoRA-softwatercolor'
 
+    KREA2RAW = 'krea/Krea-2-Raw'
+
 class ImageModelBase(str, Enum):
     SD3_MEDIUM = 'stabilityai/stable-diffusion-3-medium'
     SD3_5_LARGE = 'stabilityai/stable-diffusion-3.5-large'
@@ -101,6 +103,7 @@ class ImageModelBase(str, Enum):
     KREA2DOTMA = 'krea/Krea-2-LoRA-dotmatrix'
     KREA2KDS = 'krea/Krea-2-LoRA-kidsdrawing'
     KREA2SOFT = 'krea/Krea-2-LoRA-softwatercolor'
+    KREA2RAW = 'krea/Krea-2-Raw'
 
 class ImageModelEdit(str, Enum):
     QWEN_IMAGE_EDIT_BASE = 'Qwen/Qwen-Image-Edit'

@@ -105,7 +105,8 @@ class ModelPipelineInit:
         ]
 
         self.krea2 = [
-            self.models.KREA2TURBO
+            self.models.KREA2TURBO,
+            self.models.KREA2RAW
         ]
 
         self.krea2lora = [
