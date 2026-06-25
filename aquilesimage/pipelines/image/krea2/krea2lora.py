@@ -65,7 +65,7 @@ class PipelineKrea2LoRA(BasePipeline):
         DiffusersAutoQuantizer.from_config = classmethod(lambda cls, *args, **kwargs: None)
 
         try:
-            self.pipeline = Krea2Pipeline.from_pretrained(
+            self.pipeline = Krea2PipelineWithLoRA.from_pretrained(
                 self.model_name,
                 torch_dtype=torch.bfloat16,
                 lora=self.lora_name
@@ -75,7 +75,7 @@ class PipelineKrea2LoRA(BasePipeline):
 
         wg = _lora_conf_krea2[self.lora_name]["weight_name"]
 
-        self.pipeline.transformer.load_lora_adapter(self.lora_name, wg)
+        self.pipeline.transformer.load_lora_adapter(self.lora_name, weight_name=wg)
 
         self.pipeline.transformer.set_adapters("default", weights=1.0)
 
