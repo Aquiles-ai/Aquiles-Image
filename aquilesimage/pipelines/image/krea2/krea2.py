@@ -30,19 +30,18 @@ class PipelineKrea2(BasePipeline):
         self.conf_lora = conf_lora
 
     def start(self):
-        import diffusers.utils as _diffusers_utils
-    
-        original_bnb = _diffusers_utils.is_bitsandbytes_available
-        _diffusers_utils.is_bitsandbytes_available = lambda: False
-    
+        from diffusers.quantizers import DiffusersAutoQuantizer
+
+        original_from_config = DiffusersAutoQuantizer.from_config
+        DiffusersAutoQuantizer.from_config = classmethod(lambda cls, *args, **kwargs: None)
+
         try:
             self.pipeline = Krea2Pipeline.from_pretrained(
                 self.model_name,
                 torch_dtype=torch.bfloat16,
-                quantization_config=None
             ).to("cuda")
         finally:
-            _diffusers_utils.is_bitsandbytes_available = original_bnb
+            DiffusersAutoQuantizer.from_config = original_from_config
         
 
         if self.load_lora:
