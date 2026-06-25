@@ -116,6 +116,16 @@ print(f"Image URL: {result.data[0].url}")
 - `baidu/ERNIE-Image`
 - `baidu/ERNIE-Image-Turbo`
 - `ideogram-ai/ideogram-4-nf4-diffusers`
+- `krea/Krea-2-Turbo`
+- `krea/Krea-2-LoRA-retroanime`
+- `krea/Krea-2-LoRA-sunsetblur`
+- `krea/Krea-2-LoRA-vintagetarot`
+- `krea/Krea-2-LoRA-rainywindow`
+- `krea/Krea-2-LoRA-darkbrush`
+- `krea/Krea-2-LoRA-dotmatrix`
+- `krea/Krea-2-LoRA-kidsdrawing`
+- `krea/Krea-2-LoRA-softwatercolor`
+- `krea/Krea-2-Raw`
 
 ### Imagen a Imagen (`/images/edits`)
 

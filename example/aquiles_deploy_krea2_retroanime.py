@@ -12,7 +12,7 @@ aquiles_image = (
         "torch==2.9",
         "git+https://github.com/huggingface/diffusers.git",
         "transformers==5.12.1",
-        "git+https://github.com/Aquiles-ai/Aquiles-Image.git@feature/Add-GGUF-Support",
+        "git+https://github.com/Aquiles-ai/Aquiles-Image.git@",
         "torchvision"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})  

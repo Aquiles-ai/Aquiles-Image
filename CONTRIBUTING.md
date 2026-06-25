@@ -16,6 +16,7 @@ We currently accept the following types of contributions:
 
 - **Bug reports**: Help us identify and fix issues
 - **New image models**: Add support for Diffusers-compatible models
+- **GGUF registry entries**: Add validated GGUF checkpoints to the registry — no code required
 
 ### ⚠️ What we DON'T accept currently
 
@@ -471,6 +472,65 @@ result = client.images.generate(
 ```
 
 Check the [`examples/`](https://github.com/Aquiles-ai/Aquiles-Image/tree/main/examples) folder to see more existing deployment examples.
+
+### Adding GGUF Models to the Registry
+
+You can contribute GGUF support without touching any Python code — just by adding a validated entry to the registry. There are two places where the registry lives, and you can contribute to either or both:
+
+- **[`Aquiles-ai/aquiles-gguf-registry`](https://huggingface.co/datasets/Aquiles-ai/aquiles-gguf-registry)** on HuggingFace — the live registry that users pull at runtime via `aquiles-image gguf-update`. This is the primary source.
+- **[`registry.json`](https://github.com/Aquiles-ai/Aquiles-Image/blob/main/aquiles-gguf-registry/registry.json)** in this repository — kept in sync with the HuggingFace dataset and versioned alongside the code.
+
+#### Prerequisites
+
+Before submitting a new registry entry:
+
+1. The GGUF checkpoint already exists on HuggingFace (city96, QuantStack, or another public repo) — the registry does **not** host model weights.
+2. The transformer architecture is supported by `diffusers` via `from_single_file()` + `GGUFQuantizationConfig`. Check the [diffusers GGUF docs](https://huggingface.co/docs/diffusers/main/en/quantization/gguf) to confirm your target class has `FromSingleFileMixin`.
+3. You ran inference end-to-end and generated at least one image successfully with the combination you're registering.
+
+#### Registry entry format
+
+```json
+{
+  "your-model-id": {
+    "gguf_repo": "city96/FLUX.1-dev-gguf",
+    "gguf_file": "flux1-dev-Q4_K_M.gguf",
+    "base_repo": "black-forest-labs/FLUX.1-dev",
+    "transformer_cls": "diffusers.FluxTransformer2DModel",
+    "pipeline_cls": "diffusers.FluxPipeline",
+    "added_by": "your-github-username",
+    "date_added": "YYYY-MM-DD"
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `gguf_repo` | HuggingFace repo hosting the `.gguf` file (not owned by Aquiles-ai). |
+| `gguf_file` | Exact filename inside that repo. |
+| `base_repo` | HuggingFace repo for config, tokenizer, VAE, and text encoder. |
+| `transformer_cls` | `diffusers` class used for `from_single_file()`. |
+| `pipeline_cls` | `diffusers` pipeline class that assembles the final pipeline. |
+| `added_by` | Your GitHub username — for traceability. |
+| `date_added` | ISO date of when you validated the entry. |
+
+#### How to submit
+
+**Option A — HuggingFace (preferred for registry-only changes):**
+
+Open a PR directly on the [`Aquiles-ai/aquiles-gguf-registry`](https://huggingface.co/datasets/Aquiles-ai/aquiles-gguf-registry) dataset, editing `registry.json` with your new entry.
+
+**Option B — GitHub (if bundling with code changes):**
+
+Edit `aquiles-gguf-registry/registry.json` in this repo and open a PR here. Maintainers will sync both locations on merge.
+
+#### PR checklist for registry entries
+
+- [ ] I ran end-to-end inference and generated at least one image successfully.
+- [ ] The `gguf_repo` and `gguf_file` point to an existing, publicly accessible file on HuggingFace.
+- [ ] I confirmed the `transformer_cls` supports `from_single_file()` in the current `diffusers` release (not only in `main`).
+- [ ] I included any relevant limitations in an issue or PR comment (e.g., incompatible with `torch.compile`, requires specific `diffusers` version).
+- [ ] `added_by` contains my GitHub username.
 
 ## Pull Request Process
 
