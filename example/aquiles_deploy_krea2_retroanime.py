@@ -12,13 +12,13 @@ aquiles_image = (
         "torch==2.9",
         "git+https://github.com/huggingface/diffusers.git",
         "transformers==5.12.1",
-        "git+https://github.com/Aquiles-ai/Aquiles-Image.git@",
+        "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
         "torchvision"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
 )
 
-MODEL_NAME = "krea/Krea-2-LoRA-retroanime"
+MODEL_NAME = "krea/Krea-2-LoRA-dotmatrix"
 
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
 aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=True)
