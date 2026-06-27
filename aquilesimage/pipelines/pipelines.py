@@ -11,7 +11,10 @@ from aquilesimage.pipelines.image.auto import AutoPipelineDiffusers, AutoPipelin
 from aquilesimage.pipelines.image.nucleus import PipelineNucelusImage
 from aquilesimage.pipelines.image.ernie import PipelineErnieImage
 from aquilesimage.pipelines.image.ideogram import PipelineIdeogram4
+from aquilesimage.pipelines.image.gguf import PipelineGGUFAuto
+from aquilesimage.pipelines.image.krea2 import PipelineKrea2, PipelineKrea2LoRA
 from typing import Literal
+import json
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
@@ -101,6 +104,22 @@ class ModelPipelineInit:
             self.models.IDEOGRAM4
         ]
 
+        self.krea2 = [
+            self.models.KREA2TURBO,
+            self.models.KREA2RAW
+        ]
+
+        self.krea2lora = [
+            self.models.KREA2RETROANIME,
+            self.models.KREA2SUNSET,
+            self.models.KREA2VINTAGE,
+            self.models.KREA2RAINBOW,
+            self.models.KREA2DARKB,
+            self.models.KREA2DOTMA,
+            self.models.KREA2KDS,
+            self.models.KREA2SOFT
+        ]
+
 
     def initialize_pipeline(self):
         if not self.model:
@@ -138,6 +157,39 @@ class ModelPipelineInit:
             self.pipeline = PipelineErnieImage(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.ideogram4:
             self.pipeline = PipelineIdeogram4(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
+        elif self.model in self.krea2lora:
+            if self.load_lora:
+                logger_p.info("It was identified that you want to load a custom LoRA, this is not possible with this model")
+            self.pipeline = PipelineKrea2LoRA(self.model)
+        elif self.model in self.krea2:
+            self.pipeline = PipelineKrea2(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
+        elif self.model.startswith("gguf:"):
+            from aquilesimage.utils.gguf_utils import verify_registry, AQUILES_GGUF_REGISTRY
+ 
+            model_id = self.model[len("gguf:"):]
+ 
+            logger_p.info(f"GGUF model requested: '{model_id}' - verifying registry...")
+            verify_registry()
+ 
+            with open(AQUILES_GGUF_REGISTRY, "r", encoding="utf-8") as f:
+                registry = json.load(f)
+ 
+            if model_id not in registry:
+                raise ValueError(
+                    f"GGUF model '{model_id}' not found in registry. "
+                    f"Available: {list(registry.keys())}. "
+                    f"Run 'aquiles-image gguf-download --model-id {model_id}' to add it first."
+                )
+ 
+            entry = registry[model_id]
+            logger_p.info(f"Registry entry resolved for '{model_id}': {entry['gguf_repo']}/{entry['gguf_file']}")
+ 
+            self.pipeline = PipelineGGUFAuto(
+                entry=entry,
+                low_vram=self.low_vram,
+                load_lora=self.load_lora,
+                conf_lora=self.conf_lora,
+            )
         elif self.auto_pipeline:
             if self.auto_type is not None:
                 if self.auto_type == "t2i":

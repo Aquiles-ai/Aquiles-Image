@@ -1,4 +1,5 @@
 import modal
+import os
 
 aquiles_image = (
     modal.Image.from_registry("nvidia/cuda:12.8.0-devel-ubuntu22.04", add_python="3.12")
@@ -11,14 +12,15 @@ aquiles_image = (
     .uv_pip_install(
         "torch==2.9",
         "git+https://github.com/huggingface/diffusers.git",
-        "transformers==5.10.2",
-        "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
+        "transformers==5.12.1",
+        "git+https://github.com/Aquiles-ai/Aquiles-Image.git@feature/Add-GGUF-Support",
         "bitsandbytes",
+        "gguf"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
 )
 
-MODEL_NAME = "ideogram-ai/ideogram-4-nf4-diffusers"
+MODEL_NAME = "gguf:flux1-dev-q4k"
 
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
 aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=True)
@@ -31,8 +33,8 @@ AQUILES_PORT = 5500
 
 @app.function(
     image=aquiles_image,
-    gpu=f"RTX-PRO-6000:{N_GPU}",
     secrets=[modal.Secret.from_name("huggingface-secret")],
+    gpu=f"H100:{N_GPU}",
     scaledown_window=6 * MINUTES, 
     timeout=20 * MINUTES,
     volumes={
@@ -41,7 +43,7 @@ AQUILES_PORT = 5500
     },
 )
 @modal.concurrent(max_inputs=100)
-@modal.web_server(port=AQUILES_PORT, startup_timeout=20 * MINUTES)
+@modal.web_server(port=AQUILES_PORT, startup_timeout=10 * MINUTES)
 def serve():
     import subprocess
 
@@ -54,13 +56,11 @@ def serve():
         str(AQUILES_PORT),
         "--model",
         MODEL_NAME,
-        # For Ideogram 4: 12 steps - Turbo, 20 steps - Default, 48 steps - Quality
-        "--set-steps", "20",
+        "--set-steps", "30",
         "--api-key", "dummy-api-key",
         "--device-map", "cuda",
-        "--guidance-scale", "4.0",
-        "--username", "root",
-        "--password", "root"
+        "--username", "root", 
+        "--password", "root",
     ]
 
     print(f"Starting Aquiles-Image with the model:{MODEL_NAME}")

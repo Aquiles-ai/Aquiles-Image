@@ -308,3 +308,38 @@ def save_lora_config(config: LoRAConfig, target_path: str | Path) -> None:
 
     with open(target_path, "w", encoding="utf-8") as f:
         json.dump(config.model_dump(), f, indent=4)
+
+_lora_conf_krea2 = {
+    "krea/Krea-2-LoRA-retroanime": {
+        "weight_name": "retroanime.safetensors",
+        "trigger" : "Purple retro anime style"
+    },
+    "krea/Krea-2-LoRA-sunsetblur": {
+        "weight_name": "sunsetblur.safetensors",
+        "trigger" : "ethereal motion blur style"
+    },
+    "krea/Krea-2-LoRA-vintagetarot": {
+        "weight_name": "vintagetarot.safetensors",
+        "trigger" : "vintage tarot style"
+    },
+    "krea/Krea-2-LoRA-rainywindow": {
+        "weight_name": "vintagetarot.safetensors",
+        "trigger" : "rainy window style"
+    },
+    "krea/Krea-2-LoRA-darkbrush": {
+        "weight_name": "darkbrush.safetensors",
+        "trigger" : "monochrome ink wash style"
+    },
+    "krea/Krea-2-LoRA-dotmatrix": {
+        "weight_name": "dotmatrix.safetensors",
+        "trigger" : "Monochrome stippling style"
+    },
+    "krea/Krea-2-LoRA-kidsdrawing": {
+        "weight_name": "kidsdrawing.safetensors",
+        "trigger" : "naive expressive sketch style"
+    },
+    "krea/Krea-2-LoRA-softwatercolor": {
+        "weight_name": "softwatercolor.safetensors",
+        "trigger" : "Art Deco watercolor style"
+    }
+}

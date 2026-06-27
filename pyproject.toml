@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aquiles-image"
-version = "0.6.8"
+version = "0.7.0"
 description = "A high-performance, memory-efficient inference server for diffusion models, compatible with the OpenAI client"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -17,7 +17,8 @@ keywords = [
     "ai",
     "deep learning",
     "diffusion",
-    "pytorch"
+    "pytorch",
+    "image generation"
 ]
 
 classifiers = [
@@ -53,6 +54,8 @@ dependencies = [
     "PyJWT",
     "peft",
     "outlines[transformers]==1.3.0",
+    "bitsandbytes",
+    "gguf"
 ]
 
 [project.optional-dependencies]

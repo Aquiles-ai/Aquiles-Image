@@ -2,7 +2,7 @@ import modal
 
 aquiles_image = (
     modal.Image.from_registry("nvidia/cuda:12.8.0-devel-ubuntu22.04", add_python="3.12")
-    .apt_install("git", "curl", "build-essential",)
+    .apt_install("git", "curl", "build-essential", "libgl1", "libglib2.0-0")
     .entrypoint([])
     .run_commands(
         "python -m pip install --upgrade pip",
@@ -11,14 +11,13 @@ aquiles_image = (
     .uv_pip_install(
         "torch==2.9",
         "git+https://github.com/huggingface/diffusers.git",
-        "transformers==5.10.2",
+        "transformers==5.12.1",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
-        "bitsandbytes",
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
 )
 
-MODEL_NAME = "ideogram-ai/ideogram-4-nf4-diffusers"
+MODEL_NAME = "krea/Krea-2-Turbo"
 
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
 aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=True)
@@ -31,7 +30,7 @@ AQUILES_PORT = 5500
 
 @app.function(
     image=aquiles_image,
-    gpu=f"RTX-PRO-6000:{N_GPU}",
+    gpu=f"H100:{N_GPU}",
     secrets=[modal.Secret.from_name("huggingface-secret")],
     scaledown_window=6 * MINUTES, 
     timeout=20 * MINUTES,
@@ -54,11 +53,10 @@ def serve():
         str(AQUILES_PORT),
         "--model",
         MODEL_NAME,
-        # For Ideogram 4: 12 steps - Turbo, 20 steps - Default, 48 steps - Quality
-        "--set-steps", "20",
+        "--set-steps", "8",
         "--api-key", "dummy-api-key",
         "--device-map", "cuda",
-        "--guidance-scale", "4.0",
+        "--guidance-scale", "0.0",
         "--username", "root",
         "--password", "root"
     ]

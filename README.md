@@ -17,8 +17,6 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Aquiles-ai/Aquiles-Image)
 [![View Code Wiki](https://www.gstatic.com/_/boq-sdlc-agents-ui/_/r/YUi5dj2UWvE.svg)](https://codewiki.google/github.com/aquiles-ai/aquiles-image)
 
-**\[ English | [Español](README_es.md) \]**
-
 </div>
 
 ## 🎯 What is Aquiles-Image?
@@ -46,6 +44,7 @@
 - **🛠️ Superior DevX** - Simple CLI, dev mode for testing, built-in monitoring
 - **🎬 Advanced Video** - Text-to-video with Wan2.x and HunyuanVideo series (+ Turbo variants)
 - **🧩 LoRA Support** - Load any LoRA from HuggingFace or a local path via a simple JSON config file, compatible with all native models and AutoPipeline
+- **⚙️ GGUF Support** - Run quantized GGUF transformers (Q2_K, Q4_K, Q8_0…) via a curated registry — lower VRAM, same OpenAI-compatible API
 
 ## 🚀 Quick Start
 
@@ -118,6 +117,16 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `baidu/ERNIE-Image`
 - `baidu/ERNIE-Image-Turbo`
 - `ideogram-ai/ideogram-4-nf4-diffusers`
+- `krea/Krea-2-Turbo`
+- `krea/Krea-2-LoRA-retroanime`
+- `krea/Krea-2-LoRA-sunsetblur`
+- `krea/Krea-2-LoRA-vintagetarot`
+- `krea/Krea-2-LoRA-rainywindow`
+- `krea/Krea-2-LoRA-darkbrush`
+- `krea/Krea-2-LoRA-dotmatrix`
+- `krea/Krea-2-LoRA-kidsdrawing`
+- `krea/Krea-2-LoRA-softwatercolor`
+- `krea/Krea-2-Raw`
 
 ### Image-to-Image (`/images/edits`)
 
@@ -292,6 +301,52 @@ aquiles-image serve \
   --lora-config "./lora_config.json" \
   --dist-inference
 ```
+
+### GGUF Support
+ 
+Run quantized GGUF transformers natively via diffusers — lower VRAM, same API. Only the transformer is quantized; the text encoder, VAE, and tokenizer are still downloaded from the base HuggingFace repo.
+ 
+> ⚠️ `torch.compile` and `enable_sequential_cpu_offload` are not compatible with GGUF. CPU offload is applied automatically.
+ 
+**How it works:** Aquiles-Image maintains a curated registry of tested GGUF checkpoints at [`Aquiles-ai/aquiles-gguf-registry`](https://huggingface.co/datasets/Aquiles-ai/aquiles-gguf-registry) on HuggingFace. The registry maps a short model ID to the GGUF source repo, the base diffusers repo, and the exact classes needed to load it. It does **not** host model weights — it points to third-party repos (city96, QuantStack, etc.) that have already been tested end-to-end. The registry is updated incrementally as new models and quant levels are validated.
+ 
+**1. Download a GGUF model from the registry:**
+ 
+```bash
+aquiles-image gguf-download --model-id flux1-dev-q4k
+```
+ 
+This will fetch the local registry first (downloading it from HuggingFace if it doesn't exist yet), then download the `.gguf` checkpoint to the HuggingFace cache.
+ 
+**2. Start the server:**
+ 
+```bash
+aquiles-image serve --model "gguf:flux1-dev-q4k"
+```
+ 
+The `gguf:` prefix tells Aquiles-Image to resolve the model from the registry instead of the standard model list.
+ 
+**3. Update the registry** to pick up newly added models:
+ 
+```bash
+aquiles-image gguf-update
+```
+ 
+**Generate images** — the API is identical:
+ 
+```python
+from openai import OpenAI
+ 
+client = OpenAI(base_url="http://127.0.0.1:5500", api_key="not-needed")
+ 
+result = client.images.generate(
+    model="gguf:flux1-dev-q4k",
+    prompt="a white siamese cat",
+    size="1024x1024"
+)
+```
+ 
+**Currently supported architectures:** FLUX.1, SD3.5 — more being added progressively. See the full list in [`registry.json`](https://huggingface.co/datasets/Aquiles-ai/aquiles-gguf-registry/blob/main/registry.json). Want to add a model? See [Contributing GGUF entries](CONTRIBUTING.md#adding-gguf-models-to-the-registry) — no code required.
 
 ### Dev Mode - Test Without Loading Models
 

@@ -202,7 +202,6 @@ def _load_distributed_pipeline(cfg: AppConfig):
 
 def _load_single_pipeline(cfg: AppConfig, conf_lora):
     from aquilesimage.pipelines import ModelPipelineInit
-    from aquilesimage.runtime import RequestScopedPipeline
 
     kwargs = dict(load_lora=cfg.load_lora, conf_lora=conf_lora)
     if cfg.auto_pipeline:
@@ -215,13 +214,9 @@ def _load_single_pipeline(cfg: AppConfig, conf_lora):
     pipeline = init.initialize_pipeline()
     pipeline.start()
 
-    use_kontext = cfg.model_name == ImageModel.FLUX_1_KONTEXT_DEV
-    use_flux = cfg.model_name in FLUX_MODELS
-    rp = RequestScopedPipeline(pipeline.pipeline, use_kontext=use_kontext, use_flux=use_flux)
-
-    bp = _init_batch_pipeline(rp, [], cfg)
+    bp = _init_batch_pipeline(pipeline.pipeline, [], cfg)
     logger.info(f"Model '{cfg.model_name}' loaded successfully")
-    return pipeline, rp, init, bp
+    return pipeline, pipeline.pipeline, init, bp
 
 
 def load_models():
@@ -435,7 +430,7 @@ async def create_image(input_r: CreateImageRequest):
         seed=cfg.seed,
     )
     if input_r.model not in [ImageModel.FLUX_2_KLEIN_9B_KV]:
-        submit_kwargs["guidance_scale"] = cfg.guidance_scale or 4
+        submit_kwargs["guidance_scale"] = cfg.guidance_scale if cfg.guidance_scale is not None else 4
 
     try:
         async with app.state.metrics_lock:
@@ -544,7 +539,7 @@ async def create_image_edit(
         seed=cfg.seed,
     )
     if model not in [ImageModel.FLUX_2_KLEIN_9B_KV]:
-        submit_kwargs["guidance_scale"] = cfg.guidance_scale or gd
+        submit_kwargs["guidance_scale"] = cfg.guidance_scale if cfg.guidance_scale is not None else gd
 
     skip_size = model == ImageModel.FLUX_1_KONTEXT_DEV
 
@@ -587,6 +582,8 @@ async def get_models():
 async def get_type_model():
     if cfg.auto_pipeline:
         type_model = "Image" if cfg.auto_type == "t2i" else "Edit"
+    elif cfg.model_name.startswith("gguf:"):
+        type_model = "Hybrid"
     else:
         type_model = await getTypeModel(cfg.model_name)
     return {"type": type_model}
