@@ -1,0 +1,46 @@
+FROM nvidia/cuda:13.0.0-devel-ubuntu22.04
+
+ARG PYTHON_VERSION=3.12
+ARG FROM_SOURCE=false
+ARG EXTRA_DEPS=""
+ARG TORCH_VERSION=2.9
+
+RUN apt-get update && apt-get install -y \
+    git curl build-essential libgl1 libglib2.0-0 wget ffmpeg libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavfilter-dev libavdevice-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+RUN uv python install ${PYTHON_VERSION}
+ENV UV_PYTHON=${PYTHON_VERSION}
+
+ENV HF_XET_HIGH_PERFORMANCE=1
+ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+WORKDIR /app
+
+RUN uv pip install --system --python ${PYTHON_VERSION} \
+    torch==${TORCH_VERSION} torchvision
+
+RUN uv pip install --system --python ${PYTHON_VERSION} kernels transformers git+https://github.com/ModelTC/LightX2V.git git+https://github.com/FredyRivera-dev/LTX-2.git#subdirectory=packages/ltx-core git+https://github.com/FredyRivera-dev/LTX-2.git#subdirectory=packages/ltx-pipelines bitsandbytes accelerate av
+
+RUN if [ "$FROM_SOURCE" = "true" ]; then \
+        uv pip install --system --python ${PYTHON_VERSION} \
+            git+https://github.com/huggingface/diffusers.git \
+            git+https://github.com/Aquiles-ai/Aquiles-Image.git; \
+    else \
+        uv pip install --system --python ${PYTHON_VERSION} diffusers aquiles-image; \
+    fi
+
+RUN if [ -n "$EXTRA_DEPS" ]; then \
+        uv pip install --system --python ${PYTHON_VERSION} $EXTRA_DEPS; \
+    fi
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+VOLUME ["/root/.cache/huggingface", "/root/.local/share"]
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["aquiles-image", "serve"]
