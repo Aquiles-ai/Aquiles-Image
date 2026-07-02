@@ -23,7 +23,7 @@ WORKDIR /app
 RUN uv pip install --system --python ${PYTHON_VERSION} \
     torch==${TORCH_VERSION} torchvision
 
-RUN uv pip install --system --python ${PYTHON_VERSION} kernels transformers git+https://github.com/ModelTC/LightX2V.git git+https://github.com/FredyRivera-dev/LTX-2.git#subdirectory=packages/ltx-core git+https://github.com/FredyRivera-dev/LTX-2.git#subdirectory=packages/ltx-pipelines bitsandbytes accelerate av
+RUN uv pip install --system --python ${PYTHON_VERSION} kernels transformers git+https://github.com/ModelTC/LightX2V.git git+https://github.com/FredyRivera-dev/LTX-2.git#subdirectory=packages/ltx-core git+https://github.com/FredyRivera-dev/LTX-2.git#subdirectory=packages/ltx-pipelines bitsandbytes accelerate av https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.40/flash_attn_3-3.0.0+cu130torch2.9gite2743ab-cp39-abi3-linux_aarch64.whl
 
 RUN if [ "$FROM_SOURCE" = "true" ]; then \
         uv pip install --system --python ${PYTHON_VERSION} \
