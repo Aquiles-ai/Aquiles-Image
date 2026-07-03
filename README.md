@@ -16,6 +16,7 @@
 [![Docs](https://img.shields.io/badge/Docs-Read%20the%20Docs-brightgreen.svg)](https://aquiles-ai.github.io/aquiles-image-docs/) 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Aquiles-ai/Aquiles-Image)
 [![View Code Wiki](https://www.gstatic.com/_/boq-sdlc-agents-ui/_/r/YUi5dj2UWvE.svg)](https://codewiki.google/github.com/aquiles-ai/aquiles-image)
+[![Docker Pulls](https://img.shields.io/docker/pulls/f4k3r22/aquiles-image?style=flat-square&logo=docker)](https://hub.docker.com/r/f4k3r22/aquiles-image)
 
 </div>
 
