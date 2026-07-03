@@ -15,6 +15,9 @@ ENV PATH="/root/.local/bin:${PATH}"
 RUN uv python install ${PYTHON_VERSION}
 ENV UV_PYTHON=${PYTHON_VERSION}
 
+RUN PYDIR=$(find /root/.local/share/uv/python -maxdepth 1 -type d -name "cpython-*") && \
+    ln -s "$PYDIR/bin/aquiles-image" /usr/local/bin/aquiles-image
+
 ENV HF_XET_HIGH_PERFORMANCE=1
 ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 ENV UV_BREAK_SYSTEM_PACKAGES=1
