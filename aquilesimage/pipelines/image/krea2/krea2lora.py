@@ -1,51 +1,53 @@
 import torch
 from aquilesimage.utils import setup_colored_logger
 import logging
-from aquilesimage.models import LoRAConfig
-from aquilesimage.runtime import loadLoRA
 from aquilesimage.models import BasePipeline
 from aquilesimage.utils import _lora_conf_krea2
 import inspect
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
+_KREA2_AVAILABLE = False
 try:
     from diffusers import Krea2Pipeline
+    _KREA2_AVAILABLE = True
 except ImportError as e:
     logger_p.info("Error import Krea2Pipeline")
     pass
 
+if _KREA2_AVAILABLE:
+    class Krea2PipelineWithLoRA(Krea2Pipeline):
 
-class Krea2PipelineWithLoRA(Krea2Pipeline):
+        @classmethod
+        def from_pretrained(cls, pretrained_model_name_or_path, *args, **kwargs):
+            lora: str | None = kwargs.pop("lora", None)
 
-    @classmethod
-    def from_pretrained(cls, pretrained_model_name_or_path, *args, **kwargs):
-        lora: str | None = kwargs.pop("lora", None)
+            pipeline = super().from_pretrained(pretrained_model_name_or_path, *args, **kwargs)
+            pipeline._lora_name = lora
 
-        pipeline = super().from_pretrained(pretrained_model_name_or_path, *args, **kwargs)
-        pipeline._lora_name = lora
+            return pipeline
 
-        return pipeline
+        def __call__(self, *args, **kwargs):
+            if args:
+                sig = inspect.signature(Krea2Pipeline.__call__)
+                params = list(sig.parameters.keys())[1:]  # skip 'self'
+                for i, val in enumerate(args):
+                    if i < len(params):
+                        kwargs[params[i]] = val
+                args = ()
 
-    def __call__(self, *args, **kwargs):
-        if args:
-            sig = inspect.signature(Krea2Pipeline.__call__)
-            params = list(sig.parameters.keys())[1:]  # skip 'self'
-            for i, val in enumerate(args):
-                if i < len(params):
-                    kwargs[params[i]] = val
-            args = ()
+            if self._lora_name and self._lora_name in _lora_conf_krea2:
+                trigger = _lora_conf_krea2[self._lora_name]["trigger"]
+                prompt = kwargs.get("prompt")
 
-        if self._lora_name and self._lora_name in _lora_conf_krea2:
-            trigger = _lora_conf_krea2[self._lora_name]["trigger"]
-            prompt = kwargs.get("prompt")
+                if isinstance(prompt, list):
+                    kwargs["prompt"] = [f"{p}, {trigger}" for p in prompt]
+                elif isinstance(prompt, str):
+                    kwargs["prompt"] = f"{prompt}, {trigger}"
 
-            if isinstance(prompt, list):
-                kwargs["prompt"] = [f"{p}, {trigger}" for p in prompt]
-            elif isinstance(prompt, str):
-                kwargs["prompt"] = f"{prompt}, {trigger}"
-
-        return super().__call__(*args, **kwargs)
+            return super().__call__(*args, **kwargs)
+else:
+    Krea2PipelineWithLoRA = None
 
 class PipelineKrea2LoRA(BasePipeline):
     def __init__(self, model_path: str | None = None, dist_inf: bool = False):

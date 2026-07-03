@@ -16,6 +16,7 @@
 [![Docs](https://img.shields.io/badge/Docs-Read%20the%20Docs-brightgreen.svg)](https://aquiles-ai.github.io/aquiles-image-docs/) 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Aquiles-ai/Aquiles-Image)
 [![View Code Wiki](https://www.gstatic.com/_/boq-sdlc-agents-ui/_/r/YUi5dj2UWvE.svg)](https://codewiki.google/github.com/aquiles-ai/aquiles-image)
+[![Docker Pulls](https://img.shields.io/docker/pulls/f4k3r22/aquiles-image?style=flat-square&logo=docker)](https://hub.docker.com/r/f4k3r22/aquiles-image)
 
 </div>
 
@@ -230,6 +231,60 @@ https://github.com/user-attachments/assets/b7104dc3-5306-4e6a-97e5-93a6c1e73f54
 
 
 **Beyond the output examples shown above, you can check the [Example](https://github.com/Aquiles-ai/Aquiles-Image/tree/main/example) folder where you'll find examples of how to deploy Aquiles-Image with [Modal](https://modal.com/).**
+
+## 🐳 Docker Deployment
+
+Aquiles-Image ships with ready-to-use Dockerfiles for GPU-backed self-hosted deployment
+(CUDA 13.0), one for image models and one for video models. Prebuilt images are published
+to Docker Hub, or you can build them yourself from source. Both Dockerfiles live in the
+[`docker/`](https://github.com/Aquiles-ai/Aquiles-Image/tree/main/docker) folder, along
+with a dedicated [README](https://github.com/Aquiles-ai/Aquiles-Image/tree/main/docker)
+covering build arguments, volumes, and environment variables in detail.
+
+### Pull (recommended)
+
+Prebuilt images are published on Docker Hub:
+
+- Image models: [`f4k3r22/aquiles-image`](https://hub.docker.com/r/f4k3r22/aquiles-image)
+- Video models: [`f4k3r22/aquiles-video`](https://hub.docker.com/r/f4k3r22/aquiles-video)
+
+```bash
+docker pull f4k3r22/aquiles-image:latest   # image models
+docker pull f4k3r22/aquiles-video:latest   # video models
+```
+
+### Build from source
+
+```bash
+# Image model, PyPI packages, default Python
+docker build -f docker/Dockerfile.image -t aquiles-image .
+
+# Video model, from source, extra deps
+docker build -f docker/Dockerfile.video \
+  --build-arg FROM_SOURCE=true \
+  --build-arg EXTRA_DEPS="wandb" \
+  -t aquiles-video .
+```
+
+### Run
+
+```bash
+docker run -p 8000:5500 \
+  --gpus all \
+  -v hf_cache_vol:/root/.cache/huggingface \
+  -v aquiles_data_vol:/root/.local/share \
+  -e HF_TOKEN=hf_xxxxx \
+  f4k3r22/aquiles-image:latest aquiles-image serve --host "0.0.0.0"
+```
+
+> **Note**: `HF_TOKEN` is optional and only needed for gated Hugging Face models. Volumes
+> keep the model cache and app data across container restarts. Replace the image name
+> with `f4k3r22/aquiles-video:latest` (or your locally built `aquiles-image`/`aquiles-video`
+> tag) depending on which workload you're running.
+
+See the [Docker README](https://github.com/Aquiles-ai/Aquiles-Image/tree/main/docker) for
+the full list of build arguments (`PYTHON_VERSION`, `FROM_SOURCE`, `EXTRA_DEPS`,
+`TORCH_VERSION`), volume layout, and runtime configuration.
 
 ## 🧪 Advanced Features
 

@@ -1,11 +1,4 @@
 import torch
-try:
-    from diffusers.pipelines.ideogram4.pipeline_ideogram4 import Ideogram4Pipeline
-    from diffusers.pipelines.ideogram4.prompt_enhancer import Ideogram4PromptEnhancerHead
-    from diffusers.pipelines.ideogram4 import pipeline_ideogram4 as _ideogram4_module
-except ImportError as e:
-    print("Error import Ideogram4Pipeline")
-    pass
 from aquilesimage.utils import setup_colored_logger
 import logging
 from aquilesimage.models import LoRAConfig
@@ -15,32 +8,44 @@ import inspect
 
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
-# This is used to override the class and always keep prompt upsampling active
 
-class Ideogram4PipelineAlwaysUpsample(Ideogram4Pipeline):
-    def __call__(self, *args, **kwargs):
-        if args:
-            sig = inspect.signature(Ideogram4Pipeline.__call__)
-            params = list(sig.parameters.keys())[1:]  # skip 'self'
-            for i, val in enumerate(args):
-                if i < len(params):
-                    kwargs[params[i]] = val
-            args = ()
+_IDEOGRAM4_AVAILABLE = False
+try:
+    from diffusers.pipelines.ideogram4.pipeline_ideogram4 import Ideogram4Pipeline
+    from diffusers.pipelines.ideogram4.prompt_enhancer import Ideogram4PromptEnhancerHead
+    from diffusers.pipelines.ideogram4 import pipeline_ideogram4 as _ideogram4_module
+    _IDEOGRAM4_AVAILABLE = True
+except ImportError as e:
+    logger_p.error(f"Ideogram4Pipeline no disponible en esta version de diffusers: {e}")
 
-        kwargs.setdefault("prompt_upsampling", True)
-        kwargs.pop("guidance_scale", None)
-        if "guidance_schedule" not in kwargs:
-            num_steps = kwargs.get("num_inference_steps", 48)
-            high_steps = max(num_steps - 3, 0)
-            low_steps = num_steps - high_steps
-            kwargs["guidance_schedule"] = (7.0,) * high_steps + (3.0,) * low_steps
+if _IDEOGRAM4_AVAILABLE:
+    class Ideogram4PipelineAlwaysUpsample(Ideogram4Pipeline):
+        def __call__(self, *args, **kwargs):
+            if args:
+                sig = inspect.signature(Ideogram4Pipeline.__call__)
+                params = list(sig.parameters.keys())[1:]  # skip 'self'
+                for i, val in enumerate(args):
+                    if i < len(params):
+                        kwargs[params[i]] = val
+                args = ()
 
-        original = _ideogram4_module.is_outlines_available
-        _ideogram4_module.is_outlines_available = lambda: False
-        try:
-            return super().__call__(**kwargs)
-        finally:
-            _ideogram4_module.is_outlines_available = original
+            kwargs.setdefault("prompt_upsampling", True)
+            kwargs.pop("guidance_scale", None)
+            if "guidance_schedule" not in kwargs:
+                num_steps = kwargs.get("num_inference_steps", 48)
+                high_steps = max(num_steps - 3, 0)
+                low_steps = num_steps - high_steps
+                kwargs["guidance_schedule"] = (7.0,) * high_steps + (3.0,) * low_steps
+
+            original = _ideogram4_module.is_outlines_available
+            _ideogram4_module.is_outlines_available = lambda: False
+            try:
+                return super().__call__(**kwargs)
+            finally:
+                _ideogram4_module.is_outlines_available = original
+else:
+    Ideogram4PipelineAlwaysUpsample = None
+
 
 class PipelineIdeogram4(BasePipeline):
     def __init__(self, model_path: str | None = None, dist_inf: bool = False,
