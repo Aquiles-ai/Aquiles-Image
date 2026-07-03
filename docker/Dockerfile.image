@@ -28,7 +28,7 @@ RUN uv pip install --system --python ${PYTHON_VERSION} \
     torch==${TORCH_VERSION} torchvision \
     && rm -rf /root/.cache/uv
 
-RUN uv pip install --system --python ${PYTHON_VERSION} kernels transformers==5.12.1 https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.8.2/flash_attn_3-3.0.0+cu130torch2.9gite2743ab-cp39-abi3-linux_x86_64.whl \
+RUN uv pip install --system --python ${PYTHON_VERSION} "kernels<0.15.1" transformers==5.12.1 https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.8.2/flash_attn_3-3.0.0+cu130torch2.9gite2743ab-cp39-abi3-linux_x86_64.whl \
     && rm -rf /root/.cache/uv
 
 RUN if [ "$FROM_SOURCE" = "true" ]; then \
@@ -37,7 +37,7 @@ RUN if [ "$FROM_SOURCE" = "true" ]; then \
             git+https://github.com/Aquiles-ai/Aquiles-Image.git \
             && rm -rf /root/.cache/uv; \
     else \
-        uv pip install --system --python ${PYTHON_VERSION} diffusers==0.38.0 aquiles-image==0.7.1 \
+        uv pip install --system --python ${PYTHON_VERSION} diffusers==0.38.0 aquiles-image==0.7.2 \
         && rm -rf /root/.cache/uv; \
     fi
 
