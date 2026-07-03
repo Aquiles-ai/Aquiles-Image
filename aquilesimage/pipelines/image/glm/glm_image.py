@@ -1,5 +1,5 @@
 import torch
-from diffusers.models.autoencoders.autoencoder_kl import AutoencoderKL
+from diffusers import AutoencoderKL
 try:
     from diffusers.pipelines.glm_image.pipeline_glm_image import GlmImagePipeline
     from transformers import T5EncoderModel, ByT5Tokenizer, GlmImageProcessor, GlmImageForConditionalGeneration

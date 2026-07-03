@@ -9,7 +9,7 @@ from aquilesimage.models import BasePipeline
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
 class AutoPipelineDiffusers(BasePipeline):
-    def __init__(self, model_path: str | None = None, dist_inf: bool = False):
+    def __init__(self, model_path: str | None = None, dist_inf: bool = False, load_lora: bool = False, conf_lora: LoRAConfig | None = None):
         self.pipeline: AutoPipelineForText2Image | None = None
         self.model_name = model_path
         self.dist_inf = dist_inf
