@@ -1,4 +1,4 @@
-FROM nvidia/cuda:13.0.0-devel-ubuntu22.04
+FROM nvidia/cuda:13.0.0-base-ubuntu22.04
 
 ARG PYTHON_VERSION=3.12
 ARG FROM_SOURCE=false
@@ -17,23 +17,30 @@ ENV UV_PYTHON=${PYTHON_VERSION}
 
 ENV HF_XET_HIGH_PERFORMANCE=1
 
+ENV UV_BREAK_SYSTEM_PACKAGES=1
+
 WORKDIR /app
 
 RUN uv pip install --system --python ${PYTHON_VERSION} \
-    torch==${TORCH_VERSION} torchvision
+    torch==${TORCH_VERSION} torchvision \
+    && rm -rf /root/.cache/uv
 
-RUN uv pip install --system --python ${PYTHON_VERSION} kernels transformers https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.40/flash_attn_3-3.0.0+cu130torch2.9gite2743ab-cp39-abi3-linux_aarch64.whl
+RUN uv pip install --system --python ${PYTHON_VERSION} kernels transformers==5.12.1 https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.8.2/flash_attn_3-3.0.0+cu130torch2.9gite2743ab-cp39-abi3-linux_x86_64.whl \
+    && rm -rf /root/.cache/uv
 
 RUN if [ "$FROM_SOURCE" = "true" ]; then \
         uv pip install --system --python ${PYTHON_VERSION} \
             git+https://github.com/huggingface/diffusers.git \
-            git+https://github.com/Aquiles-ai/Aquiles-Image.git; \
+            git+https://github.com/Aquiles-ai/Aquiles-Image.git \
+            && rm -rf /root/.cache/uv; \
     else \
-        uv pip install --system --python ${PYTHON_VERSION} diffusers aquiles-image; \
+        uv pip install --system --python ${PYTHON_VERSION} diffusers==0.38.0 aquiles-image==0.7.0 \
+        && rm -rf /root/.cache/uv; \
     fi
 
 RUN if [ -n "$EXTRA_DEPS" ]; then \
-        uv pip install --system --python ${PYTHON_VERSION} $EXTRA_DEPS; \
+        uv pip install --system --python ${PYTHON_VERSION} $EXTRA_DEPS \
+        && rm -rf /root/.cache/uv; \
     fi
 
 COPY entrypoint.sh /entrypoint.sh
