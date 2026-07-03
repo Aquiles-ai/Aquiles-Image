@@ -248,8 +248,8 @@ Prebuilt images are published on Docker Hub:
 - Video models: [`f4k3r22/aquiles-video`](https://hub.docker.com/r/f4k3r22/aquiles-video)
 
 ```bash
-docker pull f4k3r22/aquiles-image:0.7.0   # image models
-docker pull f4k3r22/aquiles-video:0.7.0   # video models
+docker pull f4k3r22/aquiles-image:latest   # image models
+docker pull f4k3r22/aquiles-video:latest   # video models
 ```
 
 ### Build from source
@@ -269,15 +269,16 @@ docker build -f docker/Dockerfile.video \
 
 ```bash
 docker run -p 8000:5500 \
+  --gpus all \
   -v hf_cache_vol:/root/.cache/huggingface \
   -v aquiles_data_vol:/root/.local/share \
   -e HF_TOKEN=hf_xxxxx \
-  f4k3r22/aquiles-image:0.7.0 aquiles-image serve --host "0.0.0.0"
+  f4k3r22/aquiles-image:latest aquiles-image serve --host "0.0.0.0"
 ```
 
 > **Note**: `HF_TOKEN` is optional and only needed for gated Hugging Face models. Volumes
 > keep the model cache and app data across container restarts. Replace the image name
-> with `f4k3r22/aquiles-video:0.7.0` (or your locally built `aquiles-image`/`aquiles-video`
+> with `f4k3r22/aquiles-video:latest` (or your locally built `aquiles-image`/`aquiles-video`
 > tag) depending on which workload you're running.
 
 See the [Docker README](https://github.com/Aquiles-ai/Aquiles-Image/tree/main/docker) for

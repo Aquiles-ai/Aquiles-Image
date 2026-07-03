@@ -8,8 +8,8 @@ Here you'll find Dockerfiles to deploy Aquiles-Image with GPU support (CUDA 13.0
 - Video models: [`f4k3r22/aquiles-video`](https://hub.docker.com/r/f4k3r22/aquiles-video)
 
 ```bash
-docker pull f4k3r22/aquiles-image:0.7.0   # image models
-docker pull f4k3r22/aquiles-video:0.7.0   # video models
+docker pull f4k3r22/aquiles-image:latest   # image models
+docker pull f4k3r22/aquiles-video:latest   # video models
 ```
 
 ### Available Dockerfiles
@@ -48,17 +48,15 @@ docker build -f Dockerfile.video \
 The entrypoint accepts any `aquiles-image` CLI command. If you don't pass anything, it defaults to `aquiles-image serve`.
 
 ```bash
-docker run -p 8000:5500 f4k3r22/aquiles-image:0.7.0 aquiles-image serve --host "0.0.0.0"
+docker run -p 8000:5500 --gpus all f4k3r22/aquiles-image:latest aquiles-image serve --host "0.0.0.0"
 ```
-
-> Note: replace `f4k3r22/aquiles-image:0.7.0` with `f4k3r22/aquiles-video:0.7.0`, or your own locally built tag (`aquiles-image`/`aquiles-video`), depending on which image you built or pulled. The first argument is the **image name**, the second is the **command** run inside the container.
 
 ### Environment variables
 
 Pass `HF_TOKEN` at runtime (never at build time) if you need to pull gated models from Hugging Face:
 
 ```bash
-docker run -p 8000:5500 -e HF_TOKEN=hf_xxxxx f4k3r22/aquiles-image:0.7.0
+docker run -p 8000:5500 --gpus all -e HF_TOKEN=hf_xxxxx f4k3r22/aquiles-image:latest
 ```
 
 ### Volumes
@@ -70,10 +68,11 @@ Both images declare two mount points to keep downloaded models and app data acro
 
 ```bash
 docker run -p 8000:5500 \
+  --gpus all \
   -v hf_cache_vol:/root/.cache/huggingface \
   -v aquiles_data_vol:/root/.local/share \
   -e HF_TOKEN=hf_xxxxx \
-  f4k3r22/aquiles-image:0.7.0
+  f4k3r22/aquiles-image:latest
 ```
 
 Good luck!
