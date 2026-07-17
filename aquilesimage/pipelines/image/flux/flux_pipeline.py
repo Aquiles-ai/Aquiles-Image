@@ -33,7 +33,7 @@ class PipelineFlux(BasePipeline):
 
             self.pipeline = FluxPipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.float16,
+                torch_dtype=torch.bfloat16,
             ).to(device=self.device)
 
             if self.load_lora:

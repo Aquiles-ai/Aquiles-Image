@@ -349,7 +349,7 @@ class BatchPipeline:
                 worker_idx = int(device_to_use.split(':')[1])  # cuda:0 -> 0
 
                 total_images = sum(req.num_images for req in group)
-                device_stats.start_batch(total_images)
+                device_stats.start_batch(total_images, num_requests=len(group))
                 
                 logger.info(f"Assigned device {device_to_use} for batch of {len(group)} requests ({total_images} images)")
                 

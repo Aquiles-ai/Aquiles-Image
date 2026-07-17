@@ -2,6 +2,7 @@ import torch
 import torch.multiprocessing as mp
 from typing import List, Dict, Any, Optional
 import logging
+import queue
 from aquilesimage.utils import setup_colored_logger
 import time
 
@@ -88,21 +89,20 @@ class WorkerManager:
             for idx, result_q in enumerate(self.result_queues):
                 try:
                     msg = result_q.get(timeout=0.1)
-                    
-                    if msg.get('type') == 'worker_ready':
-                        gpu_id = msg.get('gpu_id')
-                        logger.info(f"Worker {gpu_id} is ready")
-                        ready_count += 1
-                    
-                    elif msg.get('type') == 'worker_error':
-                        gpu_id = msg.get('gpu_id')
-                        error = msg.get('error')
-                        raise RuntimeError(
-                            f"Worker {gpu_id} failed to initialize: {error}"
-                        )
-                
-                except Exception:
+                except queue.Empty:
                     continue
+
+                if msg.get('type') == 'worker_ready':
+                    gpu_id = msg.get('gpu_id')
+                    logger.info(f"Worker {gpu_id} is ready")
+                    ready_count += 1
+
+                elif msg.get('type') == 'worker_error':
+                    gpu_id = msg.get('gpu_id')
+                    error = msg.get('error')
+                    raise RuntimeError(
+                        f"Worker {gpu_id} failed to initialize: {error}"
+                    )
         
         logger.info(f"All {self.num_workers} workers initialized successfully")
     

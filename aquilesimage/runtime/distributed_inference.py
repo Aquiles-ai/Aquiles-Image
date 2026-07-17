@@ -44,8 +44,9 @@ class DistStats:
             return elapsed / self.avg_batch_time
         return 0.5 
     
-    def start_batch(self, num_images: int):
+    def start_batch(self, num_images: int, num_requests: int = 1):
         self.is_processing = True
+        self.batch_size = num_requests
         self.images_processing = num_images
         self.last_batch_start = time.time()
     

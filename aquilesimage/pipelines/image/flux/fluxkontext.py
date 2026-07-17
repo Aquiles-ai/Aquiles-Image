@@ -29,7 +29,7 @@ class PipelineFluxKontext(BasePipeline):
             self.device = "cuda" 
             self.pipeline = FluxKontextPipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.float16,
+                torch_dtype=torch.bfloat16,
             ).to(device=self.device)
 
             if self.load_lora:
@@ -47,7 +47,7 @@ class PipelineFluxKontext(BasePipeline):
             self.device = "mps"
             self.pipeline = FluxKontextPipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.float16,
+                torch_dtype=torch.bfloat16,
             ).to(device=self.device)
         else:
             raise Exception("No CUDA or MPS device available")

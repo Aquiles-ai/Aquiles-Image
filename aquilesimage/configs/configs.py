@@ -8,7 +8,10 @@ from aquilesimage.models import ConfigsServe, LoRAConfig
 from typing import Dict, Any
 import time
 import threading
+import logging
 from typing import Optional
+
+logger = logging.getLogger("Aquiles-Image-Configs")
 
 _load_lock = asyncio.Lock()
 data_dir = user_data_dir("aquiles", "Aquiles-Image")
