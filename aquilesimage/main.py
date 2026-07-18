@@ -44,7 +44,7 @@ from aquilesimage.models import (CreateImageRequest, CreateVideoBody,
 from aquilesimage.runtime.batch_inf import BatchPipeline
 from aquilesimage.utils import (Utils, VideoTaskGeneration, create_dev_mode_response,
                                  create_dev_mode_video_response, getTypeModel,
-                                 setup_colored_logger, verify_api_key)
+                                 setup_colored_logger, verify_api_key, get_b_to_compile)
 
 
 DEV_MODE_IMAGE_URL = os.getenv("DEV_IMAGE_URL", "https://picsum.photos/1024/1024")
@@ -97,6 +97,7 @@ class AppConfig:
     max_batch_size: int = 4
     batch_timeout: float = 0.5
     worker_sleep: float = 0.05
+    mode: Literal["eager", "piecewise"] = "eager"
 
 
 cfg = AppConfig()
@@ -202,6 +203,7 @@ def _load_distributed_pipeline(cfg: AppConfig):
 
 def _load_single_pipeline(cfg: AppConfig, conf_lora):
     from aquilesimage.pipelines import ModelPipelineInit
+    from aquilesimage.runtime.hyper_kernels import HyperKernels
 
     kwargs = dict(load_lora=cfg.load_lora, conf_lora=conf_lora)
     if cfg.auto_pipeline:
@@ -216,6 +218,10 @@ def _load_single_pipeline(cfg: AppConfig, conf_lora):
 
     bp = _init_batch_pipeline(pipeline.pipeline, [], cfg)
     logger.info(f"Model '{cfg.model_name}' loaded successfully")
+    if cfg.mode == "piecewise":
+        b_to_compile = get_b_to_compile(cfg.max_batch_size)
+        hpk = HyperKernels(pipeline, b_to_compile)
+        hpk.compiles()
     return pipeline, pipeline.pipeline, init, bp
 
 
@@ -239,6 +245,7 @@ def load_models():
     cfg.max_batch_size   = int(raw["max_batch_size"]) if raw.get("max_batch_size") else 4
     cfg.batch_timeout    = float(raw["batch_timeout"]) if raw.get("batch_timeout") else 0.5
     cfg.worker_sleep     = float(raw["worker_sleep"]) if raw.get("worker_sleep") else 0.05
+    cfg.mode = raw.get("mode") or "eager"
 
     allows = raw.get("allows_users") or []
     cfg.allow_users = bool(allows)

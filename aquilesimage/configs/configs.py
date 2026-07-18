@@ -21,6 +21,8 @@ _cache_lock = threading.Lock()
 _cached_config: Optional[Dict[str, Any]] = None
 _cache_timestamp: float = 0
 _cache_mtime: float = 0
+AQUILES_INDUCTOR_CACHE = f"{data_dir}/aquiles_inductor_cache"
+os.makedirs(AQUILES_INDUCTOR_CACHE, exist_ok=True)
 
 def load_lora_config(path: str) -> LoRAConfig | None:
     try:
@@ -153,3 +155,6 @@ def create_basic_config_if_not_exists(model: str |  None = None, load_model: boo
         return True
     except Exception as e:
         raise Exception(f"Error creating basic configuration: {e}")
+
+def get_inductor_cache_dir():
+    return AQUILES_INDUCTOR_CACHE

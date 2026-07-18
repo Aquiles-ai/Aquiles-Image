@@ -8,13 +8,13 @@ import tempfile
 import logging
 import sys
 from aquilesimage.configs import load_config_app
-from typing import Optional
+from typing import Optional, List
 import requests
 from PIL import Image as PILImage
 import io
 import base64
 import time
-from aquilesimage.models import VideoModels, ImageModelBase, ImageModelEdit, ImageModelHybrid, LoRAConfig
+from aquilesimage.models import VideoModels, ImageModelBase, ImageModelEdit, ImageModelHybrid, LoRAConfig, BatchCompile
 import json
 from pathlib import Path
 
@@ -308,6 +308,20 @@ def save_lora_config(config: LoRAConfig, target_path: str | Path) -> None:
 
     with open(target_path, "w", encoding="utf-8") as f:
         json.dump(config.model_dump(), f, indent=4)
+
+def get_b_to_compile(batch: List[int]) -> List[BatchCompile]:
+    lista: List[BatchCompile] = []
+    size_map: List[tuple[int, int]] = [
+        (1024, 1024), (1536, 1024), 
+        (1024, 1536), (1792, 1024), 
+        (1024, 1792), (2048, 2048)
+    ]
+
+    for b in batch:
+        for h, w in size_map:
+            lista.append(BatchCompile(b=b, h=h, w=w))
+
+    return lista
 
 _lora_conf_krea2 = {
     "krea/Krea-2-LoRA-retroanime": {

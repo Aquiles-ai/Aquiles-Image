@@ -1,6 +1,7 @@
 import typer
 from typing import Optional
 import sys
+import os
 
 app = typer.Typer()
 
@@ -33,6 +34,7 @@ def serve(
     seed: Optional[int] = typer.Option(None, help="Seed for reproducible image generation"),
     load_lora: Optional[bool] = typer.Option(None, "--load-lora/--no-load-lora", help="Enable LoRA loading from a config file"),
     lora_config: Optional[str] = typer.Option(None, "--lora-config", help="Path to the LoRA config JSON file (relative or absolute)"),
+    mode: Optional[str] = typer.Option(None,"--mode", help="Compilation mode: 'eager' applies diffusers' base optimizations only (default behavior); 'piecewise' additionally compiles the pipeline per-shape via warmup compilation.")
 ):
     """Start the Aquiles-Image server."""
 
@@ -49,7 +51,8 @@ def serve(
             load_config_cli,
             configs_image_serve,
             config_file_exists,
-            create_basic_config_if_not_exists
+            create_basic_config_if_not_exists, 
+            get_inductor_cache_dir
         )
         from aquilesimage.models import ConfigsServe
         from aquilesimage.utils import _build_allowed_users
@@ -86,6 +89,9 @@ def serve(
     model_from_config = conf.get("model")
     final_model = model or model_from_config
 
+    os.environ["TORCHINDUCTOR_CACHE_DIR"] = get_inductor_cache_dir()
+    os.environ["TORCHINDUCTOR_FX_GRAPH_CACHE"] = "1"
+
     if not final_model:
         typer.echo("X Error: No model specified. Use --model parameter or configure one first.", err=True)
         raise typer.Exit(code=1)
@@ -110,6 +116,7 @@ def serve(
         seed is not None,
         load_lora is not None,
         lora_config is not None,
+        mode is not None
     ])
 
     if config_needs_update:
@@ -138,6 +145,7 @@ def serve(
                 allows_users=_build_allowed_users(username, password, conf),
                 load_lora=load_lora if load_lora is not None else conf.get("load_lora"),
                 lora_config_path=lora_config if lora_config is not None else conf.get("lora_config_path"),
+                mode=mode if mode is not None else conf.get("mode", "eager")
             )
 
             configs_image_serve(updated_conf, force=True)

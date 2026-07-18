@@ -5,6 +5,6 @@ from .models import (ImageModel, ResponseFormat, OutputFormat, BackgroundType, Q
                     CreateImageRequest, CreateImageEditRequest, ConfigsServe, ListModelsResponse, Model, OrderEnum, 
                     VideoStatus, VideoContentVariant, VideoQuality, ListVideosParams, RetrieveVideoContentParams,
                     CreateVideoBody, VideoResource, VideoListResource, DeletedVideoResource, VideoPathParams, VideoModels,
-                    ImageModelBase, ImageModelEdit, ImageModelHybrid, LoRAConfig)
+                    ImageModelBase, ImageModelEdit, ImageModelHybrid, LoRAConfig, BatchCompile)
 
 from .base_pipe import BasePipeline

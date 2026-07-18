@@ -22,7 +22,7 @@ class ModelPipelineInit:
     def __init__(self, model: str, low_vram: bool = False, auto_pipeline: bool = False, 
                 device_map_flux2: str | None = None, dist_inf: bool = False, 
                 auto_type: Literal["t2i", "i2i"] | None = None, load_lora: bool = False,
-                conf_lora: LoRAConfig | None = None):
+                conf_lora: LoRAConfig | None = None, mode: Literal["eager", "piecewise"] = "eager"):
         self.model = model
         self.pipeline = None
         self.device = "cuda" if torch.cuda.is_available() else "mps"
