@@ -34,6 +34,7 @@ class ModelPipelineInit:
         self.auto_type = auto_type
         self.load_lora = load_lora
         self.conf_lora = conf_lora
+        self.mode = mode
 
         self.models = ImageModel
 
@@ -129,7 +130,7 @@ class ModelPipelineInit:
         if self.model in self.stablediff3:
             self.pipeline = PipelineSD3(self.model, self.dist_inf, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.flux:
-            self.pipeline = PipelineFlux(self.model, self.low_vram, self.dist_inf, self.load_lora, self.conf_lora)
+            self.pipeline = PipelineFlux(self.model, self.low_vram, self.load_lora, self.conf_lora, self.mode)
         elif self.model in self.z_image:
             self.pipeline = PipelineZImageTurbo(self.model, self.dist_inf, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.flux2:
