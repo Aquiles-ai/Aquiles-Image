@@ -309,7 +309,7 @@ def save_lora_config(config: LoRAConfig, target_path: str | Path) -> None:
     with open(target_path, "w", encoding="utf-8") as f:
         json.dump(config.model_dump(), f, indent=4)
 
-def get_b_to_compile(batch: List[int]) -> List[BatchCompile]:
+def get_b_to_compile(batch: int) -> List[BatchCompile]:
     lista: List[BatchCompile] = []
     size_map: List[tuple[int, int]] = [
         (1024, 1024), (1536, 1024), 
@@ -317,7 +317,12 @@ def get_b_to_compile(batch: List[int]) -> List[BatchCompile]:
         (1024, 1792), (2048, 2048)
     ]
 
-    for b in batch:
+    list_b: List[int] = []
+
+    for i in range(1, batch + 1):
+        list_b.append(i)
+
+    for b in list_b:
         for h, w in size_map:
             lista.append(BatchCompile(b=b, h=h, w=w))
 

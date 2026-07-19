@@ -29,7 +29,7 @@ app = modal.App("aquiles-image-server")
 N_GPU = 1
 MINUTES = 60
 AQUILES_PORT = 5500
-USE_HYPER_KERNELS = False
+USE_HYPER_KERNELS = True
 
 @app.function(
     image=aquiles_image,
