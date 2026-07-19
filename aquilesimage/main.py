@@ -205,7 +205,7 @@ def _load_single_pipeline(cfg: AppConfig, conf_lora):
     from aquilesimage.pipelines import ModelPipelineInit
     from aquilesimage.runtime.hyper_kernels import HyperKernels
 
-    kwargs = dict(load_lora=cfg.load_lora, conf_lora=conf_lora)
+    kwargs = dict(load_lora=cfg.load_lora, conf_lora=conf_lora, mode=cfg.mode)
     if cfg.auto_pipeline:
         init = ModelPipelineInit(model=cfg.model_name, auto_pipeline=True, auto_type=cfg.auto_type, **kwargs)
     elif cfg.device_map_flux2 == "cuda" and cfg.model_name == ImageModel.FLUX_2_4BNB:
