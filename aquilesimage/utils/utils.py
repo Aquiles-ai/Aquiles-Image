@@ -328,6 +328,23 @@ def get_b_to_compile(batch: int) -> List[BatchCompile]:
 
     return lista
 
+def total_to_compile(batch: int) -> int:
+
+    total = 0
+
+    size_map: List[tuple[int, int]] = [
+        (1024, 1024), (1536, 1024), 
+        (1024, 1536), (1792, 1024), 
+        (1024, 1792), (2048, 2048)
+    ]
+
+    total_sizes = len(size_map)
+
+    total = batch * total_sizes
+
+    return total
+
+
 _lora_conf_krea2 = {
     "krea/Krea-2-LoRA-retroanime": {
         "weight_name": "retroanime.safetensors",

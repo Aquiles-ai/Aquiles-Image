@@ -3,7 +3,7 @@ import torch.multiprocessing as mp
 import queue
 import logging
 from typing import Dict, Any
-from aquilesimage.utils import setup_colored_logger
+from aquilesimage.utils import setup_colored_logger, total_to_compile, get_b_to_compile
 import time
 
 logger = setup_colored_logger("Aquiles-Worker", logging.INFO)
@@ -153,6 +153,10 @@ def _load_pipeline_in_worker(model_name: str, gpu_id: int, config: Dict[str, Any
     load_lora = config.get('load_lora', False)
     lora_config_path = config.get('lora_config_path', None)
 
+    mode = config.get('mode', 'eager')
+
+    max_batch_size = config.get('max_batch_size', 4)
+
     conf_lora = None
     if load_lora and lora_config_path:
         from aquilesimage.configs import load_lora_config
@@ -169,7 +173,8 @@ def _load_pipeline_in_worker(model_name: str, gpu_id: int, config: Dict[str, Any
             auto_pipeline=True,
             dist_inf=False,
             load_lora=load_lora,
-            conf_lora=conf_lora
+            conf_lora=conf_lora,
+            mode=mode
         )
     elif device_map_flux2 == 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
         initializer = ModelPipelineInit(
@@ -177,7 +182,8 @@ def _load_pipeline_in_worker(model_name: str, gpu_id: int, config: Dict[str, Any
             device_map_flux2='cuda',
             dist_inf=False,
             load_lora=load_lora,
-            conf_lora=conf_lora
+            conf_lora=conf_lora,
+            mode=mode
         )
     else:
         initializer = ModelPipelineInit(
@@ -185,11 +191,20 @@ def _load_pipeline_in_worker(model_name: str, gpu_id: int, config: Dict[str, Any
             low_vram=low_vram,
             dist_inf=False,
             load_lora=load_lora,
-            conf_lora=conf_lora
+            conf_lora=conf_lora,
+            mode=mode
         )
 
     model_pipeline = initializer.initialize_pipeline()
     model_pipeline.start()
+
+    if mode == "piecewise":
+        from aquilesimage.runtime.hyper_kernels import HyperKernels
+        ttc = total_to_compile(max_batch_size)
+        b_to_compile = get_b_to_compile(max_batch_size)
+        hpk = HyperKernels(model_pipeline, b_to_compile)
+        logger.info(f"Total number of builds to be performed: {ttc}")
+        hpk.compiles()
     
     logger.info(f"[Worker-{gpu_id}] Pipeline started successfully")
 

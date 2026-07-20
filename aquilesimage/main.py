@@ -44,7 +44,7 @@ from aquilesimage.models import (CreateImageRequest, CreateVideoBody,
 from aquilesimage.runtime.batch_inf import BatchPipeline
 from aquilesimage.utils import (Utils, VideoTaskGeneration, create_dev_mode_response,
                                  create_dev_mode_video_response, getTypeModel,
-                                 setup_colored_logger, verify_api_key, get_b_to_compile)
+                                 setup_colored_logger, verify_api_key, get_b_to_compile, total_to_compile)
 
 
 DEV_MODE_IMAGE_URL = os.getenv("DEV_IMAGE_URL", "https://picsum.photos/1024/1024")
@@ -219,8 +219,10 @@ def _load_single_pipeline(cfg: AppConfig, conf_lora):
     bp = _init_batch_pipeline(pipeline.pipeline, [], cfg)
     logger.info(f"Model '{cfg.model_name}' loaded successfully")
     if cfg.mode == "piecewise":
+        ttc = total_to_compile(cfg.max_batch_size)
         b_to_compile = get_b_to_compile(cfg.max_batch_size)
         hpk = HyperKernels(pipeline, b_to_compile)
+        logger.info(f"Total number of builds to be performed: {ttc}")
         hpk.compiles()
     return pipeline, pipeline.pipeline, init, bp
 
