@@ -78,8 +78,6 @@ class PipelineFlux(BasePipeline):
             self.enable_flash_attn()
 
             if self.mode == "piecewise":
-                if hasattr(self.pipeline.transformer, "disable_cache"):
-                    self.pipeline.transformer.disable_cache()
                 self.pipeline.transformer = torch.compile(
                     self.pipeline.transformer, dynamic=False
                 )
