@@ -24,6 +24,9 @@ _cache_mtime: float = 0
 AQUILES_INDUCTOR_CACHE = f"{data_dir}/aquiles_inductor_cache"
 os.makedirs(AQUILES_INDUCTOR_CACHE, exist_ok=True)
 
+os.environ["TORCHINDUCTOR_CACHE_DIR"] = AQUILES_INDUCTOR_CACHE
+os.environ["TORCHINDUCTOR_FX_GRAPH_CACHE"] = "1"
+
 def load_lora_config(path: str) -> LoRAConfig | None:
     try:
         resolved = Path(path).resolve()

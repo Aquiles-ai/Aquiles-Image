@@ -48,6 +48,7 @@ def serve():
     import subprocess
 
     cmd = [
+        "TORCH_LOGS=+torch._inductor.codecache",
         "aquiles-image",
         "serve",
         "--host",

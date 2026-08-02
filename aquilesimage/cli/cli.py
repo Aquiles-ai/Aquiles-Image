@@ -51,8 +51,7 @@ def serve(
             load_config_cli,
             configs_image_serve,
             config_file_exists,
-            create_basic_config_if_not_exists, 
-            get_inductor_cache_dir
+            create_basic_config_if_not_exists
         )
         from aquilesimage.models import ConfigsServe
         from aquilesimage.utils import _build_allowed_users
@@ -88,9 +87,6 @@ def serve(
 
     model_from_config = conf.get("model")
     final_model = model or model_from_config
-
-    os.environ["TORCHINDUCTOR_CACHE_DIR"] = get_inductor_cache_dir()
-    os.environ["TORCHINDUCTOR_FX_GRAPH_CACHE"] = "1"
 
     if not final_model:
         typer.echo("X Error: No model specified. Use --model parameter or configure one first.", err=True)
