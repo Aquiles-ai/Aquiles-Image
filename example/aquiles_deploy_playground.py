@@ -14,7 +14,7 @@ aquiles_image = (
         "transformers==5.14.0",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
         "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn-2.8.3+cu130torch2.11-cp312-cp312-linux_x86_64.whl",
-        "kernels"
+        "kernels",
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})  
 )
@@ -55,13 +55,12 @@ def serve():
         str(AQUILES_PORT),
         "--model",
         MODEL_NAME,
-        "--set-steps", "4",
+        "--set-steps", "20",
         "--api-key", "dummy-api-key",
         "--device-map", "cuda",
         "--username", "root", 
         "--password", "root",
-        "--guidance-scale", "1.0",
-        "--seed", "42"
+        "--guidance-scale", "3.5"
     ]
 
     print(f"Starting Aquiles-Image with the model:{MODEL_NAME}")
