@@ -78,8 +78,8 @@ class PipelineFlux(BasePipeline):
             self.enable_flash_attn()
 
             if self.mode == "piecewise":
-                import torch._dynamo
-                torch._dynamo.config.recompile_limit = 32
+                import torch._dynamo as _torch_dynamo
+                _torch_dynamo.config.recompile_limit = 32
                 self.pipeline.transformer = torch.compile(
                     self.pipeline.transformer, dynamic=False
                 )
