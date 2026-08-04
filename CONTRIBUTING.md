@@ -87,7 +87,7 @@ Before adding a new model, make sure that:
 2. **It's an image model**: For now we only accept image models (Text-to-Image or Image-to-Image)
 3. **You tested the model locally**: Verify that it works correctly with your implementation
 4. **Open an issue first**: For large changes, open an issue describing which model you want to add and why
-5. **Your pipeline extends `BasePipeline`**: All pipelines must inherit from `aquilesimage.pipelines.base.BasePipeline` — see details below
+5. **Your pipeline extends `BasePipeline`**: All pipelines must inherit from `aquilesimage.models.BasePipeline` — see details below
 
 #### 1. Implement the Pipeline (`aquilesimage/pipelines/image/`)
 
@@ -111,7 +111,7 @@ aquilesimage/pipelines/image/
 
 **Step 1 - Create your pipeline file (`aquilesimage/pipelines/image/your_model/your_model.py`):**
 
-All pipelines **must** extend `BasePipeline`, which is located at `aquilesimage/pipelines/base.py`. This base class enforces that every pipeline implements the two required methods: `start()` and `optimization()`. If either is missing, Python will raise a `TypeError` at instantiation time.
+All pipelines **must** extend `BasePipeline`, which is located at `aquilesimage/models/base_pipe.py`. This base class enforces that every pipeline implements the two required methods: `start()` and `optimization()`. If either is missing, Python will raise a `TypeError` at instantiation time.
 
 ```python
 from aquilesimage.models import BasePipeline
@@ -120,9 +120,14 @@ from aquilesimage.models import BasePipeline
 `BasePipeline` is defined as:
 
 ```python
+import logging
 from abc import ABC, abstractmethod
 
+logger_p = logging.getLogger("Aquiles-Image-Pipelines")
+
 class BasePipeline(ABC):
+
+    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("_flash_3_hub", "flash", "sage_hub")
 
     def __init__(self, **kwargs):
         self.pipeline = None
@@ -134,12 +139,24 @@ class BasePipeline(ABC):
     @abstractmethod
     def optimization(self):
         """Applies the optimizations specific to each pipeline."""
+
+    def enable_flash_attn(self):
+        """Deterministically picks the first available attention backend
+        (FlashAttention 3 -> FlashAttention 2 -> SAGE Attention -> default SDPA)."""
+
+    def _attention_backend_ready(self, backend: str) -> bool:
+        """Checks that the backend name is valid and its requirements are met."""
+
+    def _hub_kernel_ready(self, repo_id: str, version: int | None) -> bool:
+        """Checks/downloads hub kernels (e.g. FlashAttention 3) via the `kernels` package."""
 ```
 
 Your pipeline class must:
 - Inherit from `BasePipeline`
 - Implement `start()` to load and initialize the model
 - Implement `optimization()` to apply optimizations (FlashAttention, QKV fusion, etc.)
+
+You do **not** need to implement `enable_flash_attn()` — it is already provided by `BasePipeline`. Just call `self.enable_flash_attn()` inside `optimization()`. If your model needs a different backend order, override the `ATTENTION_BACKEND_PRIORITY` class attribute (see [FlashAttention backend selection](#flashattention-backend-selection)).
 
 ```python
 from diffusers import AutoPipelineForText2Image
@@ -204,20 +221,13 @@ class PipelineYourModel(BasePipeline):
         except Exception as e:
             logger_p.error(f"X Error in optimization: {e}")
             raise
-    
-    def enable_flash_attn(self):
-        """Enable FlashAttention if available"""
-        try:
-            self.pipeline.transformer.set_attention_backend("_flash_3_hub")
-            logger_p.info("FlashAttention 3 enabled")
-        except Exception as e:
-            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
-            try:
-                self.pipeline.transformer.set_attention_backend("flash")
-                logger_p.info("FlashAttention 2 enabled")
-            except Exception as e2:
-                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
-                logger_p.warning("Using default SDPA")
+```
+
+> **Note:** `enable_flash_attn()` is inherited from `BasePipeline` — do not redefine it. If the default backend order doesn't fit your model, override `ATTENTION_BACKEND_PRIORITY` instead:
+
+```python
+class PipelineYourModel(BasePipeline):
+    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("_flash_3_hub", "flash")
 ```
 
 **Step 2 - Expose your class in `aquilesimage/pipelines/image/your_model/__init__.py`:**
@@ -233,11 +243,35 @@ from aquilesimage.pipelines.image.your_model.your_model import PipelineYourModel
 - Call `super().__init__()` in your `__init__` so `self.pipeline` is initialized to `None` by default
 - Implement `start()` to load and initialize the model
 - Implement `optimization()` to apply optimizations (FlashAttention, QKV fusion, etc.)
-- Implement `enable_flash_attn()` to attempt to enable FlashAttention
+- Call `self.enable_flash_attn()` inside `optimization()` — the method is already provided by `BasePipeline`, don't reimplement it
 - Use `self.device` for the device (cuda/mps)
 - Use `self.pipelines = {}` if you support distributed inference
 - Handle exceptions with try-except and appropriate logging
 - Follow the pattern of existing folders in `aquilesimage/pipelines/image/`
+- Do **not** `import torch.*` inside a method body: it makes `torch` a local variable of the whole method and any earlier `torch.x` access raises `UnboundLocalError`. Import submodules at the top of the file, or use an alias (`import torch._dynamo as _torch_dynamo`)
+
+### FlashAttention backend selection
+
+`BasePipeline` implements `enable_flash_attn()` with a **deterministic** selection flow: it walks `ATTENTION_BACKEND_PRIORITY` in order and enables the **first backend that is actually available** on the current environment:
+
+1. `_attention_backend_ready(backend)` validates the backend name and checks its requirements.
+2. Hub kernels (e.g. FlashAttention 3) are downloaded via the `kernels` package only if present (`has_kernel` / `get_kernel`).
+3. The chosen backend is set with `set_attention_backend()` and logged; if none is available, the model falls back to the default SDPA.
+
+Default priority:
+
+```python
+ATTENTION_BACKEND_PRIORITY = ("_flash_3_hub", "flash", "sage_hub")
+```
+
+Override the class attribute when your model needs a different order or a narrower list:
+
+```python
+class PipelineYourModel(BasePipeline):
+    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("_flash_3_hub", "flash")
+```
+
+**Important:** use only valid diffusers backend names. `_flash_3` (without `_hub`) is **not** a valid backend name in current diffusers — use `_flash_3_hub`.
 
 **⚠️ Important - Imports with Try-Except:**
 
@@ -565,7 +599,7 @@ Edit `aquiles-gguf-registry/registry.json` in this repo and open a PR here. Main
    - [ ] I tested the model/fix locally
    - [ ] I updated the documentation (README.md)
    - [ ] I added a Modal deployment example (`examples/` folder)
-   - [ ] My pipeline extends `BasePipeline` and calls `super().__init__()`
+   - [ ] My pipeline extends `BasePipeline`, calls `super().__init__()`, and uses the inherited `enable_flash_attn()`
    - [ ] Imports use try-except if the model is only in `main` of diffusers
    - [ ] Commits are descriptive
    - [ ] I followed the existing file structure
@@ -596,7 +630,7 @@ Edit `aquiles-gguf-registry/registry.json` in this repo and open a PR here. Main
 - [ ] I tested locally
 - [ ] I updated the documentation
 - [ ] I added a Modal deployment example (if new model)
-- [ ] My pipeline extends `BasePipeline` and calls `super().__init__()`
+- [ ] My pipeline extends `BasePipeline`, calls `super().__init__()`, and uses the inherited `enable_flash_attn()`
 - [ ] Imports use try-except (if model only in `main` of diffusers)
 - [ ] Descriptive commits
 - [ ] I followed the project structure
