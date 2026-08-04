@@ -19,6 +19,8 @@ from aquilesimage.models import BasePipeline
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
 class PipelineZImageTurbo(BasePipeline):
+    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("flash", "_flash_3_hub")
+
     def __init__(self, model_path: str | None = None, dist_inf: bool = False,
             load_lora: bool = False, conf_lora: LoRAConfig | None = None):
 
@@ -68,21 +70,6 @@ class PipelineZImageTurbo(BasePipeline):
             self.enable_flash_attn()
             self.pipeline.vae.disable_tiling()
             self._warmup()
-
-    def enable_flash_attn(self):
-        try:
-            self.pipeline.transformer.set_attention_backend("flash")
-            logger_p.info("Z-Image-Turbo - FlashAttention 2.0 is enabled")
-            return True
-        except Exception as e:
-            logger_p.error(f"X Z-Image-Turbo - FlashAttention 2.0 could not be enabled: {str(e)}")
-            try:
-                self.pipeline.transformer.set_attention_backend("_flash_3")
-                logger_p.info("Z-Image-Turbo - FlashAttention 3.0 is enabled")
-                return True
-            except Exception as e3:
-                logger_p.error(f"X Z-Image-Turbo - FlashAttention 3.0 could not be enabled: {str(e3)}")
-            return False
 
     def _warmup(self):
         try:

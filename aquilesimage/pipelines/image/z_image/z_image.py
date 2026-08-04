@@ -13,6 +13,8 @@ from aquilesimage.models import BasePipeline
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
 class PipelineZImage(BasePipeline):
+    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("_flash_3_hub", "flash")
+
     def __init__(self, model_path: str, load_lora: bool = False, conf_lora: LoRAConfig | None = None):
         self.model_name = model_path
         self.pipeline: ZImagePipeline | None = None
@@ -43,7 +45,7 @@ class PipelineZImage(BasePipeline):
 
     def optimization(self):
         self.optimize_memory_format()
-        #self.flash_attn()
+        #self.enable_flash_attn()
 
     def optimize_memory_format(self):
         try:
@@ -55,16 +57,3 @@ class PipelineZImage(BasePipeline):
         except Exception as e:
             logger_p.error(f"X Error optimizing memory format: {e}")
             pass
-
-    def flash_attn(self):
-        try:
-            self.pipeline.transformer.set_attention_backend("_flash_3_hub")
-            logger_p.info("FlashAttention 3 enabled")
-        except Exception as e:
-            logger_p.debug(f"FlashAttention 3 not available: {str(e)}")
-            try:
-                self.pipeline.transformer.set_attention_backend("flash")
-                logger_p.info("FlashAttention 2 enabled")
-            except Exception as e2:
-                logger_p.debug(f"FlashAttention 2 not available: {str(e2)}")
-                pass

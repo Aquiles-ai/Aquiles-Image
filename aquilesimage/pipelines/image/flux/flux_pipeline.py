@@ -90,53 +90,6 @@ class PipelineFlux(BasePipeline):
             logger_p.error(f"X Error in optimization with Flux: {e}")
             raise
 
-    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("_flash_3_hub", "flash", "sage_hub")
-
-    def enable_flash_attn(self):
-        for backend in self.ATTENTION_BACKEND_PRIORITY:
-            if not self._attention_backend_ready(backend):
-                logger_p.debug(f"Attention backend {backend} not available")
-                continue
-            try:
-                self.pipeline.transformer.set_attention_backend(backend)
-                logger_p.info(f"Attention backend enabled: {backend}")
-                return
-            except Exception as e:
-                logger_p.debug(f"Failed to set attention backend {backend}: {str(e)}")
-        logger_p.warning("No optimized attention available, using default SDPA")
-
-    def _attention_backend_ready(self, backend: str) -> bool:
-        try:
-            from diffusers.models.attention_dispatch import (
-                AttentionBackendName,
-                _HUB_KERNELS_REGISTRY,
-                _check_attention_backend_requirements,
-            )
-            name = AttentionBackendName(backend)
-            _check_attention_backend_requirements(name)
-            if name in _HUB_KERNELS_REGISTRY:
-                config = _HUB_KERNELS_REGISTRY[name]
-                return self._hub_kernel_ready(config.repo_id, config.version)
-            return True
-        except Exception as e:
-            logger_p.debug(f"Attention backend {backend} not usable: {str(e)}")
-            return False
-
-    def _hub_kernel_ready(self, repo_id: str, version: int | None) -> bool:
-        try:
-            from kernels import get_kernel, has_kernel
-        except Exception as e:
-            logger_p.debug(f"kernels package not usable: {str(e)}")
-            return False
-        try:
-            if has_kernel(repo_id, version=version):
-                return True
-            get_kernel(repo_id, version=version)
-            return True
-        except Exception as e:
-            logger_p.debug(f"Hub kernel {repo_id} not usable: {str(e)}")
-            return False
-
     def warmup_compile(self, batch_sizes, resolutions, prompt="warmup", steps=4):
         if self.mode != "piecewise":
             return

@@ -51,35 +51,6 @@ class AutoPipelineI2IDiffusers(BasePipeline):
             logger_p.info("Running with the non-optimized version")
             pass
 
-    def enable_flash_attn(self):
-        component = None
-        if hasattr(self.pipeline, 'transformer'):
-            component = self.pipeline.transformer
-
-        if component is None:
-            logger_p.warning("No transformer component found for flash attention")
-            return
-
-        if not hasattr(component, 'set_attention_backend'):
-            logger_p.warning("set_attention_backend not available for this model, skipping flash attention")
-            return
-
-        backends = [
-            ("_flash_3_hub", "FlashAttention 3"),
-            ("flash",        "FlashAttention 2"),
-            ("sage_hub",     "SAGE Attention"),
-        ]
-
-        for backend, name in backends:
-            try:
-                component.set_attention_backend(backend)
-                logger_p.info(f"{name} enabled")
-                return
-            except Exception as e:
-                logger_p.debug(f"{name} not available: {str(e)}")
-
-        logger_p.warning("No optimized attention backend available, using default SDPA")
-
     def optimize_memory_format(self): 
         try:
             logger_p.info("channels_last memory format")
