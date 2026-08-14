@@ -22,7 +22,8 @@ class ModelPipelineInit:
     def __init__(self, model: str, low_vram: bool = False, auto_pipeline: bool = False, 
                 device_map_flux2: str | None = None, dist_inf: bool = False, 
                 auto_type: Literal["t2i", "i2i"] | None = None, load_lora: bool = False,
-                conf_lora: LoRAConfig | None = None, mode: Literal["eager", "piecewise"] = "eager"):
+                conf_lora: LoRAConfig | None = None, mode: Literal["eager", "piecewise"] = "eager",
+                cpu_offload: bool = False):
         self.model = model
         self.pipeline = None
         self.device = "cuda" if torch.cuda.is_available() else "mps"
@@ -35,6 +36,7 @@ class ModelPipelineInit:
         self.load_lora = load_lora
         self.conf_lora = conf_lora
         self.mode = mode
+        self.cpu_offload = cpu_offload
 
         self.models = ImageModel
 
@@ -128,7 +130,7 @@ class ModelPipelineInit:
 
         # Base Models
         if self.model in self.stablediff3:
-            self.pipeline = PipelineSD3(self.model, self.dist_inf, load_lora=self.load_lora, conf_lora=self.conf_lora)
+            self.pipeline = PipelineSD3(self.model, self.dist_inf, load_lora=self.load_lora, conf_lora=self.conf_lora, cpu_offload=self.cpu_offload)
         elif self.model in self.flux:
             self.pipeline = PipelineFlux(self.model, self.low_vram, self.load_lora, self.conf_lora, self.mode)
         elif self.model in self.z_image:

@@ -10,7 +10,7 @@ from aquilesimage.models import BasePipeline
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
 class PipelineSD3(BasePipeline):
-    def __init__(self, model_path: str | None = None, dist_inf: bool = False, load_lora: bool = False, conf_lora: LoRAConfig | None = None):
+    def __init__(self, model_path: str | None = None, dist_inf: bool = False, load_lora: bool = False, conf_lora: LoRAConfig | None = None, cpu_offload: bool = False):
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.pipeline: StableDiffusion3Pipeline | None = None
         self.device: str | None = None
@@ -18,6 +18,7 @@ class PipelineSD3(BasePipeline):
         self.pipelines = {}
         self.load_lora = load_lora
         self.conf_lora = conf_lora
+        self.cpu_offload = cpu_offload
 
     def start(self):
         torch.set_float32_matmul_precision("high")
@@ -45,7 +46,13 @@ class PipelineSD3(BasePipeline):
             self.pipeline = StableDiffusion3Pipeline.from_pretrained(
                 model_path,
                 torch_dtype=torch.float16,
-            ).to(device=self.device)
+            )
+
+            if self.cpu_offload:
+                logger_p.info("Enabling model CPU offloading")
+                self.pipeline.enable_model_cpu_offload()
+            else:
+                self.pipeline.to(device=self.device)
 
             if self.load_lora:
                 loadLoRA(self.pipeline, self.conf_lora)
@@ -70,6 +77,8 @@ class PipelineSD3(BasePipeline):
                 pass
 
         elif torch.backends.mps.is_available():
+            if self.cpu_offload:
+                logger_p.warning("CPU offloading is only supported on CUDA, ignoring it for MPS")
             model_path = self.model_path or "stabilityai/stable-diffusion-3.5-medium"
             logger_p.info("Loading MPS for Mac M Series")
             self.device = "mps"

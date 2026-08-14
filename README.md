@@ -403,6 +403,31 @@ result = client.images.generate(
  
 **Currently supported architectures:** FLUX.1, SD3.5 — more being added progressively. See the full list in [`registry.json`](https://huggingface.co/datasets/Aquiles-ai/aquiles-gguf-registry/blob/main/registry.json). Want to add a model? See [Contributing GGUF entries](CONTRIBUTING.md#adding-gguf-models-to-the-registry) — no code required.
 
+### CPU Offloading - Run SD3/SD3.5 on Low VRAM
+
+Run `StableDiffusion3Pipeline` models on GPUs with limited VRAM by keeping the model components on CPU and moving each one to GPU only when it needs to be executed. This fixes CUDA out-of-memory errors on 16 GB GPUs at the cost of slightly slower inference:
+
+```bash
+aquiles-image serve \
+  --model "stabilityai/stable-diffusion-3.5-medium" \
+  --cpu-offload
+```
+
+You can also explicitly disable CPU offloading (e.g. after having it enabled in the config):
+
+```bash
+aquiles-image serve --model "stabilityai/stable-diffusion-3.5-medium" --no-cpu-offload
+```
+
+**What it does:**
+- Calls `pipeline.enable_model_cpu_offload()` instead of moving the whole pipeline to CUDA
+- Reduces VRAM usage significantly for SD3/SD3.5 models
+- Works in single-device and distributed mode
+
+> ⚠️ Only compatible with SD3/SD3.5 models (`stabilityai/stable-diffusion-3-medium`, `stabilityai/stable-diffusion-3.5-medium`, `stabilityai/stable-diffusion-3.5-large`, `stabilityai/stable-diffusion-3.5-large-turbo`). Other pipelines ignore this option.
+>
+> ⚠️ For `stable-diffusion-3.5-large` on GPUs with 16 GB of VRAM, model offloading may not be enough since the full transformer is moved to GPU during execution. Use the `-medium` variant for that VRAM range.
+
 ### Dev Mode - Test Without Loading Models
 
 Perfect for development, testing, and CI/CD:

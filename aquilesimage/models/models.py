@@ -352,6 +352,7 @@ class ConfigsServe(BaseModel):
     load_lora: bool | None = Field(default=None)
     lora_config_path: str | None = Field(default=None)
     mode: Literal["eager", "piecewise"] | None = Field(default="eager")
+    cpu_offload: bool | None = Field(default=None, description="Enable CPU offloading for SD3/SD3.5 pipelines (StableDiffusion3Pipeline) to reduce VRAM usage")
 
 class LoRAConfig(BaseModel):
     repo_id: str = Field(

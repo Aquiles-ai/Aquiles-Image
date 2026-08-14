@@ -98,6 +98,7 @@ class AppConfig:
     batch_timeout: float = 0.5
     worker_sleep: float = 0.05
     mode: Literal["eager", "piecewise"] = "eager"
+    cpu_offload: bool = False
 
 
 cfg = AppConfig()
@@ -205,7 +206,7 @@ def _load_single_pipeline(cfg: AppConfig, conf_lora):
     from aquilesimage.pipelines import ModelPipelineInit
     from aquilesimage.runtime.hyper_kernels import HyperKernels
 
-    kwargs = dict(load_lora=cfg.load_lora, conf_lora=conf_lora, mode=cfg.mode)
+    kwargs = dict(load_lora=cfg.load_lora, conf_lora=conf_lora, mode=cfg.mode, cpu_offload=cfg.cpu_offload)
     if cfg.auto_pipeline:
         init = ModelPipelineInit(model=cfg.model_name, auto_pipeline=True, auto_type=cfg.auto_type, **kwargs)
     elif cfg.device_map_flux2 == "cuda" and cfg.model_name == ImageModel.FLUX_2_4BNB:
@@ -248,6 +249,7 @@ def load_models():
     cfg.batch_timeout    = float(raw["batch_timeout"]) if raw.get("batch_timeout") else 0.5
     cfg.worker_sleep     = float(raw["worker_sleep"]) if raw.get("worker_sleep") else 0.05
     cfg.mode = raw.get("mode") or "eager"
+    cfg.cpu_offload = raw.get("cpu_offload") or False
 
     allows = raw.get("allows_users") or []
     cfg.allow_users = bool(allows)

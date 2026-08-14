@@ -34,7 +34,8 @@ def serve(
     seed: Optional[int] = typer.Option(None, help="Seed for reproducible image generation"),
     load_lora: Optional[bool] = typer.Option(None, "--load-lora/--no-load-lora", help="Enable LoRA loading from a config file"),
     lora_config: Optional[str] = typer.Option(None, "--lora-config", help="Path to the LoRA config JSON file (relative or absolute)"),
-    mode: Optional[str] = typer.Option(None,"--mode", help="Compilation mode: 'eager' applies diffusers' base optimizations only (default behavior); 'piecewise' additionally compiles the pipeline per-shape via warmup compilation.")
+    mode: Optional[str] = typer.Option(None,"--mode", help="Compilation mode: 'eager' applies diffusers' base optimizations only (default behavior); 'piecewise' additionally compiles the pipeline per-shape via warmup compilation."),
+    cpu_offload: Optional[bool] = typer.Option(None, "--cpu-offload/--no-cpu-offload", help="Enable CPU offloading for SD3/SD3.5 pipelines (StableDiffusion3Pipeline) to reduce VRAM usage. Other pipelines ignore this option.")
 ):
     """Start the Aquiles-Image server."""
 
@@ -112,7 +113,8 @@ def serve(
         seed is not None,
         load_lora is not None,
         lora_config is not None,
-        mode is not None
+        mode is not None,
+        cpu_offload is not None
     ])
 
     if config_needs_update:
@@ -141,7 +143,8 @@ def serve(
                 allows_users=_build_allowed_users(username, password, conf),
                 load_lora=load_lora if load_lora is not None else conf.get("load_lora"),
                 lora_config_path=lora_config if lora_config is not None else conf.get("lora_config_path"),
-                mode=mode if mode is not None else conf.get("mode", "eager")
+                mode=mode if mode is not None else conf.get("mode", "eager"),
+                cpu_offload=cpu_offload if cpu_offload is not None else conf.get("cpu_offload")
             )
 
             configs_image_serve(updated_conf, force=True)

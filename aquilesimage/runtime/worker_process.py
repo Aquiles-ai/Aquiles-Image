@@ -154,6 +154,7 @@ def _load_pipeline_in_worker(model_name: str, gpu_id: int, config: Dict[str, Any
     lora_config_path = config.get('lora_config_path', None)
 
     mode = config.get('mode', 'eager')
+    cpu_offload = config.get('cpu_offload', False)
 
     max_batch_size = config.get('max_batch_size', 4)
 
@@ -174,7 +175,8 @@ def _load_pipeline_in_worker(model_name: str, gpu_id: int, config: Dict[str, Any
             dist_inf=False,
             load_lora=load_lora,
             conf_lora=conf_lora,
-            mode=mode
+            mode=mode,
+            cpu_offload=cpu_offload
         )
     elif device_map_flux2 == 'cuda' and model_name == ImageModel.FLUX_2_4BNB:
         initializer = ModelPipelineInit(
@@ -183,7 +185,8 @@ def _load_pipeline_in_worker(model_name: str, gpu_id: int, config: Dict[str, Any
             dist_inf=False,
             load_lora=load_lora,
             conf_lora=conf_lora,
-            mode=mode
+            mode=mode,
+            cpu_offload=cpu_offload
         )
     else:
         initializer = ModelPipelineInit(
@@ -192,7 +195,8 @@ def _load_pipeline_in_worker(model_name: str, gpu_id: int, config: Dict[str, Any
             dist_inf=False,
             load_lora=load_lora,
             conf_lora=conf_lora,
-            mode=mode
+            mode=mode,
+            cpu_offload=cpu_offload
         )
 
     model_pipeline = initializer.initialize_pipeline()
