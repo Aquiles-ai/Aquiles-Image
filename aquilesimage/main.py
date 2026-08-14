@@ -399,8 +399,10 @@ def _cleanup_gpu():
         torch.cuda.ipc_collect()
     gc.collect()
 
+@app.post("/v1/images/generations", response_model=ImagesResponse, tags=["Generation"],
+          dependencies=[Depends(verify_api_key)], operation_id="create_image_v1")
 @app.post("/images/generations", response_model=ImagesResponse, tags=["Generation"],
-          dependencies=[Depends(verify_api_key)])
+          dependencies=[Depends(verify_api_key)], operation_id="create_image")
 async def create_image(input_r: CreateImageRequest):
     utils_app = app.state.utils_app
     response_format = input_r.response_format or "url"
@@ -460,9 +462,10 @@ async def create_image(input_r: CreateImageRequest):
         _cleanup_gpu()
 
 
-
+@app.post("/v1/images/edits", response_model=ImagesResponse, tags=["Edit"],
+          dependencies=[Depends(verify_api_key)], operation_id="edit_image_v1")
 @app.post("/images/edits", response_model=ImagesResponse, tags=["Edit"],
-          dependencies=[Depends(verify_api_key)])
+          dependencies=[Depends(verify_api_key)], operation_id="edit_image")
 async def create_image_edit(
     image: Optional[UploadFile] = File(None, description="Single image to edit (legacy format)"),
     image_array: Optional[List[UploadFile]] = File(None, alias="image[]", description="Image(s) to edit (OpenAI/OpenWebUI format)"),
@@ -569,8 +572,8 @@ async def create_image_edit(
         _cleanup_gpu()
 
 
-
-@app.get("/images/{filename}", tags=["Download Images"])
+@app.get("/v1/images/{filename}", tags=["Download Images"], operation_id="serve_image_v1")
+@app.get("/images/{filename}", tags=["Download Images"], operation_id="serve_image")
 async def serve_image(filename: str):
     path = os.path.join(app.state.utils_app.image_dir, filename)
     if not os.path.isfile(path):
@@ -578,8 +581,10 @@ async def serve_image(filename: str):
     return FileResponse(path, media_type="image/png")
 
 
+@app.get("/v1/models", response_model=ListModelsResponse,
+         dependencies=[Depends(verify_api_key)], tags=["Models"], operation_id="models_v1")
 @app.get("/models", response_model=ListModelsResponse,
-         dependencies=[Depends(verify_api_key)], tags=["Models"])
+         dependencies=[Depends(verify_api_key)], tags=["Models"], operation_id="models")
 async def get_models():
     return ListModelsResponse(
         object="list",
@@ -587,7 +592,8 @@ async def get_models():
                     created=int(datetime.now().timestamp()), owned_by="custom")]
     )
 
-@app.get("/model/type")
+@app.get("/v1/model/type", operation_id="get_type_model_v1")
+@app.get("/model/type", operation_id="get_type_model")
 async def get_type_model():
     if cfg.auto_pipeline:
         type_model = "Image" if cfg.auto_type == "t2i" else "Edit"
@@ -603,8 +609,10 @@ def _require_video_model():
         raise HTTPException(503, f"Model '{cfg.model_name}' does not generate videos.")
 
 
+@app.post("/v1/videos", response_model=VideoResource,
+          dependencies=[Depends(verify_api_key)], tags=["Video APIs"], operation_id="create_video_v1")
 @app.post("/videos", response_model=VideoResource,
-          dependencies=[Depends(verify_api_key)], tags=["Video APIs"])
+          dependencies=[Depends(verify_api_key)], tags=["Video APIs"], operation_id="create_video")
 async def create_video(request: Request):
     content_type = request.headers.get("content-type", "")
     MODELS_WITH_IMAGE = [VideoModels.LTX_2]
@@ -639,8 +647,10 @@ async def create_video(request: Request):
         raise HTTPException(503, str(e))
 
 
+@app.get("/v1/videos/{video_id}", response_model=VideoResource,
+         dependencies=[Depends(verify_api_key)], tags=["Video APIs"], operation_id="get_video_v1")
 @app.get("/videos/{video_id}", response_model=VideoResource,
-         dependencies=[Depends(verify_api_key)], tags=["Video APIs"])
+         dependencies=[Depends(verify_api_key)], tags=["Video APIs"], operation_id="get_video")
 async def get_video(video_id: str):
     if app.state.load_model is False:
         return create_dev_mode_video_response(model="sora-2", prompt="Mock", status="completed", progress=100)
@@ -651,8 +661,10 @@ async def get_video(video_id: str):
     return video
 
 
+@app.get("/v1/videos", response_model=VideoListResource,
+         dependencies=[Depends(verify_api_key)], tags=["Video APIs"], operation_id="list_videos_v1")
 @app.get("/videos", response_model=VideoListResource,
-         dependencies=[Depends(verify_api_key)], tags=["Video APIs"])
+         dependencies=[Depends(verify_api_key)], tags=["Video APIs"], operation_id="list_videos")
 async def list_videos(limit: int = 20, after: Optional[str] = None):
     if app.state.load_model is False:
         mock = create_dev_mode_video_response(model="sora-2", prompt="Mock", status="completed", progress=100)
@@ -665,8 +677,10 @@ async def list_videos(limit: int = 20, after: Optional[str] = None):
                              last_id=videos[-1].id if videos else None)
 
 
+@app.delete("/v1/videos/{video_id}", response_model=DeletedVideoResource,
+            dependencies=[Depends(verify_api_key)], tags=["Video APIs"], operation_id="delete_video_v1")
 @app.delete("/videos/{video_id}", response_model=DeletedVideoResource,
-            dependencies=[Depends(verify_api_key)], tags=["Video APIs"])
+            dependencies=[Depends(verify_api_key)], tags=["Video APIs"], operation_id="delete_video")
 async def delete_video(video_id: str):
     if app.state.load_model is False:
         return DeletedVideoResource(id=video_id, object="video.deleted", deleted=True)
@@ -676,14 +690,16 @@ async def delete_video(video_id: str):
     return DeletedVideoResource(id=video_id, object="video.deleted", deleted=True)
 
 
-@app.get("/videos/{video_id}/content", tags=["Video APIs"])
+@app.get("/v1/videos/{video_id}/content", tags=["Video APIs"], operation_id="get_video_content_v1")
+@app.get("/videos/{video_id}/content", tags=["Video APIs"], operation_id="get_video_content")
 async def get_video_content(video_id: str):
     _require_video_model()
     path = await video_task_gen.get_path_video(video_id)
     return FileResponse(path, media_type="video/mp4")
 
 
-@app.get("/stats", dependencies=[Depends(verify_api_key)], tags=["Stats APIs"])
+@app.get("/v1/stats", dependencies=[Depends(verify_api_key)], tags=["Stats APIs"], operation_id="get_stats_v1")
+@app.get("/stats", dependencies=[Depends(verify_api_key)], tags=["Stats APIs"], operation_id="get_stats")
 async def get_stats():
     if app.state.load_model is False:
         return {"mode": "single-device", "total_requests": 150, "total_batches": 42,
@@ -694,7 +710,8 @@ async def get_stats():
     return await batch_pipeline.get_stats()
 
 
-@app.get("/health", tags=["Stats APIs"])
+@app.get("/v1/health", tags=["Stats APIs"], operation_id="health_v1")
+@app.get("/health", tags=["Stats APIs"], operation_id="health")
 async def health_check():
     status = "loading" if app.state.load_model is False else "ok"
     
