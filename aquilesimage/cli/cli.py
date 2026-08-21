@@ -1,13 +1,29 @@
 import typer
+from pathlib import Path
 from typing import Optional
 import sys
 import os
 
 app = typer.Typer()
 
+bench_app = typer.Typer(help="Benchmark utilities for Aquiles-Image servers.")
+
+from aquilesimage.cli.branding import (
+    config_view,
+    download_status,
+    err,
+    hint,
+    info,
+    model_not_found,
+    ok,
+    startup_banner,
+    validation_error,
+    warn,
+)
+
 @app.command("hello")
 def greet(name: str = typer.Option(..., help="Name to greet")):
-    typer.echo(f"Hello, {name}!")
+    ok(f"Hello, {name}!")
 
 
 @app.command("serve")
@@ -40,11 +56,11 @@ def serve(
     """Start the Aquiles-Image server."""
 
     if auto_pipeline_type is not None and auto_pipeline_type not in ("t2i", "i2i"):
-        typer.echo("X Error: --auto-pipeline-type must be 't2i' or 'i2i'.", err=True)
+        err("--auto-pipeline-type must be 't2i' or 'i2i'")
         raise typer.Exit(code=1)
 
     if load_lora and lora_config is None:
-        typer.echo("X Error: --load-lora requires --lora-config to be specified.", err=True)
+        err("--load-lora requires --lora-config to be specified")
         raise typer.Exit(code=1)
 
     try:
@@ -57,40 +73,41 @@ def serve(
         from aquilesimage.models import ConfigsServe
         from aquilesimage.utils import _build_allowed_users
     except ImportError as e:
-        typer.echo(f"X Error importing configuration modules: {e}", err=True)
+        err(f"Error importing configuration modules: {e}")
         raise typer.Exit(code=1)
 
     config_exists = config_file_exists()
 
     if not config_exists:
         if model:
-            typer.echo(f"No configuration found. Creating basic configuration with model: {model}")
+            info(f"No configuration found. Creating basic configuration with model: {model}")
             try:
                 if no_load_model:
                     create_basic_config_if_not_exists(model, False)
                 else:
                     create_basic_config_if_not_exists(model)
             except Exception as e:
-                typer.echo(f"X Error creating basic configuration: {e}", err=True)
+                err(f"Error creating basic configuration: {e}")
                 raise typer.Exit(code=1)
         else:
             try:
                 create_basic_config_if_not_exists()
             except Exception as e:
-                typer.echo(f"X Error creating default configuration: {e}", err=True)
+                err(f"Error creating default configuration: {e}")
                 raise typer.Exit(code=1)
 
     try:
         conf = load_config_cli()
     except Exception as e:
-        typer.echo(f"X Error loading configuration: {e}", err=True)
+        err(f"Error loading configuration: {e}")
         raise typer.Exit(code=1)
 
     model_from_config = conf.get("model")
     final_model = model or model_from_config
 
     if not final_model:
-        typer.echo("X Error: No model specified. Use --model parameter or configure one first.", err=True)
+        err("No model specified. Use --model parameter or configure one first.")
+        hint("aquiles-image serve --model <model-id>")
         raise typer.Exit(code=1)
 
     config_needs_update = any([
@@ -148,46 +165,37 @@ def serve(
             )
 
             configs_image_serve(updated_conf, force=True)
-            typer.echo("Configuration updated successfully.")
+            ok("Configuration updated successfully.")
 
         except Exception as e:
-            typer.echo(f"X Error updating configuration: {e}", err=True)
+            err(f"Error updating configuration: {e}")
             raise typer.Exit(code=1)
 
     try:
         import uvicorn
     except ImportError as e:
-        typer.echo(f"X Error importing uvicorn: {e}", err=True)
+        err(f"Error importing uvicorn: {e}")
         raise typer.Exit(code=1)
 
     try:
         from aquilesimage.main import app as fastapi_app
     except TypeError as e:
-        typer.echo(f"X Error loading application (Pydantic validation): {e}", err=True)
-        typer.echo("X This might be caused by invalid configuration values.", err=True)
-        typer.echo("X Try running: aquiles-image configs --reset", err=True)
+        err("Error loading application (Pydantic validation). This might be caused by invalid configuration values.")
+        hint("aquiles-image configs --reset")
         raise typer.Exit(code=1)
     except Exception as e:
-        typer.echo(f"X Error loading application: {e}", err=True)
-        import traceback
-        typer.echo(f"X Traceback: {traceback.format_exc()}", err=True)
+        err(f"Error loading application: {e}")
         raise typer.Exit(code=1)
 
-    typer.echo(f"\nStarting Aquiles-Image server:")
-    typer.echo(f"   Host: {host}")
-    typer.echo(f"   Port: {port}")
-    typer.echo(f"   Model: {final_model}")
-    typer.echo(f"   Config: {len(conf)} settings loaded")
-    typer.echo(f"\nServer will be available at: http://{host}:{port}")
-    if no_load_model:
-        typer.echo("\nAquiles-Image server in dev mode without loading the model")
+    startup_banner(host, port, final_model, len(conf), dev_mode=no_load_model)
 
     try:
-        uvicorn.run(fastapi_app, host=host, port=port)
+        from aquilesimage.utils.rich_logging import uvicorn_log_config
+        uvicorn.run(fastapi_app, host=host, port=port, log_config=uvicorn_log_config())
     except KeyboardInterrupt:
-        typer.echo("\nServer stopped by user.")
+        info("Server stopped by user.")
     except Exception as e:
-        typer.echo(f"X Error starting server: {e}", err=True)
+        err(f"Error starting server: {e}")
         raise typer.Exit(code=1)
 
 
@@ -201,28 +209,28 @@ def configs(
         from aquilesimage.configs import load_config_cli, clear_config_cache
         import json
     except ImportError as e:
-        typer.echo(f"Error importing required modules: {e}", err=True)
+        err(f"Error importing required modules: {e}")
         raise typer.Exit(code=1)
 
     if reset:
         if typer.confirm("Are you sure you want to reset the configuration?"):
             try:
                 clear_config_cache()
-                typer.echo("Configuration reset successfully.")
+                ok("Configuration reset successfully.")
             except Exception as e:
-                typer.echo(f"Error resetting configuration: {e}", err=True)
+                err(f"Error resetting configuration: {e}")
         return
 
     if show:
         try:
             conf = load_config_cli()
             if conf:
-                typer.echo("Current configuration:")
-                typer.echo(json.dumps(conf, indent=2, ensure_ascii=False))
+                info("Current configuration:")
+                config_view(conf)
             else:
-                typer.echo("No configuration found.")
+                warn("No configuration found.")
         except Exception as e:
-            typer.echo(f"Error loading configuration: {e}", err=True)
+            err(f"Error loading configuration: {e}")
         return
 
     typer.echo(typer.get_current_context().get_help())
@@ -235,21 +243,24 @@ def validate():
         from aquilesimage.configs import load_config_cli
         from aquilesimage.models import ConfigsServe
     except ImportError as e:
-        typer.echo(f"Error importing required modules: {e}", err=True)
+        err(f"Error importing required modules: {e}")
         raise typer.Exit(code=1)
 
     try:
         conf = load_config_cli()
 
         if not conf:
-            typer.echo("No configuration found.", err=True)
+            err("No configuration found.")
             raise typer.Exit(code=1)
 
         ConfigsServe(**conf)
-        typer.echo("Configuration is valid.")
+        ok("Configuration is valid.")
 
+    except typer.Exit:
+        raise
     except Exception as e:
-        typer.echo(f"Configuration validation failed: {e}", err=True)
+        validation_error(str(e))
+        hint("aquiles-image configs --reset")
         raise typer.Exit(code=1)
 
 @app.command("gguf-download")
@@ -262,38 +273,38 @@ def gguf_download(
         from huggingface_hub import hf_hub_download
         import json
     except ImportError as e:
-        typer.echo(f"X Error importing required modules: {e}", err=True)
+        err(f"Error importing required modules: {e}")
         raise typer.Exit(code=1)
  
     try:
         verify_registry()
     except Exception as e:
-        typer.echo(f"Error verifying registry: {e}", err=True)
+        err(f"Error verifying registry: {e}")
         raise typer.Exit(code=1)
  
     try:
         with open(AQUILES_GGUF_REGISTRY, "r", encoding="utf-8") as f:
             registry = json.load(f)
     except Exception as e:
-        typer.echo(f"Error reading registry: {e}", err=True)
+        err(f"Error reading registry: {e}")
         raise typer.Exit(code=1)
  
     if model_id not in registry:
-        typer.echo(f"X Model '{model_id}' not found in registry.", err=True)
-        typer.echo(f"Available models: {', '.join(registry.keys())}")
+        model_not_found(model_id, registry.keys())
         raise typer.Exit(code=1)
- 
+
     entry = registry[model_id]
- 
-    typer.echo(f"Downloading '{model_id}' from {entry['gguf_repo']}/{entry['gguf_file']}...")
+
+    info(f"Downloading '{model_id}' from {entry['gguf_repo']}/{entry['gguf_file']}")
     try:
-        path = hf_hub_download(
-            repo_id=entry["gguf_repo"],
-            filename=entry["gguf_file"],
-        )
-        typer.echo(f"Downloaded to: {path}")
+        with download_status("downloading model weights"):
+            path = hf_hub_download(
+                repo_id=entry["gguf_repo"],
+                filename=entry["gguf_file"],
+            )
+        ok(f"Downloaded to: {path}")
     except Exception as e:
-        typer.echo(f"Error downloading GGUF file: {e}", err=True)
+        err(f"Error downloading GGUF file: {e}")
         raise typer.Exit(code=1)
  
  
@@ -303,16 +314,76 @@ def gguf_update():
     try:
         from aquilesimage.utils.gguf_utils import update_registry
     except ImportError as e:
-        typer.echo(f"Error importing required modules: {e}", err=True)
+        err(f"Error importing required modules: {e}")
         raise typer.Exit(code=1)
  
-    typer.echo("Updating GGUF registry...")
+    info("Updating GGUF registry...")
     try:
         update_registry()
-        typer.echo("Registry updated successfully.")
+        ok("Registry updated successfully.")
     except Exception as e:
-        typer.echo(f"Error updating registry: {e}", err=True)
+        err(f"Error updating registry: {e}")
         raise typer.Exit(code=1)
+
+@bench_app.command("serve")
+def bench_serve(
+    config_bench: Path = typer.Option(
+        ..., "--config-bench",
+        help="Path to the bench config JSON generated with BenchConfig.save_config()"
+    ),
+    host: Optional[str] = typer.Option(None, help="Override target server host"),
+    port: Optional[int] = typer.Option(None, help="Override target server port"),
+    api_key: Optional[str] = typer.Option(None, help="Override API key"),
+    label: Optional[str] = typer.Option(None, help="Override run label"),
+    num_prompts: Optional[int] = typer.Option(None, help="Override number of prompts"),
+    result_dir: Optional[str] = typer.Option(None, help="Override directory for result files"),
+):
+    """Run an online serving benchmark against a running Aquiles-Image server."""
+    try:
+        from aquilesimage.bench.models import BenchConfig
+        from aquilesimage.bench.runner import run_bench
+    except ImportError as e:
+        err(f"Error importing bench modules: {e}")
+        hint("pip install 'aquiles-image[bench]'")
+        raise typer.Exit(code=1)
+
+    if not config_bench.is_file():
+        err(f"Bench config not found: {config_bench}")
+        raise typer.Exit(code=1)
+
+    try:
+        cfg = BenchConfig.model_validate_json(config_bench.read_text(encoding="utf-8"))
+    except Exception as e:
+        err(f"Invalid bench config: {e}")
+        raise typer.Exit(code=1)
+
+    overrides = {
+        k: v for k, v in {
+            "host": host,
+            "port": port,
+            "api_key": api_key,
+            "label": label,
+            "num_prompts": num_prompts,
+            "result_dir": result_dir,
+        }.items() if v is not None
+    }
+    if overrides:
+        cfg = cfg.model_copy(update=overrides)
+
+    for warning in cfg.collect_warnings():
+        warn(warning)
+
+    info(f"target=http://{cfg.host}:{cfg.port} num_prompts={cfg.num_prompts} label={cfg.label}")
+
+    try:
+        run_bench(cfg)
+    except Exception as e:
+        err(f"Benchmark failed: {e}")
+        raise typer.Exit(code=1)
+
+
+app.add_typer(bench_app, name="bench")
+
 
 def cli():
     app()

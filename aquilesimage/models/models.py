@@ -354,6 +354,26 @@ class ConfigsServe(BaseModel):
     mode: Literal["eager", "piecewise"] | None = Field(default="eager")
     cpu_offload: bool | None = Field(default=None, description="Enable CPU offloading for SD3/SD3.5 pipelines (StableDiffusion3Pipeline) to reduce VRAM usage")
 
+class ServerConfigs(BaseModel):
+    """Whitelist of runtime config values exposed by GET /v1/configs. Never include secrets here."""
+    model_name: str
+    load_model: bool | None = Field(default=None)
+    auto_pipeline: bool | None = Field(default=None)
+    auto_type: str | None = Field(default=None)
+    device_map_flux2: str | None = Field(default=None)
+    dist_inference: bool | None = Field(default=None)
+    max_concurrent_infer: int = Field(default=4)
+    steps: int | None = Field(default=None)
+    guidance_scale: float | None = Field(default=None)
+    seed: int | None = Field(default=None)
+    load_lora: bool = Field(default=False)
+    max_batch_size: int = Field(default=4)
+    batch_timeout: float = Field(default=0.5)
+    worker_sleep: float = Field(default=0.05)
+    mode: Literal["eager", "piecewise"] = Field(default="eager")
+    cpu_offload: bool = Field(default=False)
+    versions: dict[str, str | None] = Field(default_factory=dict)
+
 class LoRAConfig(BaseModel):
     repo_id: str = Field(
         ...,

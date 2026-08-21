@@ -57,21 +57,28 @@ class ColoredFormatter(logging.Formatter):
 def setup_colored_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(level)
-    
+
     if logger.handlers:
         return logger
-    
+
+    from aquilesimage.utils.rich_logging import get_rich_handler
+
+    rich_handler = get_rich_handler(level)
+    if rich_handler is not None:
+        logger.addHandler(rich_handler)
+        return logger
+
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(level)
-    
+
     colored_formatter = ColoredFormatter(
         fmt='%(asctime)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
     console_handler.setFormatter(colored_formatter)
-    
+
     logger.addHandler(console_handler)
-    
+
     return logger
 
 logger_utils = setup_colored_logger("Aquiles-Image-Utils", logging.WARNING)

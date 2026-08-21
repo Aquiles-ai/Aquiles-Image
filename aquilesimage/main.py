@@ -39,7 +39,7 @@ from aquilesimage.configs import load_config_app, load_config_cli
 from aquilesimage.models import (CreateImageRequest, CreateVideoBody,
                                   DeletedVideoResource, Image, ImageModel,
                                   ImagesResponse, ListModelsResponse, Model,
-                                  VideoListResource, VideoModels, VideoQuality,
+                                  ServerConfigs, VideoListResource, VideoModels, VideoQuality,
                                   VideoResource)
 from aquilesimage.runtime.batch_inf import BatchPipeline
 from aquilesimage.utils import (Utils, VideoTaskGeneration, create_dev_mode_response,
@@ -593,6 +593,42 @@ async def get_models():
         data=[Model(id=f"{cfg.model_name}", object="model",
                     created=int(datetime.now().timestamp()), owned_by="custom")]
     )
+
+@app.get("/v1/configs", response_model=ServerConfigs, dependencies=[Depends(verify_api_key)], tags=["Configs"], operation_id="get_configs_v1")
+async def get_configs():
+    from importlib.metadata import version as _pkg_version
+
+    def _pkg(name: str) -> Optional[str]:
+        try:
+            return _pkg_version(name)
+        except Exception:
+            return None
+
+    return ServerConfigs(
+        model_name=cfg.model_name,
+        load_model=cfg.load_model,
+        auto_pipeline=cfg.auto_pipeline,
+        auto_type=cfg.auto_type,
+        device_map_flux2=cfg.device_map_flux2,
+        dist_inference=cfg.dist_inference,
+        max_concurrent_infer=cfg.max_concurrent_infer,
+        steps=cfg.steps,
+        guidance_scale=cfg.guidance_scale,
+        seed=cfg.seed,
+        load_lora=cfg.load_lora,
+        max_batch_size=cfg.max_batch_size,
+        batch_timeout=cfg.batch_timeout,
+        worker_sleep=cfg.worker_sleep,
+        mode=cfg.mode,
+        cpu_offload=cfg.cpu_offload,
+        versions={
+            "aquiles_image": _pkg("aquiles-image"),
+            "torch": torch.__version__,
+            "cuda": torch.version.cuda,
+            "diffusers": _pkg("diffusers"),
+        },
+    )
+
 
 @app.get("/v1/model/type", operation_id="get_type_model_v1")
 @app.get("/model/type", operation_id="get_type_model")
