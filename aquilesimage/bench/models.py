@@ -117,7 +117,7 @@ class BenchReport(BaseModel):
 
 
 class BenchConfig(BaseModel):
-    base_url: str = "http://192.168.1.20:5500/v1"
+    base_url: str = "http://192.168.1.20:5500"
     api_key: Optional[str] = None
 
     num_prompts: int = Field(default=100, ge=1)
@@ -137,6 +137,16 @@ class BenchConfig(BaseModel):
     result_dir: str = "./bench_results"
     result_filename: Optional[str] = None
     save_detailed: bool = False
+
+    @field_validator("base_url")
+    @classmethod
+    def _normalize_base_url(cls, v: str) -> str:
+        v = v.strip().rstrip("/")
+        if v.endswith("/v1"):
+            v = v[: -len("/v1")]
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("base_url must start with http:// or https://")
+        return v
 
     @model_validator(mode="after")
     def _sanity(self) -> "BenchConfig":

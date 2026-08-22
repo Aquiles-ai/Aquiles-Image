@@ -46,6 +46,7 @@
 - **🎬 Advanced Video** - Text-to-video with Wan2.x and HunyuanVideo series (+ Turbo variants)
 - **🧩 LoRA Support** - Load any LoRA from HuggingFace or a local path via a simple JSON config file, compatible with all native models and AutoPipeline
 - **⚙️ GGUF Support** - Run quantized GGUF transformers (Q2_K, Q4_K, Q8_0…) via a curated registry — lower VRAM, same OpenAI-compatible API
+- **📈 Built-in Benchmarking** - Measure throughput and latency percentiles of your deployment with configurable load profiles
 
 ## 🚀 Quick Start
 
@@ -630,6 +631,110 @@ The response varies depending on the model type and configuration:
 - `failed` - Failed requests
 - `available` - Whether server can accept new requests
 - `mode` - Operation mode for image models: `single-device` or `distributed`
+
+### `/configs` - Server Configuration Snapshot
+
+Returns the effective runtime configuration of the running server (requires API key). Useful to keep benchmark reports reproducible:
+
+```bash
+curl http://localhost:5500/v1/configs -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```json
+{
+  "model_name": "stabilityai/stable-diffusion-3.5-medium",
+  "mode": "eager",
+  "steps": 30,
+  "max_batch_size": 4,
+  "batch_timeout": 0.5,
+  "max_concurrent_infer": 4,
+  "versions": {
+    "aquiles_image": "0.7.6",
+    "torch": "2.8.0",
+    "cuda": "12.8",
+    "diffusers": "0.38.0"
+  }
+}
+```
+
+## 📈 Benchmarking
+
+Aquiles-Image ships with a built-in benchmarking tool that measures the real performance of your deployment. It works as a load generator against any running server, simulates production traffic patterns, and reports latency percentiles plus aggregate throughput.
+
+### Installation
+
+The benchmark client requires `httpx`:
+
+```bash
+pip install "aquiles-image[bench]"
+```
+
+### Generating a Bench Config
+
+Benchmarks are driven by a JSON config file. Generate one programmatically with `save_config()`:
+
+```python
+from aquilesimage.bench import BenchConfig, MixedProfile
+
+config = BenchConfig(
+    base_url="http://127.0.0.1:5500",
+    api_key="dummy-api-key",
+    num_prompts=100,
+    request_rate=5.0,
+    profile=MixedProfile(
+        sizes={
+            "1024x1024": 0.6,
+            "1536x1024": 0.25,
+            "512x512": 0.15,
+        },
+        n=(1, 4),
+    ),
+    warmup=3,
+    seed=42,
+    label="production-mixed",
+)
+
+config.save_config("bench_production.json")
+```
+
+See [`example/aquiles_bench_config.py`](example/aquiles_bench_config.py) for more recipes, including an experiment comparing continuous vs partial batch formation.
+
+### Running the Benchmark
+
+With your server already running:
+
+```bash
+aquiles-image bench serve --config-bench bench_production.json
+```
+
+Override single fields without editing the file:
+
+```bash
+aquiles-image bench serve --config-bench bench_production.json --label eager-run
+```
+
+### Load Profiles
+
+| Field | Behavior |
+|-------|----------|
+| `request_rate=None` | All requests fire at once (burst/saturation mode) |
+| `request_rate=5.0` | Requests arrive following a Poisson process at 5 req/s |
+| `max_concurrency` | Caps in-flight requests, like a production gateway would |
+| `UniformProfile` | Every request uses the same size, batches stay homogeneous |
+| `MixedProfile` | Sizes and image counts vary per request, imitating production traffic |
+
+Requests rejected by admission control (`max_concurrent_infer`) are counted separately as HTTP 429 instead of being retried, so the report reflects what real users would experience.
+
+### Results
+
+Each run prints a summary and saves a self-contained JSON report including:
+
+- Throughput in req/s and images/s
+- End-to-end latency percentiles (p50/p95/p99)
+- A snapshot of the server configuration and GPU info taken from `/v1/configs` and `/health`
+- Per-request records when `save_detailed=True`
+
+Reports land in `./bench_results/` by default, ready to compare across runs.
 
 ## 🎯 Use Cases
 

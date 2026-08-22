@@ -233,7 +233,7 @@ class BenchRunner:
         last_error: Optional[str] = None
         while True:
             try:
-                resp = await client.get("/health")
+                resp = await client.get("/v1/health")
                 if resp.status_code == 200:
                     data = resp.json()
                     if data.get("status") == "ok":
@@ -273,7 +273,7 @@ class BenchRunner:
         for i in range(self.config.warmup):
             spec = sample_spec(self.config.profile, rng, f"warmup-{i}")
             try:
-                resp = await client.post("/images/generations", json=self._payload(spec, model_name))
+                resp = await client.post("/v1/images/generations", json=self._payload(spec, model_name))
                 if resp.status_code != 200:
                     warnings.append(f"warmup request {i} returned HTTP {resp.status_code}")
             except httpx.HTTPError as e:
@@ -334,7 +334,7 @@ class BenchRunner:
                 status_code: Optional[int] = None
                 error: Optional[str] = None
                 try:
-                    resp = await client.post("/images/generations", json=self._payload(spec, model_name))
+                    resp = await client.post("/v1/images/generations", json=self._payload(spec, model_name))
                     status_code = resp.status_code
                     if status_code != 200:
                         error = f"HTTP {status_code}"
