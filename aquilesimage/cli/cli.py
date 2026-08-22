@@ -1,8 +1,6 @@
 import typer
 from pathlib import Path
 from typing import Optional
-import sys
-import os
 
 app = typer.Typer()
 
@@ -233,7 +231,8 @@ def configs(
             err(f"Error loading configuration: {e}")
         return
 
-    typer.echo(typer.get_current_context().get_help())
+    ctx = typer.get_current_context()
+    typer.echo(ctx.get_help())
 
 
 @app.command("validate")
@@ -331,8 +330,7 @@ def bench_serve(
         ..., "--config-bench",
         help="Path to the bench config JSON generated with BenchConfig.save_config()"
     ),
-    host: Optional[str] = typer.Option(None, help="Override target server host"),
-    port: Optional[int] = typer.Option(None, help="Override target server port"),
+    base_url: Optional[str] = typer.Option(None, help="Override target server"),
     api_key: Optional[str] = typer.Option(None, help="Override API key"),
     label: Optional[str] = typer.Option(None, help="Override run label"),
     num_prompts: Optional[int] = typer.Option(None, help="Override number of prompts"),
@@ -359,8 +357,7 @@ def bench_serve(
 
     overrides = {
         k: v for k, v in {
-            "host": host,
-            "port": port,
+            "base_url": base_url,
             "api_key": api_key,
             "label": label,
             "num_prompts": num_prompts,
@@ -373,7 +370,7 @@ def bench_serve(
     for warning in cfg.collect_warnings():
         warn(warning)
 
-    info(f"target=http://{cfg.host}:{cfg.port} num_prompts={cfg.num_prompts} label={cfg.label}")
+    info(f"target={cfg.base_url} num_prompts={cfg.num_prompts} label={cfg.label}")
 
     try:
         run_bench(cfg)

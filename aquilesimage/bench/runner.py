@@ -99,10 +99,7 @@ class BenchRunner:
     def __init__(self, config: BenchConfig, transport: Optional[httpx.AsyncBaseTransport] = None):
         self.config = config
         self.transport = transport
-        if config.port:
-            self.base_url = f"{config.host}:{config.port}"
-        else:
-            self.base_url = f"{config.host}"
+        self.base_url = config.base_url
         self.headers = {"Authorization": f"Bearer {config.api_key}"} if config.api_key else {}
 
     async def arun(self) -> BenchReport:
