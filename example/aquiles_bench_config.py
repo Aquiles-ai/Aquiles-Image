@@ -20,8 +20,8 @@ from aquilesimage.bench import BenchConfig, MixedProfile
 MODEL = "stabilityai/stable-diffusion-3.5-medium"
 
 BASE = dict(
-    host="127.0.0.1",
-    port=5500,
+    host="http://127.0.0.1",
+    port=None,
     api_key="dummy-api-key",
     num_prompts=100,
     warmup=3,

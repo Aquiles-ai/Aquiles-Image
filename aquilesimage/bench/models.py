@@ -117,8 +117,8 @@ class BenchReport(BaseModel):
 
 
 class BenchConfig(BaseModel):
-    host: str = "127.0.0.1"
-    port: int = 5500
+    host: str = "http://127.0.0.1"
+    port: int | None = 5500
     api_key: Optional[str] = None
 
     num_prompts: int = Field(default=100, ge=1)
