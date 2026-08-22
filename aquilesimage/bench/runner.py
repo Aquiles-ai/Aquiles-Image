@@ -286,6 +286,7 @@ class BenchRunner:
             "prompt": spec["prompt"],
             "n": spec["n"],
             "size": spec["size"],
+            "response_format": "b64_json"
         }
 
     async def _execute(
