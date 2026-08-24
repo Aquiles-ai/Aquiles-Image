@@ -16,7 +16,7 @@ if RICH_LOGGING:
     class AquilesRichHandler(RichHandler):
         def emit(self, record: logging.LogRecord) -> None:
             if not record.args:
-                record.msg = f"[dim][{record.name}][/dim] {record.msg}"
+                record.msg = f"[dim]\\[{record.name}][/dim] {record.msg}"
                 self.markup = True
             super().emit(record)
 
