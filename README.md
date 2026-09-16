@@ -175,8 +175,6 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `Lightricks/LTX-2.3` (single-stage: 30 steps, 768x512 - start with `--model "ltx-2.3"`)
 - `Lightricks/LTX-2.5` (distilled two-stage: 8 + 3 steps, up to 1536x1024 - start with `--model "ltx-2.5"`)
 
-> **Special Features**: LTX-2/LTX-2.3/LTX-2.5 are the first **open-sources** models supporting synchronized audio-video generation in a single model, comparable to closed models like [Sora-2](https://openai.com/index/sora-2/) and [Veo 3.1](https://gemini.google/cl/overview/video-generation/). Additionally, LTX-2/LTX-2.3/LTX-2.5 support **image input as the first frame** of the video - pass a reference image via `input_reference` to guide the visual starting point of the generation. For best results with this model, please follow the [prompts guide](https://ltx.io/model/model-blog/prompting-guide-for-ltx-2) provided by the Lightricks team.
-
 **Image-to-Video example:**
 
 ```bash
