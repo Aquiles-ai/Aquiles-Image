@@ -34,7 +34,9 @@ class LTX_2_Pipeline:
     ``LTX2VideoCondition`` at index 0 is I2V.
     """
 
-    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("_flash_3_hub", "flash", "sage_hub")
+    # Flash backends discarded: LTX-2 connectors pass `attn_mask` and
+    # flash-attn 2 raises `ValueError: attn_mask is not supported`.
+    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("sage_hub",)
 
     def __init__(self, model_name: Literal["ltx-2", "ltx-2.3"] = "ltx-2"):
         if model_name not in REPO_MAP:
@@ -86,8 +88,6 @@ class LTX_2_Pipeline:
 
         if hasattr(self.pipeline, "vae") and hasattr(self.pipeline.vae, "enable_tiling"):
             self.pipeline.vae.enable_tiling()
-
-        self.enable_flash_attn()
 
     def enable_flash_attn(self):
         if self.pipeline is None:
