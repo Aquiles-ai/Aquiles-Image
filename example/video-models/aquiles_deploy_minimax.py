@@ -34,13 +34,13 @@ aquiles_image = (
         "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"})  
 )
 
-MODEL_NAME = "ltx-2.3"
+MODEL_NAME = "minimax-h3"
 
 hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
 aquiles_config_vol = modal.Volume.from_name("aquiles-cache", create_if_missing=True)
 aquiles_video_vol = modal.Volume.from_name("aquiles-video-cache", create_if_missing=True)
 
-app = modal.App("aquiles-image-server-ltx-2.3")
+app = modal.App("aquiles-image-server-minimax-h3")
  
 N_GPU = 1
 MINUTES = 60
@@ -48,7 +48,7 @@ AQUILES_PORT = 5500
 
 @app.function(
     image=aquiles_image,
-    gpu=f"H100:{N_GPU}",
+    gpu=f"H200:{N_GPU}",
     secrets=[modal.Secret.from_name("huggingface-secret")],
     scaledown_window=30 * MINUTES, 
     timeout=30 * MINUTES,
