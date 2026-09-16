@@ -23,7 +23,7 @@ class ModelVideoPipelineInit:
         elif self.model in ["wan2.1", "wan2.1-3B", "wan2.1-turbo", "wan2.1-turbo-fp8"]:
             self.pipeline = Wan2_1_Pipeline(self.model)
         
-        elif self.model in ["ltx-2", "ltx-2.3"]:
+        elif self.model in ["ltx-2", "ltx-2.3", "ltx-2.5"]:
             self.pipeline = LTX_2_Pipeline(self.model)
 
         return self.pipeline
