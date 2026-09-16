@@ -28,7 +28,8 @@ aquiles_image = (
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
         "bitsandbytes",
         "accelerate",
-        "av"
+        "av",
+        "torchao"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1",
         "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"})  

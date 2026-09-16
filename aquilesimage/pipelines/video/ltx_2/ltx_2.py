@@ -9,7 +9,6 @@ try:
         DISTILLED_SIGMA_VALUES,
         STAGE_2_DISTILLED_SIGMA_VALUES,
     )
-    from diffusers.utils import encode_video
 except ImportError as e:
     print(f"Error importing diffusers LTX-2 components: {e}")
     FlowMatchEulerDiscreteScheduler = None
@@ -20,10 +19,9 @@ except ImportError as e:
     DEFAULT_NEGATIVE_PROMPT = "No deformities"
     DISTILLED_SIGMA_VALUES = [1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875]
     STAGE_2_DISTILLED_SIGMA_VALUES = [0.909375, 0.725, 0.421875]
-    encode_video = None
 import torch
-import gc
 import logging
+from aquilesimage.models import BaseVideoPipeline
 
 logger_p = logging.getLogger("Aquiles-Image-Pipelines")
 
@@ -46,7 +44,7 @@ STAGE_2_LORA_MAP = {
 TEXT_ENCODER_REPO = "google/gemma-3-12b-it-qat-q4_0-unquantized"
 
 
-class LTX_2_Pipeline:
+class LTX_2_Pipeline(BaseVideoPipeline):
     """Video pipeline based on diffusers.
 
     Single pipeline for text-to-video and image-to-video via
@@ -70,9 +68,8 @@ class LTX_2_Pipeline:
     def __init__(self, model_name: Literal["ltx-2", "ltx-2.3", "ltx-2.5"] = "ltx-2"):
         if model_name not in REPO_MAP:
             raise ValueError("Model not available")
+        super().__init__(model_name)
         self.pipeline: LTX2ConditionPipeline | None = None
-        self.upsample_pipe: LTX2LatentUpsamplePipeline | None = None
-        self.model_name = model_name
         self.repo_id = REPO_MAP[model_name]
         self.stage_2_lora = STAGE_2_LORA_MAP[model_name]
         self.use_two_stage = (model_name in ("ltx-2", "ltx-2.5"))
@@ -176,67 +173,6 @@ class LTX_2_Pipeline:
             vae=self.pipeline.vae, latent_upsampler=latent_upsampler
         ).to("cuda")
 
-    def enable_flash_attn(self):
-        if self.pipeline is None:
-            logger_p.warning("No pipeline loaded, skipping flash attention")
-            return
-
-        transformer = getattr(self.pipeline, "transformer", None)
-        if transformer is None:
-            logger_p.warning("No transformer component found for flash attention")
-            return
-
-        if not hasattr(transformer, "set_attention_backend"):
-            logger_p.warning(
-                "set_attention_backend not available for this model, skipping flash attention"
-            )
-            return
-
-        for backend in self.ATTENTION_BACKEND_PRIORITY:
-            if not self._attention_backend_ready(backend):
-                logger_p.debug(f"Attention backend {backend} not available")
-                continue
-            try:
-                transformer.set_attention_backend(backend)
-                logger_p.info(f"Attention backend enabled: {backend}")
-                return
-            except Exception as e:
-                logger_p.debug(f"Failed to set attention backend {backend}: {str(e)}")
-
-        logger_p.warning("No optimized attention available, using default SDPA")
-
-    def _attention_backend_ready(self, backend: str) -> bool:
-        try:
-            from diffusers.models.attention_dispatch import (
-                AttentionBackendName,
-                _HUB_KERNELS_REGISTRY,
-                _check_attention_backend_requirements,
-            )
-            name = AttentionBackendName(backend)
-            _check_attention_backend_requirements(name)
-            if name in _HUB_KERNELS_REGISTRY:
-                config = _HUB_KERNELS_REGISTRY[name]
-                return self._hub_kernel_ready(config.repo_id, config.version)
-            return True
-        except Exception as e:
-            logger_p.debug(f"Attention backend {backend} not usable: {str(e)}")
-            return False
-
-    def _hub_kernel_ready(self, repo_id: str, version: int | None) -> bool:
-        try:
-            from kernels import get_kernel, has_kernel
-        except Exception as e:
-            logger_p.debug(f"kernels package not usable: {str(e)}")
-            return False
-        try:
-            if has_kernel(repo_id, version=version):
-                return True
-            get_kernel(repo_id, version=version)
-            return True
-        except Exception as e:
-            logger_p.debug(f"Hub kernel {repo_id} not usable: {str(e)}")
-            return False
-
     # shared helpers
 
     def _resolve_num_frames(self, seconds=None) -> int:
@@ -256,27 +192,10 @@ class LTX_2_Pipeline:
             return [LTX2VideoCondition(frames=image, index=0, strength=1.0)]
         return []
 
-    def _build_generator(self, seed: int) -> torch.Generator:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        return torch.Generator(device=device).manual_seed(int(seed))
-
     def _check_started(self):
-        if self.pipeline is None:
-            raise RuntimeError("Pipeline not started. Call start() first.")
+        super()._check_started()
         if self.use_two_stage and self.upsample_pipe is None:
             raise RuntimeError("Pipeline not started. Call start() first.")
-
-    def _save_video(self, video, audio, save_result_path: str):
-        audio_tensor = audio[0].float().cpu()
-        audio_sample_rate = self.pipeline.vocoder.config.output_sampling_rate
-
-        encode_video(
-            video[0],
-            fps=self.frame_rate,
-            audio=audio_tensor,
-            audio_sample_rate=audio_sample_rate,
-            output_path=save_result_path,
-        )
 
     def _restore_state(self):
         if self.pipeline is not None:
@@ -287,14 +206,6 @@ class LTX_2_Pipeline:
                     self.pipeline.scheduler = self._base_scheduler
             except Exception:
                 pass
-
-    def _release_memory(self):
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-            torch.cuda.empty_cache()
-            torch.cuda.reset_peak_memory_stats()
-            torch.cuda.ipc_collect()
-        gc.collect()
 
     # ltx-2.3 single-stage
 
@@ -485,7 +396,11 @@ class LTX_2_Pipeline:
                         conditions, prompt, negative, num_frames, generator
                     )
 
-                self._save_video(video, audio, save_result_path)
+                self._save_video(
+                    video, audio,
+                    self.pipeline.vocoder.config.output_sampling_rate,
+                    save_result_path,
+                )
 
             print(f"Saved video in... {save_result_path}")
 

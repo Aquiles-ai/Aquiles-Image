@@ -8,3 +8,4 @@ from .models import (ImageModel, ResponseFormat, OutputFormat, BackgroundType, Q
                     ImageModelBase, ImageModelEdit, ImageModelHybrid, LoRAConfig, BatchCompile)
 
 from .base_pipe import BasePipeline
+from .base_video_pipe import BaseVideoPipeline

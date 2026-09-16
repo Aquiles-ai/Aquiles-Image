@@ -1,14 +1,12 @@
 from typing import Literal
 try:
     from diffusers import ModularPipeline
-    from diffusers.utils.export_utils import encode_video
 except ImportError as e:
     print(f"Error importing diffusers MiniMax-H3 components: {e}")
     ModularPipeline = None
-    encode_video = None
 import torch
-import gc
 import logging
+from aquilesimage.models import BaseVideoPipeline
 
 logger_p = logging.getLogger("Aquiles-Image-Pipelines")
 
@@ -23,7 +21,7 @@ TEXT_ENCODER_SKIP_MODULES = [
 ]
 
 
-class MiniMax_H3_Pipeline:
+class MiniMax_H3_Pipeline(BaseVideoPipeline):
     """Video + audio pipeline based on diffusers ModularPipeline.
 
     Single pipeline for text-to-video (``t2va``) and first-frame
@@ -38,13 +36,13 @@ class MiniMax_H3_Pipeline:
     ``fl2va``; ``transformer_ref/`` is never touched.
     """
 
-    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("sage_hub",)
+    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("_flash_3_hub", "flash", "sage_hub")
 
     def __init__(self, model_name: Literal["minimax-h3"] = "minimax-h3"):
         if model_name != "minimax-h3":
             raise ValueError("Model not available")
+        super().__init__(model_name)
         self.pipeline: ModularPipeline | None = None
-        self.model_name = model_name
         self.repo_id = REPO_ID
         self.frame_rate = 24.0
 
@@ -81,33 +79,7 @@ class MiniMax_H3_Pipeline:
         self.pipeline.load_components(workflow="t2va", dtype=torch.bfloat16)
         self.pipeline.to("cuda")
 
-    def enable_flash_attn(self):
-        if self.pipeline is None:
-            logger_p.warning("No pipeline loaded, skipping flash attention")
-            return
-
-        transformer = getattr(self.pipeline, "transformer", None)
-        if transformer is None:
-            logger_p.warning("No transformer component found for flash attention")
-            return
-
-        if not hasattr(transformer, "set_attention_backend"):
-            logger_p.warning(
-                "set_attention_backend not available for this model, skipping flash attention"
-            )
-            return
-
-        for backend in self.ATTENTION_BACKEND_PRIORITY:
-            try:
-                transformer.set_attention_backend(backend)
-                logger_p.info(f"Attention backend enabled: {backend}")
-                return
-            except Exception as e:
-                logger_p.debug(f"Failed to set attention backend {backend}: {str(e)}")
-
-        logger_p.warning("No optimized attention available, using default SDPA")
-
-    # shared helpers
+        self.optimization()
 
     def _resolve_num_frames(self, seconds=None) -> int:
         try:
@@ -119,31 +91,6 @@ class MiniMax_H3_Pipeline:
         frames = target * int(self.frame_rate)
         n = (frames - 5 + 16) // 17
         return max(22, 17 * n + 5)
-
-    def _build_generator(self, seed: int) -> torch.Generator:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        return torch.Generator(device=device).manual_seed(int(seed))
-
-    def _check_started(self):
-        if self.pipeline is None:
-            raise RuntimeError("Pipeline not started. Call start() first.")
-
-    def _save_video(self, video, audio, sample_rate, save_result_path: str):
-        encode_video(
-            video[0],
-            fps=self.frame_rate,
-            audio=audio[0].float().cpu(),
-            audio_sample_rate=int(sample_rate),
-            output_path=save_result_path,
-        )
-
-    def _release_memory(self):
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-            torch.cuda.empty_cache()
-            torch.cuda.reset_peak_memory_stats()
-            torch.cuda.ipc_collect()
-        gc.collect()
 
     # generate dispatcher
 
