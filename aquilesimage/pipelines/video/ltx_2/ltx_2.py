@@ -1,14 +1,23 @@
 from typing import Literal
 try:
-    from diffusers.pipelines.ltx2 import LTX2ConditionPipeline
+    from diffusers import FlowMatchEulerDiscreteScheduler
+    from diffusers.pipelines.ltx2 import LTX2ConditionPipeline, LTX2LatentUpsamplePipeline
+    from diffusers.pipelines.ltx2.latent_upsampler import LTX2LatentUpsamplerModel
     from diffusers.pipelines.ltx2.pipeline_ltx2_condition import LTX2VideoCondition
-    from diffusers.pipelines.ltx2.utils import DEFAULT_NEGATIVE_PROMPT
+    from diffusers.pipelines.ltx2.utils import (
+        DEFAULT_NEGATIVE_PROMPT,
+        STAGE_2_DISTILLED_SIGMA_VALUES,
+    )
     from diffusers.utils import encode_video
 except ImportError as e:
     print(f"Error importing diffusers LTX-2 components: {e}")
+    FlowMatchEulerDiscreteScheduler = None
     LTX2ConditionPipeline = None
+    LTX2LatentUpsamplePipeline = None
+    LTX2LatentUpsamplerModel = None
     LTX2VideoCondition = None
     DEFAULT_NEGATIVE_PROMPT = "No deformities"
+    STAGE_2_DISTILLED_SIGMA_VALUES = [0.909375, 0.725, 0.421875]
     encode_video = None
 import torch
 import gc
@@ -19,6 +28,12 @@ logger_p = logging.getLogger("Aquiles-Image-Pipelines")
 REPO_MAP = {
     "ltx-2": "Lightricks/LTX-2",
     "ltx-2.3": "diffusers/LTX-2.3-Diffusers",
+}
+
+# Stage 2 distilled LoRA shipped at the root of each pipeline repo.
+STAGE_2_LORA_MAP = {
+    "ltx-2": "ltx-2-19b-distilled-lora-384.safetensors",
+    "ltx-2.3": "ltx-2.3-22b-distilled-lora-384.safetensors",
 }
 
 # Quantized text encoder pinned for loading: QAT checkpoint + BnB 4-bit.
@@ -32,6 +47,10 @@ class LTX_2_Pipeline:
     Single pipeline for text-to-video and image-to-video via
     ``LTX2ConditionPipeline``: empty ``conditions`` is T2V, one
     ``LTX2VideoCondition`` at index 0 is I2V.
+
+    Two-stage generation: stage 1 at half resolution (base DiT),
+    latent upsample x2, stage 2 refine at full resolution
+    (distilled LoRA + distilled sigmas).
     """
 
     # Flash backends discarded: LTX-2 connectors pass `attn_mask` and
@@ -42,14 +61,18 @@ class LTX_2_Pipeline:
         if model_name not in REPO_MAP:
             raise ValueError("Model not available")
         self.pipeline: LTX2ConditionPipeline | None = None
+        self.upsample_pipe: LTX2LatentUpsamplePipeline | None = None
         self.model_name = model_name
         self.repo_id = REPO_MAP[model_name]
+        self.stage_2_lora = STAGE_2_LORA_MAP[model_name]
+        self._base_scheduler = None
+        self._stage_2_scheduler = None
         self.seconds_map = {
             "4": 125,
             "8": 200,
             "12": 300,
         }
-        # Single-stage defaults taken from the diffusers LTX-2 docs.
+        # Full-resolution output; stage 1 runs at half, stage 2 refines full.
         self.width = 768
         self.height = 512
         self.frame_rate = 24.0
@@ -88,6 +111,30 @@ class LTX_2_Pipeline:
 
         if hasattr(self.pipeline, "vae") and hasattr(self.pipeline.vae, "enable_tiling"):
             self.pipeline.vae.enable_tiling()
+
+        # Stage 2 distilled LoRA (same repo, no extra big download).
+        self.pipeline.load_lora_weights(
+            self.repo_id,
+            adapter_name="stage_2_distilled",
+            weight_name=self.stage_2_lora,
+        )
+        self.pipeline.disable_lora()
+
+        # Schedulers: base for stage 1, distilled config for stage 2.
+        self._base_scheduler = self.pipeline.scheduler
+        self._stage_2_scheduler = FlowMatchEulerDiscreteScheduler.from_config(
+            self.pipeline.scheduler.config,
+            use_dynamic_shifting=False,
+            shift_terminal=None,
+        )
+
+        # Latent upsampler x2 (subfolder of the same repo).
+        latent_upsampler = LTX2LatentUpsamplerModel.from_pretrained(
+            self.repo_id, subfolder="latent_upsampler", dtype=torch.bfloat16
+        )
+        self.upsample_pipe = LTX2LatentUpsamplePipeline(
+            vae=self.pipeline.vae, latent_upsampler=latent_upsampler
+        ).to("cuda")
 
     def enable_flash_attn(self):
         if self.pipeline is None:
@@ -162,7 +209,7 @@ class LTX_2_Pipeline:
             if output_dir:
                 os.makedirs(output_dir, exist_ok=True)
 
-            if self.pipeline is None:
+            if self.pipeline is None or self.upsample_pipe is None:
                 raise RuntimeError("Pipeline not started. Call start() first.")
 
             num_frames = self._resolve_num_frames(seconds)
@@ -177,12 +224,15 @@ class LTX_2_Pipeline:
             generator = torch.Generator(device=device).manual_seed(int(seed))
 
             with torch.inference_mode():
-                video, audio = self.pipeline(
+                # Stage 1: base DiT at half resolution, latent output.
+                self.pipeline.disable_lora()
+                self.pipeline.scheduler = self._base_scheduler
+                video_latent, audio_latent = self.pipeline(
                     conditions=conditions,
                     prompt=prompt,
                     negative_prompt=negative,
-                    width=self.width,
-                    height=self.height,
+                    width=self.width // 2,
+                    height=self.height // 2,
                     num_frames=num_frames,
                     frame_rate=self.frame_rate,
                     num_inference_steps=self.num_inference_steps,
@@ -196,6 +246,36 @@ class LTX_2_Pipeline:
                     audio_guidance_rescale=0.7,
                     spatio_temporal_guidance_blocks=[28],
                     use_cross_timestep=True,
+                    generator=generator,
+                    output_type="latent",
+                    return_dict=False,
+                )
+
+                # Upsample latents x2.
+                upscaled_latent = self.upsample_pipe(
+                    latents=video_latent,
+                    output_type="latent",
+                    return_dict=False,
+                )[0]
+
+                # Stage 2: distilled LoRA + distilled sigmas at full resolution.
+                self.pipeline.enable_lora()
+                self.pipeline.set_adapters("stage_2_distilled", 1.0)
+                self.pipeline.scheduler = self._stage_2_scheduler
+                video, audio = self.pipeline(
+                    prompt=prompt,
+                    negative_prompt=negative,
+                    latents=upscaled_latent,
+                    audio_latents=audio_latent,
+                    width=self.width,
+                    height=self.height,
+                    num_frames=num_frames,
+                    frame_rate=self.frame_rate,
+                    num_inference_steps=3,
+                    noise_scale=STAGE_2_DISTILLED_SIGMA_VALUES[0],
+                    sigmas=STAGE_2_DISTILLED_SIGMA_VALUES,
+                    guidance_scale=1.0,
+                    audio_guidance_scale=1.0,
                     generator=generator,
                     output_type="np",
                     return_dict=False,
@@ -222,6 +302,13 @@ class LTX_2_Pipeline:
             raise
 
         finally:
+            if self.pipeline is not None:
+                try:
+                    self.pipeline.disable_lora()
+                    if self._base_scheduler is not None:
+                        self.pipeline.scheduler = self._base_scheduler
+                except Exception:
+                    pass
             if torch.cuda.is_available():
                 torch.cuda.synchronize()
                 torch.cuda.empty_cache()
