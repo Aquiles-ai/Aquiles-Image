@@ -68,9 +68,9 @@ class LTX_2_Pipeline:
         self._base_scheduler = None
         self._stage_2_scheduler = None
         self.seconds_map = {
-            "4": 125,
-            "8": 200,
-            "12": 300,
+            "4": 121,
+            "8": 193,
+            "12": 289,
         }
         # Full-resolution output; stage 1 runs at half, stage 2 refines full.
         self.width = 768
@@ -213,7 +213,12 @@ class LTX_2_Pipeline:
                 raise RuntimeError("Pipeline not started. Call start() first.")
 
             num_frames = self._resolve_num_frames(seconds)
-            negative = negative_prompt or DEFAULT_NEGATIVE_PROMPT
+            # The server sends a weak hardcoded negative ("No deformities");
+            # prefer the docs' full negative prompt for LTX in that case.
+            if not negative_prompt or negative_prompt.strip().lower() == "no deformities":
+                negative = DEFAULT_NEGATIVE_PROMPT
+            else:
+                negative = negative_prompt
 
             if image is not None:
                 conditions = [LTX2VideoCondition(frames=image, index=0, strength=1.0)]
@@ -224,15 +229,16 @@ class LTX_2_Pipeline:
             generator = torch.Generator(device=device).manual_seed(int(seed))
 
             with torch.inference_mode():
-                # Stage 1: base DiT at half resolution, latent output.
+                # Stage 1: base DiT at full resolution, latent output.
+                # The upsampler doubles it, so stage 2 refines at 1536x1024.
                 self.pipeline.disable_lora()
                 self.pipeline.scheduler = self._base_scheduler
                 video_latent, audio_latent = self.pipeline(
                     conditions=conditions,
                     prompt=prompt,
                     negative_prompt=negative,
-                    width=self.width // 2,
-                    height=self.height // 2,
+                    width=self.width,
+                    height=self.height,
                     num_frames=num_frames,
                     frame_rate=self.frame_rate,
                     num_inference_steps=self.num_inference_steps,
