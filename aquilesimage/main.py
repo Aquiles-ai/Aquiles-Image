@@ -320,7 +320,7 @@ async def lifespan(app: FastAPI):
     app.state.utils_app = Utils(host="0.0.0.0", port=5500)
 
     vt_pipeline = (
-        model_pipeline if cfg.model_name in ("ltx-2", "ltx-2.3", "ltx-2.5")
+        model_pipeline if cfg.model_name in ("ltx-2", "ltx-2.3", "ltx-2.5", "minimax-h3")
         else getattr(model_pipeline, "pipeline", Any)
     ) if cfg.model_name in VIDEO_MODELS else Any
 
@@ -675,7 +675,7 @@ def _require_video_model():
           dependencies=[Depends(verify_api_key)], tags=["Video APIs"], operation_id="create_video")
 async def create_video(request: Request):
     content_type = request.headers.get("content-type", "")
-    MODELS_WITH_IMAGE = [VideoModels.LTX_2, VideoModels.LTX_2_3, VideoModels.LTX_2_5]
+    MODELS_WITH_IMAGE = [VideoModels.LTX_2, VideoModels.LTX_2_3, VideoModels.LTX_2_5, VideoModels.MINIMAX_H3]
     pil_image = None
 
     if "multipart/form-data" in content_type:

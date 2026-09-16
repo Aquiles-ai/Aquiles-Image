@@ -154,6 +154,8 @@ class VideoModels(str, Enum):
 
     LTX_2_5 = "ltx-2.5"
 
+    MINIMAX_H3 = "minimax-h3"
+
 class ResponseFormat(str, Enum):
     URL = "url"
     B64_JSON = "b64_json"

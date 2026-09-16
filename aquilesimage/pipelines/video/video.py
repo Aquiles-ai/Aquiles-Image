@@ -1,5 +1,6 @@
 from aquilesimage.pipelines.video.hy import HunyuanVideo_Pipeline
 from aquilesimage.pipelines.video.ltx_2 import LTX_2_Pipeline
+from aquilesimage.pipelines.video.minimax_h3 import MiniMax_H3_Pipeline
 from aquilesimage.pipelines.video.wan import Wan2_1_Pipeline, Wan2_2_Pipeline, Wan2_2_Turbo_Pipeline
 
 class ModelVideoPipelineInit:
@@ -25,5 +26,8 @@ class ModelVideoPipelineInit:
         
         elif self.model in ["ltx-2", "ltx-2.3", "ltx-2.5"]:
             self.pipeline = LTX_2_Pipeline(self.model)
+
+        elif self.model in ["minimax-h3"]:
+            self.pipeline = MiniMax_H3_Pipeline(self.model)
 
         return self.pipeline
