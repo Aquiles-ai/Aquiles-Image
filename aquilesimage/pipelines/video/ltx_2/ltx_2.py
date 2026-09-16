@@ -130,6 +130,7 @@ class LTX_2_Pipeline:
             print(f"Error: {e}")
             import traceback
             traceback.print_exc()
+
             raise
 
         finally:
