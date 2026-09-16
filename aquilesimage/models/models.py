@@ -355,6 +355,7 @@ class ConfigsServe(BaseModel):
     lora_config_path: str | None = Field(default=None)
     mode: Literal["eager", "piecewise"] | None = Field(default="eager")
     cpu_offload: bool | None = Field(default=None, description="Enable CPU offloading for SD3/SD3.5 pipelines (StableDiffusion3Pipeline) to reduce VRAM usage")
+    inductor_cache_dir: str | None = Field(default=None, description="Base directory for the torch inductor / HyperKernels compilation cache. A versioned subdirectory per toolchain+model is created inside.")
 
 class ServerConfigs(BaseModel):
     """Whitelist of runtime config values exposed by GET /v1/configs. Never include secrets here."""
@@ -374,6 +375,8 @@ class ServerConfigs(BaseModel):
     worker_sleep: float = Field(default=0.05)
     mode: Literal["eager", "piecewise"] = Field(default="eager")
     cpu_offload: bool = Field(default=False)
+    inductor_cache_dir: str | None = Field(default=None)
+    hyperkernels_cache_key: str | None = Field(default=None)
     versions: dict[str, str | None] = Field(default_factory=dict)
 
 class LoRAConfig(BaseModel):

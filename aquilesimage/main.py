@@ -99,6 +99,9 @@ class AppConfig:
     worker_sleep: float = 0.05
     mode: Literal["eager", "piecewise"] = "eager"
     cpu_offload: bool = False
+    inductor_cache_base: Optional[str] = None
+    inductor_cache_dir: Optional[str] = None
+    hyperkernels_cache_key: Optional[str] = None
 
 
 cfg = AppConfig()
@@ -187,6 +190,14 @@ def _load_distributed_pipeline(cfg: AppConfig):
     from aquilesimage.runtime.worker_manager import WorkerManager
 
     logger.info("Initializing distributed inference...")
+
+    if cfg.mode == "piecewise":
+        from aquilesimage.configs import ensure_inductor_cache
+
+        cache_info = ensure_inductor_cache(cfg.model_name, cfg.mode, base_dir=cfg.inductor_cache_base)
+        cfg.inductor_cache_dir = cache_info["path"]
+        cfg.hyperkernels_cache_key = cache_info["key"]
+
     mp.set_start_method("spawn", force=True)
 
     wm = WorkerManager(model_name=cfg.model_name, config=vars(cfg), num_workers=None)
@@ -206,6 +217,14 @@ def _load_single_pipeline(cfg: AppConfig, conf_lora):
     from aquilesimage.pipelines import ModelPipelineInit
     from aquilesimage.runtime.hyper_kernels import HyperKernels
 
+    cache_info = None
+    if cfg.mode == "piecewise":
+        from aquilesimage.configs import ensure_inductor_cache
+
+        cache_info = ensure_inductor_cache(cfg.model_name, cfg.mode, base_dir=cfg.inductor_cache_base)
+        cfg.inductor_cache_dir = cache_info["path"]
+        cfg.hyperkernels_cache_key = cache_info["key"]
+
     kwargs = dict(load_lora=cfg.load_lora, conf_lora=conf_lora, mode=cfg.mode, cpu_offload=cfg.cpu_offload)
     if cfg.auto_pipeline:
         init = ModelPipelineInit(model=cfg.model_name, auto_pipeline=True, auto_type=cfg.auto_type, **kwargs)
@@ -222,7 +241,7 @@ def _load_single_pipeline(cfg: AppConfig, conf_lora):
     if cfg.mode == "piecewise":
         ttc = total_to_compile(cfg.max_batch_size)
         b_to_compile = get_b_to_compile(cfg.max_batch_size)
-        hpk = HyperKernels(pipeline, b_to_compile)
+        hpk = HyperKernels(pipeline, b_to_compile, cache_info=cache_info)
         logger.info(f"Total number of builds to be performed: {ttc}")
         hpk.compiles()
     return pipeline, pipeline.pipeline, init, bp
@@ -250,6 +269,7 @@ def load_models():
     cfg.worker_sleep     = float(raw["worker_sleep"]) if raw.get("worker_sleep") else 0.05
     cfg.mode = raw.get("mode") or "eager"
     cfg.cpu_offload = raw.get("cpu_offload") or False
+    cfg.inductor_cache_base = raw.get("inductor_cache_dir") or None
 
     allows = raw.get("allows_users") or []
     cfg.allow_users = bool(allows)
@@ -621,6 +641,8 @@ async def get_configs():
         worker_sleep=cfg.worker_sleep,
         mode=cfg.mode,
         cpu_offload=cfg.cpu_offload,
+        inductor_cache_dir=cfg.inductor_cache_dir,
+        hyperkernels_cache_key=cfg.hyperkernels_cache_key,
         versions={
             "aquiles_image": _pkg("aquiles-image"),
             "torch": torch.__version__,

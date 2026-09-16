@@ -168,6 +168,14 @@ def _load_pipeline_in_worker(model_name: str, gpu_id: int, config: Dict[str, Any
     
     logger.info(f"[Worker-{gpu_id}] Initializing pipeline...")
 
+    cache_info = None
+    if mode == "piecewise":
+        from aquilesimage.configs import ensure_inductor_cache
+
+        cache_info = ensure_inductor_cache(
+            model_name, mode, base_dir=config.get("inductor_cache_base") or None
+        )
+
     if auto_pipeline:
         initializer = ModelPipelineInit(
             model=model_name,
@@ -206,7 +214,7 @@ def _load_pipeline_in_worker(model_name: str, gpu_id: int, config: Dict[str, Any
         from aquilesimage.runtime.hyper_kernels import HyperKernels
         ttc = total_to_compile(max_batch_size)
         b_to_compile = get_b_to_compile(max_batch_size)
-        hpk = HyperKernels(model_pipeline, b_to_compile)
+        hpk = HyperKernels(model_pipeline, b_to_compile, cache_info=cache_info)
         logger.info(f"Total number of builds to be performed: {ttc}")
         hpk.compiles()
     

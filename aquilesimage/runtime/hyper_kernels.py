@@ -6,9 +6,10 @@ from typing import Any, List
 logger_p = setup_colored_logger("Aquiles-Image-Runtime", logging.DEBUG)
 
 class HyperKernels:
-    def __init__(self, pipeline: Any, b_to_compile: List[BatchCompile]):
+    def __init__(self, pipeline: Any, b_to_compile: List[BatchCompile], cache_info: Any = None):
         self.pipeline = pipeline
         self.b_to_compile = b_to_compile
+        self.cache_info = cache_info
 
         n_shapes = len(b_to_compile)
         batch_sizes = sorted({item.b for item in b_to_compile})
@@ -18,6 +19,9 @@ class HyperKernels:
         logger_p.info(f"  Shapes to compile: {n_shapes}")
         logger_p.info(f"  Batches: {batch_sizes}")
         logger_p.info(f"  Resolutions: {resolutions}")
+        if isinstance(cache_info, dict):
+            logger_p.info(f"  Cache key: {cache_info.get('key')} hit={cache_info.get('hit')}")
+            logger_p.info(f"  Cache dir: {cache_info.get('path')}")
 
     def compiles(self):
         logger_p.info("")

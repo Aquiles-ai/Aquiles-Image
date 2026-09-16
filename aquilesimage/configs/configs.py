@@ -1,9 +1,12 @@
 from platformdirs import user_data_dir
+import hashlib
 import json
 import aiofiles
 import asyncio
 from pathlib import Path
 import os
+import platform
+import sys
 from aquilesimage.models import ConfigsServe, LoRAConfig
 from typing import Dict, Any
 import time
@@ -26,6 +29,185 @@ os.makedirs(AQUILES_INDUCTOR_CACHE, exist_ok=True)
 
 os.environ["TORCHINDUCTOR_CACHE_DIR"] = AQUILES_INDUCTOR_CACHE
 os.environ["TORCHINDUCTOR_FX_GRAPH_CACHE"] = "1"
+
+# HyperKernels cache-key version. Bump when the compile fingerprint changes
+# (inductor opts, dynamic flag, fuse_qkv/channels_last, attention backend
+# priority) so old dirs are never silently reused.
+HYPERKERNELS_CACHE_KEY_VERSION = "hk-v1"
+
+# Fingerprint of the compile options applied in piecewise mode
+# (see pipelines/image/flux/flux_pipeline.py::optimization).
+# Keep in sync with that function; any change here invalidates old caches.
+HYPERKERNELS_COMPILE_FINGERPRINT: Dict[str, Any] = {
+    "dynamic": False,
+    "recompile_limit": 32,
+    "conv_1x1_as_mm": True,
+    "coordinate_descent_check_all_directions": False,
+    "coordinate_descent_tuning": False,
+    "epilogue_fusion": False,
+    "shape_padding": True,
+    "fuse_qkv": True,
+    "channels_last": True,
+}
+
+
+def _safe_pkg_version(name: str) -> Optional[str]:
+    try:
+        from importlib.metadata import version as _pkg_version
+
+        return _pkg_version(name)
+    except Exception:
+        return None
+
+
+def _safe_cuda_version() -> Optional[str]:
+    try:
+        import torch
+
+        return torch.version.cuda
+    except Exception:
+        return None
+
+
+def _safe_cuda_arch() -> str:
+    try:
+        import torch
+
+        if not torch.cuda.is_available():
+            return "no-cuda"
+        try:
+            major, minor = torch.cuda.get_device_capability(0)
+            return f"sm_{major}{minor}"
+        except Exception:
+            return "cuda-unknown-arch"
+    except Exception:
+        return "unknown"
+
+
+def _safe_triton_version() -> Optional[str]:
+    try:
+        import triton
+
+        return getattr(triton, "__version__", "installed")
+    except Exception:
+        return None
+
+
+def build_hyperkernels_cache_components(
+    model_name: Optional[str] = None,
+    mode: str = "piecewise",
+) -> Dict[str, Any]:
+    return {
+        "key_version": HYPERKERNELS_CACHE_KEY_VERSION,
+        "model": model_name or "unknown-model",
+        "mode": mode,
+        "python": platform.python_version(),
+        "torch": _safe_pkg_version("torch"),
+        "cuda": _safe_cuda_version(),
+        "cuda_arch": _safe_cuda_arch(),
+        "triton": _safe_triton_version() or _safe_pkg_version("triton"),
+        "diffusers": _safe_pkg_version("diffusers"),
+        "transformers": _safe_pkg_version("transformers"),
+        "compile": dict(HYPERKERNELS_COMPILE_FINGERPRINT),
+    }
+
+
+def build_hyperkernels_cache_key(
+    model_name: Optional[str] = None,
+    mode: str = "piecewise",
+) -> str:
+    components = build_hyperkernels_cache_components(model_name, mode)
+    canonical = json.dumps(components, sort_keys=True, separators=(",", ":"))
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+    return f"{HYPERKERNELS_CACHE_KEY_VERSION}-{digest}"
+
+
+def get_versioned_inductor_cache_dir(
+    model_name: Optional[str] = None,
+    mode: str = "piecewise",
+    base_dir: Optional[str] = None,
+) -> Dict[str, Any]:
+    base = base_dir or AQUILES_INDUCTOR_CACHE
+    key = build_hyperkernels_cache_key(model_name, mode)
+    path = os.path.join(base, key)
+    return {
+        "base_dir": base,
+        "key": key,
+        "path": path,
+        "triton_dir": os.path.join(path, "triton"),
+        "components": build_hyperkernels_cache_components(model_name, mode),
+    }
+
+
+def _is_cache_warm(path: str) -> bool:
+    try:
+        if not os.path.isdir(path):
+            return False
+        with os.scandir(path) as it:
+            for _ in it:
+                return True
+        return False
+    except OSError:
+        return False
+
+
+def ensure_inductor_cache(
+    model_name: Optional[str] = None,
+    mode: str = "piecewise",
+    base_dir: Optional[str] = None,
+) -> Dict[str, Any]:
+    resolved = get_versioned_inductor_cache_dir(model_name, mode, base_dir)
+    path = resolved["path"]
+    triton_dir = resolved["triton_dir"]
+    key = resolved["key"]
+
+    warm = _is_cache_warm(path)
+
+    try:
+        os.makedirs(path, exist_ok=True)
+    except OSError as e:
+        logger.warning(f"Inductor cache dir not writable ({path}): {e}. Falling back to {AQUILES_INDUCTOR_CACHE}")
+        path = AQUILES_INDUCTOR_CACHE
+        triton_dir = os.path.join(path, "triton")
+        try:
+            os.makedirs(path, exist_ok=True)
+        except OSError:
+            pass
+        resolved["path"] = path
+        resolved["triton_dir"] = triton_dir
+        warm = _is_cache_warm(path)
+
+    try:
+        os.makedirs(triton_dir, exist_ok=True)
+    except OSError as e:
+        logger.warning(f"Triton cache dir not writable ({triton_dir}): {e}")
+
+    os.environ["TORCHINDUCTOR_CACHE_DIR"] = path
+    os.environ["TORCHINDUCTOR_FX_GRAPH_CACHE"] = "1"
+    os.environ["TRITON_CACHE_DIR"] = triton_dir
+
+    try:
+        import torch._inductor.config as _inductor_config
+
+        _inductor_config.cache_dir = path
+    except Exception:
+        pass
+
+    comps = resolved["components"]
+    logger.info(
+        "HyperKernels cache %s: key=%s dir=%s (torch=%s cuda=%s arch=%s diffusers=%s model=%s)",
+        "HIT" if warm else "MISS",
+        key,
+        path,
+        comps.get("torch"),
+        comps.get("cuda"),
+        comps.get("cuda_arch"),
+        comps.get("diffusers"),
+        comps.get("model"),
+    )
+
+    resolved["hit"] = warm
+    return resolved
 
 def load_lora_config(path: str) -> LoRAConfig | None:
     try:
