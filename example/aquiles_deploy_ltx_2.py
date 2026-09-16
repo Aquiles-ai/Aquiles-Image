@@ -1,7 +1,7 @@
 import modal
 
 aquiles_image = (
-    modal.Image.from_registry("nvidia/cuda:12.8.0-devel-ubuntu22.04", add_python="3.12")
+    modal.Image.from_registry("nvidia/cuda:13.0.0-devel-ubuntu22.04", add_python="3.12")
     .apt_install("git", 
         "curl", 
         "build-essential", 
@@ -21,17 +21,14 @@ aquiles_image = (
         "python -m pip install --upgrade setuptools wheel",
     )
     .uv_pip_install(
-        "torch==2.8",
-        "git+https://github.com/huggingface/diffusers.git",
-        "transformers==4.57.6",
-        "tokenizers==0.22.2",
-        "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2+cu128torch2.8-cp312-cp312-linux_x86_64.whl",
+        "torch==2.12",
+        "diffusers==0.40.0",
+        "transformers==5.17.0",
+        "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.17/flash_attn-2.8.3+cu130torch2.12-cp312-cp312-linux_x86_64.whl",
         "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
-        "bitsandbytes==0.49.0",
-        "accelerate==1.12.0",
-        "git+https://github.com/FredyRivera-dev/LTX-2.git#subdirectory=packages/ltx-core",
-        "git+https://github.com/FredyRivera-dev/LTX-2.git#subdirectory=packages/ltx-pipelines",
-        "av==16.0.1"
+        "bitsandbytes",
+        "accelerate",
+        "av"
     )
     .env({"HF_XET_HIGH_PERFORMANCE": "1",
         "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"})  

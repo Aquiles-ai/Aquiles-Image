@@ -12,11 +12,18 @@ except ImportError as e:
     encode_video = None
 import torch
 import gc
+import logging
+
+logger_p = logging.getLogger("Aquiles-Image-Pipelines")
 
 REPO_MAP = {
     "ltx-2": "Lightricks/LTX-2",
     "ltx-2.3": "diffusers/LTX-2.3-Diffusers",
 }
+
+# Quantized text encoder pinned for loading: QAT checkpoint + BnB 4-bit.
+# Falls back to the full bf16 encoder from the pipeline repo on failure.
+TEXT_ENCODER_REPO = "google/gemma-3-12b-it-qat-q4_0-unquantized"
 
 
 class LTX_2_Pipeline:
@@ -26,6 +33,8 @@ class LTX_2_Pipeline:
     ``LTX2ConditionPipeline``: empty ``conditions`` is T2V, one
     ``LTX2VideoCondition`` at index 0 is I2V.
     """
+
+    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("_flash_3_hub", "flash", "sage_hub")
 
     def __init__(self, model_name: Literal["ltx-2", "ltx-2.3"] = "ltx-2"):
         if model_name not in REPO_MAP:
@@ -44,23 +53,102 @@ class LTX_2_Pipeline:
         self.frame_rate = 24.0
         self.num_inference_steps = 30
 
+    def _load_quantized_text_encoder(self):
+        from transformers import BitsAndBytesConfig, Gemma3ForConditionalGeneration
+
+        quant = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_quant_type="nf4",
+        )
+        return Gemma3ForConditionalGeneration.from_pretrained(
+            TEXT_ENCODER_REPO,
+            quantization_config=quant,
+            dtype=torch.bfloat16,
+        )
+
     def start(self):
         if LTX2ConditionPipeline is None:
             raise ImportError("diffusers LTX-2 support is not available")
         if not torch.cuda.is_available():
             raise RuntimeError("CUDA is required for LTX-2")
 
-        self.pipeline = LTX2ConditionPipeline.from_pretrained(
-            self.repo_id, dtype=torch.bfloat16
-        )
-
-        if hasattr(self.pipeline, "enable_sequential_cpu_offload"):
-            self.pipeline.enable_sequential_cpu_offload(device="cuda")
-        elif hasattr(self.pipeline, "enable_model_cpu_offload"):
-            self.pipeline.enable_model_cpu_offload(device="cuda")
+        try:
+            text_encoder = self._load_quantized_text_encoder()
+            self.pipeline = LTX2ConditionPipeline.from_pretrained(
+                self.repo_id, text_encoder=text_encoder, dtype=torch.bfloat16
+            ).to("cuda")
+        except Exception as e:
+            print(f"Quantized text encoder failed, falling back to full bf16: {e}")
+            self.pipeline = LTX2ConditionPipeline.from_pretrained(
+                self.repo_id, dtype=torch.bfloat16
+            ).to("cuda")
 
         if hasattr(self.pipeline, "vae") and hasattr(self.pipeline.vae, "enable_tiling"):
             self.pipeline.vae.enable_tiling()
+
+        self.enable_flash_attn()
+
+    def enable_flash_attn(self):
+        if self.pipeline is None:
+            logger_p.warning("No pipeline loaded, skipping flash attention")
+            return
+
+        transformer = getattr(self.pipeline, "transformer", None)
+        if transformer is None:
+            logger_p.warning("No transformer component found for flash attention")
+            return
+
+        if not hasattr(transformer, "set_attention_backend"):
+            logger_p.warning(
+                "set_attention_backend not available for this model, skipping flash attention"
+            )
+            return
+
+        for backend in self.ATTENTION_BACKEND_PRIORITY:
+            if not self._attention_backend_ready(backend):
+                logger_p.debug(f"Attention backend {backend} not available")
+                continue
+            try:
+                transformer.set_attention_backend(backend)
+                logger_p.info(f"Attention backend enabled: {backend}")
+                return
+            except Exception as e:
+                logger_p.debug(f"Failed to set attention backend {backend}: {str(e)}")
+
+        logger_p.warning("No optimized attention available, using default SDPA")
+
+    def _attention_backend_ready(self, backend: str) -> bool:
+        try:
+            from diffusers.models.attention_dispatch import (
+                AttentionBackendName,
+                _HUB_KERNELS_REGISTRY,
+                _check_attention_backend_requirements,
+            )
+            name = AttentionBackendName(backend)
+            _check_attention_backend_requirements(name)
+            if name in _HUB_KERNELS_REGISTRY:
+                config = _HUB_KERNELS_REGISTRY[name]
+                return self._hub_kernel_ready(config.repo_id, config.version)
+            return True
+        except Exception as e:
+            logger_p.debug(f"Attention backend {backend} not usable: {str(e)}")
+            return False
+
+    def _hub_kernel_ready(self, repo_id: str, version: int | None) -> bool:
+        try:
+            from kernels import get_kernel, has_kernel
+        except Exception as e:
+            logger_p.debug(f"kernels package not usable: {str(e)}")
+            return False
+        try:
+            if has_kernel(repo_id, version=version):
+                return True
+            get_kernel(repo_id, version=version)
+            return True
+        except Exception as e:
+            logger_p.debug(f"Hub kernel {repo_id} not usable: {str(e)}")
+            return False
 
     def _resolve_num_frames(self, seconds=None) -> int:
         if seconds is None:
