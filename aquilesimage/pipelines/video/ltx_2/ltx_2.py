@@ -48,9 +48,11 @@ class LTX_2_Pipeline:
     ``LTX2ConditionPipeline``: empty ``conditions`` is T2V, one
     ``LTX2VideoCondition`` at index 0 is I2V.
 
-    Two-stage generation: stage 1 at half resolution (base DiT),
-    latent upsample x2, stage 2 refine at full resolution
-    (distilled LoRA + distilled sigmas).
+    ltx-2: two-stage generation (stage 1 base DiT at 768x512,
+    latent upsample x2, stage 2 refine at 1536x1024 with
+    distilled LoRA + distilled sigmas).
+    ltx-2.3: single-stage only for now (diffusers/LTX-2.3-Diffusers
+    ships neither latent_upsampler/ nor the stage-2 LoRA).
     """
 
     # Flash backends discarded: LTX-2 connectors pass `attn_mask` and
@@ -65,6 +67,8 @@ class LTX_2_Pipeline:
         self.model_name = model_name
         self.repo_id = REPO_MAP[model_name]
         self.stage_2_lora = STAGE_2_LORA_MAP[model_name]
+        # Only ltx-2 has two-stage assets in its repo today.
+        self.use_two_stage = (model_name == "ltx-2")
         self._base_scheduler = None
         self._stage_2_scheduler = None
         self.seconds_map = {
@@ -112,14 +116,6 @@ class LTX_2_Pipeline:
         if hasattr(self.pipeline, "vae") and hasattr(self.pipeline.vae, "enable_tiling"):
             self.pipeline.vae.enable_tiling()
 
-        # Stage 2 distilled LoRA (same repo, no extra big download).
-        self.pipeline.load_lora_weights(
-            self.repo_id,
-            adapter_name="stage_2_distilled",
-            weight_name=self.stage_2_lora,
-        )
-        self.pipeline.disable_lora()
-
         # Schedulers: base for stage 1, distilled config for stage 2.
         self._base_scheduler = self.pipeline.scheduler
         self._stage_2_scheduler = FlowMatchEulerDiscreteScheduler.from_config(
@@ -127,6 +123,18 @@ class LTX_2_Pipeline:
             use_dynamic_shifting=False,
             shift_terminal=None,
         )
+
+        if not self.use_two_stage:
+            logger_p.info(f"{self.model_name}: single-stage mode, skipping stage-2 LoRA/upsampler")
+            return
+
+        # Stage 2 distilled LoRA (same repo, no extra big download).
+        self.pipeline.load_lora_weights(
+            self.repo_id,
+            adapter_name="stage_2_distilled",
+            weight_name=self.stage_2_lora,
+        )
+        self.pipeline.disable_lora()
 
         # Latent upsampler x2 (subfolder of the same repo).
         latent_upsampler = LTX2LatentUpsamplerModel.from_pretrained(
@@ -209,7 +217,9 @@ class LTX_2_Pipeline:
             if output_dir:
                 os.makedirs(output_dir, exist_ok=True)
 
-            if self.pipeline is None or self.upsample_pipe is None:
+            if self.pipeline is None:
+                raise RuntimeError("Pipeline not started. Call start() first.")
+            if self.use_two_stage and self.upsample_pipe is None:
                 raise RuntimeError("Pipeline not started. Call start() first.")
 
             num_frames = self._resolve_num_frames(seconds)
@@ -229,63 +239,93 @@ class LTX_2_Pipeline:
             generator = torch.Generator(device=device).manual_seed(int(seed))
 
             with torch.inference_mode():
-                # Stage 1: base DiT at full resolution, latent output.
-                # The upsampler doubles it, so stage 2 refines at 1536x1024.
-                self.pipeline.disable_lora()
-                self.pipeline.scheduler = self._base_scheduler
-                video_latent, audio_latent = self.pipeline(
-                    conditions=conditions,
-                    prompt=prompt,
-                    negative_prompt=negative,
-                    width=self.width,
-                    height=self.height,
-                    num_frames=num_frames,
-                    frame_rate=self.frame_rate,
-                    num_inference_steps=self.num_inference_steps,
-                    guidance_scale=3.0,
-                    stg_scale=1.0,
-                    modality_scale=3.0,
-                    guidance_rescale=0.7,
-                    audio_guidance_scale=7.0,
-                    audio_stg_scale=1.0,
-                    audio_modality_scale=3.0,
-                    audio_guidance_rescale=0.7,
-                    spatio_temporal_guidance_blocks=[28],
-                    use_cross_timestep=True,
-                    generator=generator,
-                    output_type="latent",
-                    return_dict=False,
-                )
+                if not self.use_two_stage:
+                    # ltx-2.3: single-stage 768x512, no upsample/refine.
+                    video, audio = self.pipeline(
+                        conditions=conditions,
+                        prompt=prompt,
+                        negative_prompt=negative,
+                        width=self.width,
+                        height=self.height,
+                        num_frames=num_frames,
+                        frame_rate=self.frame_rate,
+                        num_inference_steps=self.num_inference_steps,
+                        guidance_scale=3.0,
+                        stg_scale=1.0,
+                        modality_scale=3.0,
+                        guidance_rescale=0.7,
+                        audio_guidance_scale=7.0,
+                        audio_stg_scale=1.0,
+                        audio_modality_scale=3.0,
+                        audio_guidance_rescale=0.7,
+                        spatio_temporal_guidance_blocks=[28],
+                        use_cross_timestep=True,
+                        generator=generator,
+                        output_type="np",
+                        return_dict=False,
+                    )
+                else:
+                    # Stage 1: base DiT at 768x512, latent output.
+                    # The upsampler doubles it, so stage 2 refines at 1536x1024.
+                    self.pipeline.disable_lora()
+                    self.pipeline.scheduler = self._base_scheduler
+                    video_latent, audio_latent = self.pipeline(
+                        conditions=conditions,
+                        prompt=prompt,
+                        negative_prompt=negative,
+                        width=self.width,
+                        height=self.height,
+                        num_frames=num_frames,
+                        frame_rate=self.frame_rate,
+                        num_inference_steps=self.num_inference_steps,
+                        guidance_scale=3.0,
+                        stg_scale=1.0,
+                        modality_scale=3.0,
+                        guidance_rescale=0.7,
+                        audio_guidance_scale=7.0,
+                        audio_stg_scale=1.0,
+                        audio_modality_scale=3.0,
+                        audio_guidance_rescale=0.7,
+                        spatio_temporal_guidance_blocks=[28],
+                        use_cross_timestep=True,
+                        generator=generator,
+                        output_type="latent",
+                        return_dict=False,
+                    )
 
-                # Upsample latents x2.
-                upscaled_latent = self.upsample_pipe(
-                    latents=video_latent,
-                    output_type="latent",
-                    return_dict=False,
-                )[0]
+                    # Upsample latents x2.
+                    upscaled_latent = self.upsample_pipe(
+                        latents=video_latent,
+                        output_type="latent",
+                        return_dict=False,
+                    )[0]
 
-                # Stage 2: distilled LoRA + distilled sigmas at full resolution.
-                self.pipeline.enable_lora()
-                self.pipeline.set_adapters("stage_2_distilled", 1.0)
-                self.pipeline.scheduler = self._stage_2_scheduler
-                video, audio = self.pipeline(
-                    prompt=prompt,
-                    negative_prompt=negative,
-                    latents=upscaled_latent,
-                    audio_latents=audio_latent,
-                    width=self.width,
-                    height=self.height,
-                    num_frames=num_frames,
-                    frame_rate=self.frame_rate,
-                    num_inference_steps=3,
-                    noise_scale=STAGE_2_DISTILLED_SIGMA_VALUES[0],
-                    sigmas=STAGE_2_DISTILLED_SIGMA_VALUES,
-                    guidance_scale=1.0,
-                    audio_guidance_scale=1.0,
-                    generator=generator,
-                    output_type="np",
-                    return_dict=False,
-                )
+                    # Stage 2: distilled LoRA + distilled sigmas at 2x resolution.
+                    # upscaled_latent is 1536x1024, so width/height must be x2
+                    # or prepare_latents() computes mask_shape from 768x512
+                    # (6144 tokens) and rejects the upscaled latents (24576 tokens).
+                    self.pipeline.enable_lora()
+                    self.pipeline.set_adapters("stage_2_distilled", 1.0)
+                    self.pipeline.scheduler = self._stage_2_scheduler
+                    video, audio = self.pipeline(
+                        conditions=conditions,
+                        prompt=prompt,
+                        negative_prompt=negative,
+                        latents=upscaled_latent,
+                        audio_latents=audio_latent,
+                        width=self.width * 2,
+                        height=self.height * 2,
+                        num_frames=num_frames,
+                        frame_rate=self.frame_rate,
+                        num_inference_steps=3,
+                        noise_scale=STAGE_2_DISTILLED_SIGMA_VALUES[0],
+                        sigmas=STAGE_2_DISTILLED_SIGMA_VALUES,
+                        guidance_scale=1.0,
+                        audio_guidance_scale=1.0,
+                        generator=generator,
+                        output_type="np",
+                        return_dict=False,
+                    )
 
                 audio_tensor = audio[0].float().cpu()
                 audio_sample_rate = self.pipeline.vocoder.config.output_sampling_rate
