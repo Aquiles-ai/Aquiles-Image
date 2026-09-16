@@ -23,7 +23,7 @@ class PipelineQwenImage(BasePipeline):
         if torch.cuda.is_available():
             self.pipeline = QwenImagePipeline.from_pretrained(
                 self.model_name,
-                torch_dtype=torch.bfloat16
+                dtype=torch.bfloat16
             ).to("cuda")
 
             if self.load_lora:
@@ -44,13 +44,13 @@ class PipelineQwenImage(BasePipeline):
                 torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
                 torch._inductor.config.triton.cudagraphs = False
             except Exception as e:
-                logger_p.error(f"X torch_opt failed: {str(e)}")
+                logger_p.error(f"torch_opt failed: {str(e)}")
                 pass
             self.enable_flash_attn()
             self.fuse_qkv_projections()
             self.optimize_memory_format()
         except Exception as e:
-            logger_p.error(f"X The optimizations could not be applied: {e}")
+            logger_p.error(f"The optimizations could not be applied: {e}")
             logger_p.info("Running with the non-optimized version")
             pass
 
@@ -62,7 +62,7 @@ class PipelineQwenImage(BasePipeline):
             if hasattr(self.pipeline, 'transformer'):
                 self.pipeline.transformer.to(memory_format=torch.channels_last)
         except Exception as e:
-            logger_p.error(f"X Error optimizing memory format: {e}")
+            logger_p.error(f"Error optimizing memory format: {e}")
             pass
 
     def fuse_qkv_projections(self):
@@ -71,5 +71,5 @@ class PipelineQwenImage(BasePipeline):
             self.pipeline.vae.fuse_qkv_projections()
             logger_p.info("QKV projection fusion")
         except Exception as e:
-            logger_p.error(f"X Error merging QKV projections: {e}")
+            logger_p.error(f"Error merging QKV projections: {e}")
             pass

@@ -39,7 +39,7 @@ class PipelineErnieImage(BasePipeline):
         logger_p.info(f"Loading {self.model_name}... (CUDA)")
 
         self.pipeline = ErnieImagePipeline.from_pretrained(
-            self.model_name, torch_dtype=torch.bfloat16).to(device="cuda")
+            self.model_name, dtype=torch.bfloat16).to(device="cuda")
 
         if self.load_lora:
             loadLoRA(self.pipeline, self.conf_lora)

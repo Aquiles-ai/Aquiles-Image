@@ -1,57 +1,71 @@
-from aquilesimage.utils.utils_video import get_path_file_video_model, file_exists, download_ltx_2, download_ltx_2_3
 from typing import Literal
 try:
-    from ltx_pipelines.ti2vid_two_stages import TI2VidTwoStagesPipeline
-    from ltx_pipelines.utils.media_io import encode_video
-    from ltx_core.model.video_vae import TilingConfig, get_video_chunks_number
-    from ltx_core.loader import LoraPathStrengthAndSDOps, LTXV_LORA_COMFY_RENAMING_MAP
-    from ltx_core.components.guiders import MultiModalGuiderParams
-    from ltx_pipelines.utils.args import ImageConditioningInput
+    from diffusers.pipelines.ltx2 import LTX2ConditionPipeline
+    from diffusers.pipelines.ltx2.pipeline_ltx2_condition import LTX2VideoCondition
+    from diffusers.pipelines.ltx2.utils import DEFAULT_NEGATIVE_PROMPT
+    from diffusers.utils import encode_video
 except ImportError as e:
-    print("Error importing components for LTX-2")
-    pass
+    print(f"Error importing diffusers LTX-2 components: {e}")
+    LTX2ConditionPipeline = None
+    LTX2VideoCondition = None
+    DEFAULT_NEGATIVE_PROMPT = "No deformities"
+    encode_video = None
 import torch
 import gc
 
+REPO_MAP = {
+    "ltx-2": "Lightricks/LTX-2",
+    "ltx-2.3": "diffusers/LTX-2.3-Diffusers",
+}
+
+
 class LTX_2_Pipeline:
+    """Video pipeline based on diffusers.
+
+    Single pipeline for text-to-video and image-to-video via
+    ``LTX2ConditionPipeline``: empty ``conditions`` is T2V, one
+    ``LTX2VideoCondition`` at index 0 is I2V.
+    """
+
     def __init__(self, model_name: Literal["ltx-2", "ltx-2.3"] = "ltx-2"):
-        self.pipeline: TI2VidTwoStagesPipeline | None = None
+        if model_name not in REPO_MAP:
+            raise ValueError("Model not available")
+        self.pipeline: LTX2ConditionPipeline | None = None
         self.model_name = model_name
-        self.verify_model()
+        self.repo_id = REPO_MAP[model_name]
         self.seconds_map = {
             "4": 125,
             "8": 200,
-            "12": 300
+            "12": 300,
         }
+        # Single-stage defaults taken from the diffusers LTX-2 docs.
+        self.width = 768
+        self.height = 512
+        self.frame_rate = 24.0
+        self.num_inference_steps = 30
 
     def start(self):
-        data_dir = get_path_file_video_model(self.model_name)
+        if LTX2ConditionPipeline is None:
+            raise ImportError("diffusers LTX-2 support is not available")
+        if not torch.cuda.is_available():
+            raise RuntimeError("CUDA is required for LTX-2")
 
-        if self.model_name == "ltx-2":
-            checkpoint_path = f"{data_dir}/ltx-2-19b-dev.safetensors"
-            distilled_lora = f"{data_dir}/ltx-2-19b-distilled-lora-384.safetensors"
-            spatial_upsampler_path = f"{data_dir}/ltx-2-spatial-upscaler-x2-1.0.safetensors"
-        elif self.model_name == "ltx-2.3":
-            checkpoint_path = f"{data_dir}/ltx-2.3-22b-dev.safetensors"
-            distilled_lora = f"{data_dir}/ltx-2.3-22b-distilled-lora-384.safetensors"
-            spatial_upsampler_path = f"{data_dir}/ltx-2.3-spatial-upscaler-x2-1.0.safetensors"
-        else:
-            raise ValueError("Model not available")
+        self.pipeline = LTX2ConditionPipeline.from_pretrained(
+            self.repo_id, dtype=torch.bfloat16
+        )
 
-        with torch.no_grad():
-            self.pipeline = TI2VidTwoStagesPipeline(
-                checkpoint_path=checkpoint_path,
-                gemma_root=f"{data_dir}/gemma", 
-                loras=[], 
-                distilled_lora=[
-                    LoraPathStrengthAndSDOps(
-                        path=distilled_lora, 
-                        strength=0.6, 
-                        sd_ops=LTXV_LORA_COMFY_RENAMING_MAP
-                    )
-                ], 
-                spatial_upsampler_path=spatial_upsampler_path
-            )
+        if hasattr(self.pipeline, "enable_sequential_cpu_offload"):
+            self.pipeline.enable_sequential_cpu_offload(device="cuda")
+        elif hasattr(self.pipeline, "enable_model_cpu_offload"):
+            self.pipeline.enable_model_cpu_offload(device="cuda")
+
+        if hasattr(self.pipeline, "vae") and hasattr(self.pipeline.vae, "enable_tiling"):
+            self.pipeline.vae.enable_tiling()
+
+    def _resolve_num_frames(self, seconds=None) -> int:
+        if seconds is None:
+            return 121
+        return self.seconds_map.get(str(seconds), 121)
 
     def generate(self, seed: int, prompt: str, save_result_path: str, negative_prompt: str, image=None, seconds=None):
         try:
@@ -59,55 +73,64 @@ class LTX_2_Pipeline:
             output_dir = os.path.dirname(save_result_path)
             if output_dir:
                 os.makedirs(output_dir, exist_ok=True)
-            with torch.no_grad():
-                num_frames = self.seconds_map[seconds] if seconds is not None else 300
-                tiling_config = TilingConfig.default()
-                video_chunks_number = get_video_chunks_number(num_frames, tiling_config)
 
+            if self.pipeline is None:
+                raise RuntimeError("Pipeline not started. Call start() first.")
+
+            num_frames = self._resolve_num_frames(seconds)
+            negative = negative_prompt or DEFAULT_NEGATIVE_PROMPT
+
+            if image is not None:
+                conditions = [LTX2VideoCondition(frames=image, index=0, strength=1.0)]
+            else:
+                conditions = []
+
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            generator = torch.Generator(device=device).manual_seed(int(seed))
+
+            with torch.inference_mode():
                 video, audio = self.pipeline(
+                    conditions=conditions,
                     prompt=prompt,
-                    negative_prompt=negative_prompt,
-                    seed=seed,
-                    height=1088,
-                    width=1920,
+                    negative_prompt=negative,
+                    width=self.width,
+                    height=self.height,
                     num_frames=num_frames,
-                    frame_rate=25.0,
-                    num_inference_steps=40,
-                    images=[ImageConditioningInput(image, 0, 1.0)] if image is not None else [],
-                    video_guider_params=MultiModalGuiderParams(
-                        cfg_scale=3.0,
-                        stg_scale=1.0,
-                        rescale_scale=0.7,
-                        modality_scale=3.0,
-                        skip_step=0,
-                        stg_blocks=[29],
-                    ),
-                    audio_guider_params=MultiModalGuiderParams(
-                        cfg_scale=7.0,
-                        stg_scale=1.0,
-                        rescale_scale=0.7,
-                        modality_scale=3.0,
-                        skip_step=0,
-                        stg_blocks=[29],
-                    ),
-                    enhance_prompt=False,
-                    tiling_config=tiling_config
+                    frame_rate=self.frame_rate,
+                    num_inference_steps=self.num_inference_steps,
+                    guidance_scale=3.0,
+                    stg_scale=1.0,
+                    modality_scale=3.0,
+                    guidance_rescale=0.7,
+                    audio_guidance_scale=7.0,
+                    audio_stg_scale=1.0,
+                    audio_modality_scale=3.0,
+                    audio_guidance_rescale=0.7,
+                    spatio_temporal_guidance_blocks=[28],
+                    use_cross_timestep=True,
+                    generator=generator,
+                    output_type="np",
+                    return_dict=False,
                 )
 
+                audio_tensor = audio[0].float().cpu()
+                audio_sample_rate = self.pipeline.vocoder.config.output_sampling_rate
+
                 encode_video(
-                    video=video,
-                    fps=25.0,
-                    audio=audio,
+                    video[0],
+                    fps=self.frame_rate,
+                    audio=audio_tensor,
+                    audio_sample_rate=audio_sample_rate,
                     output_path=save_result_path,
-                    video_chunks_number=video_chunks_number,
                 )
 
             print(f"Saved video in... {save_result_path}")
 
         except Exception as e:
-            print(f"X Error: {e}")
+            print(f"Error: {e}")
             import traceback
             traceback.print_exc()
+            raise
 
         finally:
             if torch.cuda.is_available():
@@ -116,23 +139,3 @@ class LTX_2_Pipeline:
                 torch.cuda.reset_peak_memory_stats()
                 torch.cuda.ipc_collect()
             gc.collect()
-
-    def verify_model(self):
-        model_path = get_path_file_video_model(self.model_name)
-
-        if self.model_name == "ltx-2":
-            if (file_exists(f"{model_path}/gemma/model-00004-of-00005.safetensors") and 
-                file_exists(f"{model_path}/ltx-2-19b-dev.safetensors") and 
-                file_exists(f"{model_path}/ltx-2-spatial-upscaler-x2-1.0.safetensors") and 
-                file_exists(f"{model_path}/ltx-2-19b-distilled-lora-384.safetensors")):
-                pass
-            else:
-                download_ltx_2()
-        elif self.model_name == "ltx-2.3":
-            if (file_exists(f"{model_path}/gemma/model-00004-of-00005.safetensors") and 
-                file_exists(f"{model_path}/ltx-2.3-22b-dev.safetensors") and 
-                file_exists(f"{model_path}/ltx-2.3-spatial-upscaler-x2-1.0.safetensors") and 
-                file_exists(f"{model_path}/ltx-2.3-22b-distilled-lora-384.safetensors")):
-                pass
-            else:
-                download_ltx_2_3()

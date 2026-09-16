@@ -29,7 +29,7 @@ class PipelineFluxKontext(BasePipeline):
             self.device = "cuda" 
             self.pipeline = FluxKontextPipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.bfloat16,
+                dtype=torch.bfloat16,
             ).to(device=self.device)
 
             if self.load_lora:
@@ -47,7 +47,7 @@ class PipelineFluxKontext(BasePipeline):
             self.device = "mps"
             self.pipeline = FluxKontextPipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.bfloat16,
+                dtype=torch.bfloat16,
             ).to(device=self.device)
         else:
             raise Exception("No CUDA or MPS device available")
@@ -78,5 +78,5 @@ class PipelineFluxKontext(BasePipeline):
             logger_p.info("All optimizations completed successfully")
             
         except Exception as e:
-            logger_p.error(f"X Error in optimization with FluxKontext: {e}")
+            logger_p.error(f"Error in optimization with FluxKontext: {e}")
             raise

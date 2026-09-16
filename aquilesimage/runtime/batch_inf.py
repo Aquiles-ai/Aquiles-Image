@@ -217,7 +217,7 @@ class BatchPipeline:
             logger.info(f"Request {req_id} completed")
             return result
         except asyncio.TimeoutError:
-            logger.error(f"X Request {req_id} timed out after {timeout}s")
+            logger.error(f"Request {req_id} timed out after {timeout}s")
             raise
 
     async def _batch_worker_loop(self):
@@ -276,7 +276,7 @@ class BatchPipeline:
                 logger.info("Worker loop cancelled")
                 break
             except Exception as e:
-                logger.error(f"X Error in worker loop: {e}")
+                logger.error(f"Error in worker loop: {e}")
                 if not self.is_dist:
                     self.processing = False
 
@@ -288,7 +288,7 @@ class BatchPipeline:
         try:
             await self._process_batch(batch)
         except Exception as e:
-            logger.error(f"X Error in async batch processing: {e}")
+            logger.error(f"Error in async batch processing: {e}")
         finally:
             async with self.active_batches_lock:
                 self.active_batches -= 1
@@ -354,7 +354,7 @@ class BatchPipeline:
                 logger.info(f"Assigned device {device_to_use} for batch of {len(group)} requests ({total_images} images)")
                 
             except TimeoutError as e:
-                logger.error(f"X No devices available after timeout")
+                logger.error(f"No devices available after timeout")
                 for req in group:
                     if not req.future.done():
                         req.future.set_exception(e)
@@ -431,7 +431,7 @@ class BatchPipeline:
                 try:
                     result_data = await asyncio.wait_for(result_future, timeout=600.0)
                 except asyncio.TimeoutError:
-                    logger.error(f"X Worker {worker_idx} timed out for request_id={request_id}")
+                    logger.error(f"Worker {worker_idx} timed out for request_id={request_id}")
                     async with self.result_lock:
                         self.pending_results.pop(request_id, None)
                     raise
@@ -440,7 +440,7 @@ class BatchPipeline:
                 
                 if len(output_images) != total_expected_images:
                     raise RuntimeError(
-                        f"X CRITICAL: Batch size mismatch! "
+                        f"CRITICAL: Batch size mismatch! "
                         f"Expected {total_expected_images} images, got {len(output_images)}"
                     )
                 
@@ -513,7 +513,7 @@ class BatchPipeline:
 
                 if len(output.images) != total_expected_images:
                     raise RuntimeError(
-                        f"X CRITICAL: Batch size mismatch! "
+                        f"CRITICAL: Batch size mismatch! "
                         f"Expected {total_expected_images} images, got {len(output.images)}"
                     )
 
@@ -543,7 +543,7 @@ class BatchPipeline:
                 )
         
         except Exception as e:
-            logger.error(f"X Batch inference failed on {device_to_use}: {e}", exc_info=True)
+            logger.error(f"Batch inference failed on {device_to_use}: {e}", exc_info=True)
 
             if self.is_dist and device_stats:
                 device_stats.register_error(str(e))

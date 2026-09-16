@@ -45,7 +45,7 @@ class PipelineSD3(BasePipeline):
             self.device = "cuda"
             self.pipeline = StableDiffusion3Pipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.float16,
+                dtype=torch.float16,
             )
 
             if self.cpu_offload:
@@ -68,12 +68,12 @@ class PipelineSD3(BasePipeline):
                 self.pipeline.enable_xformers_memory_efficient_attention()
                 print("xformers enabled")
             except Exception as e:
-                print(f"X xformers not available: {e}")
+                print(f"xformers not available: {e}")
 
             try:
                 self.enable_flash_attn()
             except Exception as e:
-                print(f"X flash_attn not available: {e}")
+                print(f"flash_attn not available: {e}")
                 pass
 
         elif torch.backends.mps.is_available():

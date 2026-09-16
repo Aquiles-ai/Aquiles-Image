@@ -38,7 +38,7 @@ class PipelineKrea2(BasePipeline):
         try:
             self.pipeline = Krea2Pipeline.from_pretrained(
                 self.model_name,
-                torch_dtype=torch.bfloat16,
+                dtype=torch.bfloat16,
             ).to("cuda")
         finally:
             DiffusersAutoQuantizer.from_config = original_from_config

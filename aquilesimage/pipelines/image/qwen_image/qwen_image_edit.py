@@ -30,12 +30,12 @@ class PipelineQwenImageEdit(BasePipeline):
             if self.model_name in [ImageModel.QWEN_IMAGE_EDIT_BASE]:
                 self.pipeline = QwenImageEditPipeline.from_pretrained(
                     self.model_name,
-                    torch_dtype=torch.bfloat16
+                    dtype=torch.bfloat16
                 ).to("cuda")
             elif self.model_name in [ImageModel.QWEN_IMAGE_EDIT_2511, ImageModel.QWEN_IMAGE_EDIT_2509]:
                 self.pipeline = QwenImageEditPlusPipeline.from_pretrained(
                     self.model_name,
-                    torch_dtype=torch.bfloat16
+                    dtype=torch.bfloat16
                 ).to("cuda")
             else:
                 raise ValueError("Unsupported model")
@@ -59,13 +59,13 @@ class PipelineQwenImageEdit(BasePipeline):
                 torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
                 torch._inductor.config.triton.cudagraphs = False
             except Exception as e:
-                logger_p.error(f"X torch_opt failed: {str(e)}")
+                logger_p.error(f"torch_opt failed: {str(e)}")
                 pass
             self.enable_flash_attn()
             self.fuse_qkv_projections()
             self.optimize_memory_format()
         except Exception as e:
-            logger_p.error(f"X The optimizations could not be applied: {e}")
+            logger_p.error(f"The optimizations could not be applied: {e}")
             logger_p.info("Running with the non-optimized version")
             pass
 
@@ -77,7 +77,7 @@ class PipelineQwenImageEdit(BasePipeline):
             if hasattr(self.pipeline, 'transformer'):
                 self.pipeline.transformer.to(memory_format=torch.channels_last)
         except Exception as e:
-            logger_p.error(f"X Error optimizing memory format: {e}")
+            logger_p.error(f"Error optimizing memory format: {e}")
             pass
 
     def fuse_qkv_projections(self):
@@ -86,5 +86,5 @@ class PipelineQwenImageEdit(BasePipeline):
             self.pipeline.vae.fuse_qkv_projections()
             logger_p.info("QKV projection fusion")
         except Exception as e:
-            logger_p.error(f"X Error merging QKV projections: {e}")
+            logger_p.error(f"Error merging QKV projections: {e}")
             pass

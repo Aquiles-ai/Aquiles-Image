@@ -51,7 +51,7 @@ class PipelineGGUFAuto(BasePipeline):
             quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
             config=self.entry["base_repo"],
             subfolder="transformer",
-            torch_dtype=torch.bfloat16,
+            dtype=torch.bfloat16,
         )
  
         logger_p.info(
@@ -60,7 +60,7 @@ class PipelineGGUFAuto(BasePipeline):
         self.pipeline = PipelineCls.from_pretrained(
             self.entry["base_repo"],
             transformer=transformer,
-            torch_dtype=torch.bfloat16,
+            dtype=torch.bfloat16,
         ).to("cuda")
  
         if self.load_lora:

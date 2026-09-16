@@ -43,7 +43,7 @@ def err(msg: str) -> None:
     if RICH:
         get_console().print(f"[bold red]✗[/bold red] {msg}")
     else:
-        typer.echo(f"X Error: {msg}", err=True)
+        typer.echo(f"Error: {msg}", err=True)
 
 
 def warn(msg: str) -> None:

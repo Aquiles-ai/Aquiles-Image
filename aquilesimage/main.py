@@ -278,7 +278,7 @@ logger.info("Loading the model...")
 try:
     load_models()
 except Exception as exc:
-    logger.error(f"X Failed to initialize models: {exc}")
+    logger.error(f"Failed to initialize models: {exc}")
     raise
 
 @asynccontextmanager
@@ -327,7 +327,7 @@ async def lifespan(app: FastAPI):
                                      if not cfg.dist_inference
                                      else f" gpu{i}_allocated={a:.2f}GB gpu{i}_reserved={r:.2f}GB")
                     except Exception as e:
-                        logger.error(f"X Error retrieving VRAM: {e}")
+                        logger.error(f"Error retrieving VRAM: {e}")
                         vram = " vram=error"
                 else:
                     vram = " vram=no_gpu"
@@ -453,10 +453,10 @@ async def create_image(input_r: CreateImageRequest):
             DummyOutput(images), utils_app, response_format, output_format, size, quality, background
         )
     except asyncio.TimeoutError:
-        logger.error("X Request timed out")
+        logger.error("Request timed out")
         raise HTTPException(504, "Request timed out")
     except Exception as e:
-        logger.error(f"X Error during inference: {e}")
+        logger.error(f"Error during inference: {e}")
         raise HTTPException(500, f"Error in processing: {e}")
     finally:
         async with app.state.metrics_lock:
@@ -566,7 +566,7 @@ async def create_image_edit(
             size, quality, background, skip_size=skip_size
         )
     except Exception as e:
-        logger.error(f"X Error during inference: {e}")
+        logger.error(f"Error during inference: {e}")
         raise HTTPException(500, f"Error in processing: {e}")
     finally:
         async with app.state.metrics_lock:
@@ -681,7 +681,7 @@ async def create_video(request: Request):
     try:
         return await video_task_gen.create_task(input_r, pil_image)
     except Exception as e:
-        logger.error(f"X Error creating video task: {e}")
+        logger.error(f"Error creating video task: {e}")
         raise HTTPException(503, str(e))
 
 
@@ -772,7 +772,7 @@ async def health_check():
                 for i in range(torch.cuda.device_count())
             ]
         except Exception as e:
-            logger.error(f"X Error retrieving GPU info in health check: {e}")
+            logger.error(f"Error retrieving GPU info in health check: {e}")
             health["devices"] = "error"
     else:
         health["devices"] = []

@@ -17,7 +17,7 @@ def loadLoRA(pipeline: DiffusionPipeline, conf: LoRAConfig):
             component = getattr(pipeline, conf.prefix, None)
 
             if component is None:
-                logger.error(f"X Pipeline has no component '{conf.prefix}'.")
+                logger.error(f"Pipeline has no component '{conf.prefix}'.")
                 logger.info("There was an error loading LoRA. Only the base model is loaded.")
                 return False
 
@@ -32,6 +32,6 @@ def loadLoRA(pipeline: DiffusionPipeline, conf: LoRAConfig):
         return True
 
     except Exception as e:
-        logger.error(f"X Error loading LoRA: {e}")
+        logger.error(f"Error loading LoRA: {e}")
         logger.info("There was an error loading LoRA. Only the base model is loaded.")
         return False

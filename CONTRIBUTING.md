@@ -184,7 +184,7 @@ class PipelineYourModel(BasePipeline):
             self.device = "cuda"
             self.pipeline = AutoPipelineForText2Image.from_pretrained(
                 model_path,
-                torch_dtype=torch.float16,
+                dtype=torch.float16,
             ).to(device=self.device)
             
             # Call optimizations
@@ -219,7 +219,7 @@ class PipelineYourModel(BasePipeline):
             
             logger_p.info("All optimizations completed successfully")
         except Exception as e:
-            logger_p.error(f"X Error in optimization: {e}")
+            logger_p.error(f"Error in optimization: {e}")
             raise
 ```
 

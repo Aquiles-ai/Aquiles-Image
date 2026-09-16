@@ -92,21 +92,21 @@ class PipelineZImageTurbo(BasePipeline):
                 torch.cuda.synchronize()
 
         except Exception as e:
-            logger_p.error(f"X Warmup failed: {str(e)}")
+            logger_p.error(f"Warmup failed: {str(e)}")
 
     def load_compo(self):
         try:
             self.vae = AutoencoderKL.from_pretrained(
                 self.model_path or "Tongyi-MAI/Z-Image-Turbo",
                 subfolder="vae",
-                torch_dtype=torch.bfloat16,
+                dtype=torch.bfloat16,
                 device_map="cuda",
             )
 
             self.text_encoder = AutoModelForCausalLM.from_pretrained(
                 self.model_path or "Tongyi-MAI/Z-Image-Turbo",
                 subfolder="text_encoder",
-                torch_dtype=torch.bfloat16,
+                dtype=torch.bfloat16,
                 device_map="cuda",
             ).eval()
 
@@ -125,11 +125,11 @@ class PipelineZImageTurbo(BasePipeline):
                 torch._inductor.config.triton.cudagraphs = False
 
             except Exception as e:
-                logger_p.error(f"X load_compo config failed: {str(e)}")
+                logger_p.error(f"load_compo config failed: {str(e)}")
                 pass
 
         except Exception as e:
-            logger_p.error(f"X load_compo failed: {str(e)}")
+            logger_p.error(f"load_compo failed: {str(e)}")
 
     def load_transformer(self):
         self.transformer = ZImageTransformer2DModel.from_pretrained(

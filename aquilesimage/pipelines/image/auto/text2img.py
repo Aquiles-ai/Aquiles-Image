@@ -23,7 +23,7 @@ class AutoPipelineDiffusers(BasePipeline):
                 self.model_name, 
                 device_map="cuda",
                 trust_remote_code=True,
-                torch_dtype=torch.bfloat16)
+                dtype=torch.bfloat16)
 
             if self.load_lora:
                 loadLoRA(self.pipeline, self.conf_lora)
@@ -41,13 +41,13 @@ class AutoPipelineDiffusers(BasePipeline):
                 torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
                 torch._inductor.config.triton.cudagraphs = False
             except Exception as e:
-                logger_p.error(f"X torch_opt failed: {str(e)}")
+                logger_p.error(f"torch_opt failed: {str(e)}")
                 pass
             #self.enable_flash_attn()
             self.optimize_memory_format()
             self.fuse_qkv_projections()
         except Exception as e:
-            logger_p.error(f"X The optimizations could not be applied: {e}")
+            logger_p.error(f"The optimizations could not be applied: {e}")
             logger_p.info("Running with the non-optimized version")
             pass
 
@@ -61,7 +61,7 @@ class AutoPipelineDiffusers(BasePipeline):
             if hasattr(self.pipeline, 'transformer'):
                 self.pipeline.transformer.to(memory_format=torch.channels_last)
         except Exception as e:
-            logger_p.error(f"X Error optimizing memory format: {e}")
+            logger_p.error(f"Error optimizing memory format: {e}")
             pass
 
     def fuse_qkv_projections(self):        
@@ -72,5 +72,5 @@ class AutoPipelineDiffusers(BasePipeline):
             logger_p.warning("fuse_qkv_projections not available for this model")
             pass
         except Exception as e:
-            logger_p.error(f"X Error merging QKV projections: {e}")
+            logger_p.error(f"Error merging QKV projections: {e}")
             pass

@@ -79,7 +79,7 @@ class VideoTaskGeneration:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                print(f"X Error en el worker de cola: {e}")
+                print(f"Error en el worker de cola: {e}")
                 await asyncio.sleep(1)
 
     async def _process_task(self, task_id: str):
@@ -107,7 +107,7 @@ class VideoTaskGeneration:
                 "code": "generation_error",
                 "message": str(e)
             }
-            print(f"X Error processing task {task_id}: {e}")
+            print(f"Error processing task {task_id}: {e}")
         finally:
             async with self.lock:
                 self.active_tasks.discard(task_id)

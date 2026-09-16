@@ -32,10 +32,10 @@ class PipelineZImage(BasePipeline):
                 torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
                 torch._inductor.config.triton.cudagraphs = False
             except Exception as e:
-                logger_p.error(f"X torch_opt failed: {str(e)}")
+                logger_p.error(f"torch_opt failed: {str(e)}")
                 pass
             self.pipeline = ZImagePipeline.from_pretrained(self.model_name,
-                        torch_dtype=torch.bfloat16,
+                        dtype=torch.bfloat16,
                         device_map="cuda")
 
             if self.load_lora:
@@ -55,5 +55,5 @@ class PipelineZImage(BasePipeline):
             if hasattr(self.pipeline, 'transformer'):
                 self.pipeline.transformer.to(memory_format=torch.channels_last)
         except Exception as e:
-            logger_p.error(f"X Error optimizing memory format: {e}")
+            logger_p.error(f"Error optimizing memory format: {e}")
             pass

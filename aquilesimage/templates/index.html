@@ -1454,7 +1454,7 @@
             raw:  modelId
           });
         } catch(e) {
-          console.error('X Error fetching model:', e);
+          console.error('Error fetching model:', e);
           setServerOnline(false);
         } finally {
           setModelLoading(false);
@@ -1472,7 +1472,7 @@
           setStats(data);
           setServerOnline(true);
         } catch(e) {
-          console.error('X Error fetching stats:', e);
+          console.error('Error fetching stats:', e);
         }
       }, []);
 
@@ -1563,7 +1563,7 @@
           setGenTime(((Date.now() - t0) / 1000).toFixed(1));
           fetchStats(); // refresh stats after generation
         } catch(e) {
-          console.error('X Error generating image:', e);
+          console.error('Error generating image:', e);
           setGenError(e.message || 'Unexpected error. Please try again.');
         } finally {
           setGenLoading(false);

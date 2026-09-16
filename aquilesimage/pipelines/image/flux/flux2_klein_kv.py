@@ -46,21 +46,21 @@ class PipelineFlux2KleinKV(BasePipeline):
         self.text_encoder = Qwen3ForCausalLM.from_pretrained(
                 self.model_name,
                 subfolder="text_encoder",
-                torch_dtype=torch.bfloat16,
+                dtype=torch.bfloat16,
                 device_map="cuda")
 
         logger_p.info("Loading Transformer... (CUDA)")
         self.dit = Flux2Transformer2DModel.from_pretrained(
                 self.model_name, 
                 subfolder="transformer", 
-                torch_dtype=torch.bfloat16, 
+                dtype=torch.bfloat16, 
                 device_map="cuda")
 
         logger_p.info("Loading VAE... (CUDA)")
         self.vae = AutoencoderKLFlux2.from_pretrained(
             self.model_name,
             subfolder="vae",
-            torch_dtype=torch.bfloat16).to("cuda")
+            dtype=torch.bfloat16).to("cuda")
 
         self.pipeline = Flux2KleinPipeline.from_pretrained(
             self.model_name, text_encoder=self.text_encoder, transformer=self.dit, vae=self.vae, dtype=torch.bfloat16

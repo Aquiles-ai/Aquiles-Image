@@ -53,19 +53,19 @@ class PipelineFlux2(BasePipeline):
 
                 logger_p.info("Loading text encoder... (CUDA)")
                 self.text_encoder = Mistral3ForConditionalGeneration.from_pretrained(
-                    self.model_path, subfolder="text_encoder", torch_dtype=torch.bfloat16, device_map="cuda"
+                    self.model_path, subfolder="text_encoder", dtype=torch.bfloat16, device_map="cuda"
                 )
 
                 logger_p.info("Loading DiT transformer... (CUDA)")
                 self.dit = Flux2Transformer2DModel.from_pretrained(
-                    self.model_path, subfolder="transformer", torch_dtype=torch.bfloat16, device_map="cuda"
+                    self.model_path, subfolder="transformer", dtype=torch.bfloat16, device_map="cuda"
                 )
 
                 logger_p.info("Loading VAE... (CUDA)")
                 self.vae = AutoencoderKLFlux2.from_pretrained(
                     self.model_path,
                     subfolder="vae",
-                    torch_dtype=torch.bfloat16).to("cuda")
+                    dtype=torch.bfloat16).to("cuda")
 
                 logger_p.info("Converting all parameters to bfloat16...")
                 self.dit = self.dit.to(torch.bfloat16)
@@ -85,17 +85,17 @@ class PipelineFlux2(BasePipeline):
     def start_low_vram(self):
         logger_p.info("Loading quantized text encoder...")
         self.text_encoder = Mistral3ForConditionalGeneration.from_pretrained(
-            self.model_path, subfolder="text_encoder", torch_dtype=torch.bfloat16, device_map="cpu"
+            self.model_path, subfolder="text_encoder", dtype=torch.bfloat16, device_map="cpu"
         )
 
         logger_p.info("Loading quantized DiT transformer...")
         self.dit = AutoModel.from_pretrained(
-            self.model_path, subfolder="transformer", torch_dtype=torch.bfloat16, device_map="cuda"
+            self.model_path, subfolder="transformer", dtype=torch.bfloat16, device_map="cuda"
         )
 
         logger_p.info("Creating FLUX.2 pipeline...")
         self.pipeline = Flux2Pipeline.from_pretrained(
-            self.model_path, text_encoder=self.text_encoder, transformer=self.dit, torch_dtype=torch.bfloat16
+            self.model_path, text_encoder=self.text_encoder, transformer=self.dit, dtype=torch.bfloat16
         )
 
         if self.load_lora:

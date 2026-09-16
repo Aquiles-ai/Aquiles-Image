@@ -69,7 +69,7 @@ class PipelineKrea2LoRA(BasePipeline):
         try:
             self.pipeline = Krea2PipelineWithLoRA.from_pretrained(
                 self.model_name,
-                torch_dtype=torch.bfloat16,
+                dtype=torch.bfloat16,
                 lora=self.lora_name
             ).to("cuda")
         finally:

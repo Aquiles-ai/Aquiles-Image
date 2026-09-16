@@ -32,11 +32,11 @@ def load_lora_config(path: str) -> LoRAConfig | None:
         resolved = Path(path).resolve()
 
         if not resolved.exists():
-            logger.error(f"X LoRA config file not found: {resolved}")
+            logger.error(f"LoRA config file not found: {resolved}")
             return None
 
         if not resolved.is_file():
-            logger.error(f"X LoRA config path is not a file: {resolved}")
+            logger.error(f"LoRA config path is not a file: {resolved}")
             return None
 
         with open(resolved, "r", encoding="utf-8") as f:
@@ -45,10 +45,10 @@ def load_lora_config(path: str) -> LoRAConfig | None:
         return LoRAConfig(**data)
 
     except json.JSONDecodeError as e:
-        logger.error(f"X Invalid JSON in LoRA config file: {e}")
+        logger.error(f"Invalid JSON in LoRA config file: {e}")
         return None
     except Exception as e:
-        logger.error(f"X Error loading LoRA config: {e}")
+        logger.error(f"Error loading LoRA config: {e}")
         return None
 
 def config_file_exists() -> bool:

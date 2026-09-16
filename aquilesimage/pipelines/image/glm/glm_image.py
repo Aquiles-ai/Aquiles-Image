@@ -80,5 +80,5 @@ class PipelineGLMImage(BasePipeline):
             if hasattr(self.pipeline, 'transformer'):
                 self.pipeline.transformer.to(memory_format=torch.channels_last)
         except Exception as e:
-            logger_p.error(f"X Error optimizing memory format: {e}")
+            logger_p.error(f"Error optimizing memory format: {e}")
             pass

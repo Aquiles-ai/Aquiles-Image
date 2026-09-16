@@ -32,7 +32,7 @@ class PipelineFlux(BasePipeline):
 
             self.pipeline = FluxPipeline.from_pretrained(
                 model_path,
-                torch_dtype=torch.bfloat16,
+                dtype=torch.bfloat16,
             ).to(device=self.device)
 
             if self.load_lora:
@@ -87,7 +87,7 @@ class PipelineFlux(BasePipeline):
             logger_p.info("All optimizations completed successfully")
             
         except Exception as e:
-            logger_p.error(f"X Error in optimization with Flux: {e}")
+            logger_p.error(f"Error in optimization with Flux: {e}")
             raise
 
     def warmup_compile(self, batch_sizes, resolutions, prompt="warmup", steps=4):
