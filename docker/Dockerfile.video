@@ -1,9 +1,9 @@
-FROM nvidia/cuda:12.8.0-base-ubuntu22.04
+FROM nvidia/cuda:13.0.0-base-ubuntu22.04
 
 ARG PYTHON_VERSION=3.12
 ARG FROM_SOURCE=false
 ARG EXTRA_DEPS=""
-ARG TORCH_VERSION=2.8
+ARG TORCH_VERSION=2.9
 
 RUN apt-get update && apt-get install -y \
     git curl build-essential libgl1 libglib2.0-0 wget ffmpeg libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavfilter-dev libavdevice-dev \
@@ -28,7 +28,7 @@ RUN uv pip install --system --python ${PYTHON_VERSION} \
     torch==${TORCH_VERSION} torchvision \
     && rm -rf /root/.cache/uv
 
-RUN uv pip install --system --python ${PYTHON_VERSION} transformers==5.12.1 git+https://github.com/ModelTC/LightX2V.git git+https://github.com/FredyRivera-dev/LTX-2.git#subdirectory=packages/ltx-core git+https://github.com/FredyRivera-dev/LTX-2.git#subdirectory=packages/ltx-pipelines bitsandbytes accelerate av https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.5.4/flash_attn-2.8.3+cu128torch2.8-cp312-cp312-linux_x86_64.whl vllm==0.11.0 \
+RUN uv pip install --system --python ${PYTHON_VERSION} transformers==5.17.0 git+https://github.com/ModelTC/LightX2V.git bitsandbytes accelerate av https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.8.2/flash_attn_3-3.0.0+cu130torch2.9gite2743ab-cp39-abi3-linux_x86_64.whl vllm \
     && rm -rf /root/.cache/uv
 
 RUN if [ "$FROM_SOURCE" = "true" ]; then \
@@ -37,7 +37,7 @@ RUN if [ "$FROM_SOURCE" = "true" ]; then \
             git+https://github.com/Aquiles-ai/Aquiles-Image.git \
             && rm -rf /root/.cache/uv; \
     else \
-        uv pip install --system --python ${PYTHON_VERSION} diffusers==0.38.0 aquiles-image==0.7.4 \
+        uv pip install --system --python ${PYTHON_VERSION} diffusers==0.40.0 aquiles-image==0.8.0 \
         && rm -rf /root/.cache/uv; \
     fi
 
