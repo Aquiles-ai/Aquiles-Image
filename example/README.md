@@ -7,7 +7,7 @@ Here you'll find examples of how to deploy Aquiles-Image on [Modal](https://moda
 Each subfolder holds ready-to-use Modal deployment files (`aquiles_deploy_*.py`), one per model or setup. Pick the file matching what you want to serve and deploy it as-is, or copy it as a starting point:
 
 - **`image-models/`**: deploys image models (text-to-image, image editing, LoRA, GGUF, quantized and distributed setups). Examples: Flux, Stable Diffusion 3.5, Qwen-Image, Z-Image, GLM, Krea 2, Ideogram 4, Ernie, Nucleus.
-- **`video-models/`**: deploys video models (text-to-video and image-to-video). Examples: LTX-2, Wan 2.1/2.2, HunyuanVideo-1.5.
+- **`video-models/`**: deploys video models (text-to-video and image-to-video). Examples: LTX-2, MiniMax-H3, Wan 2.1/2.2, HunyuanVideo-1.5.
 
 Each deployment file already sets the Modal image (CUDA, torch, diffusers, Aquiles-Image), the `MODEL_NAME`, the GPU type, and the `aquiles-image serve` command, so you only need to run it.
 

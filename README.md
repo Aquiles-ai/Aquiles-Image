@@ -175,6 +175,10 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `Lightricks/LTX-2.3` (single-stage: 30 steps, 768x512 - start with `--model "ltx-2.3"`)
 - `Lightricks/LTX-2.5` (distilled two-stage: 8 + 3 steps, up to 1536x1024 - start with `--model "ltx-2.5"`)
 
+#### MiniMax-H3 (Joint Video-Audio Generation)
+
+- `MiniMaxAI/MiniMax-H3` (text-to-video + first-frame image-to-video with joint soundtrack, 24fps 5-15s - start with `--model "minimax-h3"`)
+
 **Image-to-Video example:**
 
 ```bash
