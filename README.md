@@ -40,7 +40,7 @@
 
 - **🔌 OpenAI Compatible** - Use the official OpenAI client with zero code changes
 - **⚡ Intelligent Batching** - Automatic request grouping by shared parameters for maximum throughput on single or multi-GPU setups
-- **🎨 30+ Optimized Models** - 18 image (FLUX, SD3.5, Qwen) + 12 video models (Wan2.x, HunyuanVideo) + unlimited via AutoPipeline (Only T2I)
+- **🎨 30+ Optimized Models** - Image (FLUX, SD3.5, Qwen, Z-Image, GLM, Krea, Ideogram...) + video (Wan2.x, HunyuanVideo, LTX, MiniMax...) + unlimited via AutoPipeline (Only T2I)
 - **🚀 Multi-GPU Support** - Distributed inference with dynamic load balancing across GPUs (image models) for horizontal scaling
 - **🛠️ Superior DevX** - Simple CLI, dev mode for testing, built-in monitoring
 - **🎬 Advanced Video** - Text-to-video with Wan2.x and HunyuanVideo series (+ Turbo variants)
@@ -110,6 +110,7 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `Tongyi-MAI/Z-Image-Turbo`
 - `Qwen/Qwen-Image`
 - `Qwen/Qwen-Image-2512`
+- `Qwen/Qwen-Image-2.1`
 - `black-forest-labs/FLUX.2-klein-4B`
 - `black-forest-labs/FLUX.2-klein-9B`
 - `zai-org/GLM-Image` - (This model is usually the slowest to execute in relative terms)
@@ -138,6 +139,7 @@ That's it! You're now generating images with the same API you'd use for OpenAI.
 - `Qwen/Qwen-Image-Edit` 
 - `Qwen/Qwen-Image-Edit-2509` - Supports multi-image editing. Maximum 3 input images.
 - `Qwen/Qwen-Image-Edit-2511` - Supports multi-image editing. Maximum 3 input images.
+- `Qwen/Qwen-Image-2.1` - Supports multi-image editing. Maximum 10 input images.
 - `black-forest-labs/FLUX.2-klein-4B` - Supports multi-image editing. Maximum 10 input images.
 - `black-forest-labs/FLUX.2-klein-9B` - Supports multi-image editing. Maximum 10 input images.
 - `black-forest-labs/FLUX.2-klein-9b-kv` - Supports multi-image editing. Maximum 10 input images.

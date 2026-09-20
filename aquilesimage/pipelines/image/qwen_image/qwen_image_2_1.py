@@ -1,0 +1,86 @@
+import torch
+try:
+    from diffusers import QwenImage21Pipeline
+except ImportError as e:
+    print("Error import QwenImage21Pipeline")
+    pass
+from aquilesimage.utils import setup_colored_logger
+import logging
+from aquilesimage.models import LoRAConfig
+from aquilesimage.runtime import loadLoRA
+from aquilesimage.models import BasePipeline
+
+logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
+
+class PipelineQwenImage21(BasePipeline):
+    # Flash backends discarded: the Qwen-Image-2.1 blocks pass `attn_mask`
+    # and flash-attn 2 raises `ValueError: attn_mask is not supported`.
+    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("sage_hub",)
+
+    def __init__(self, model_path: str | None = None, dist_inf: bool = False,
+                load_lora: bool = False, conf_lora: LoRAConfig | None = None):
+        self.model_name = model_path
+        try:
+            self.pipeline: QwenImage21Pipeline | None = None
+        except Exception as e:
+            self.pipeline = None
+            print("Error import QwenImage21Pipeline")
+            pass
+        self.dist_inf = dist_inf
+        self.load_lora = load_lora
+        self.conf_lora = conf_lora
+
+    def start(self):
+        if torch.cuda.is_available():
+            self.pipeline = QwenImage21Pipeline.from_pretrained(
+                self.model_name,
+                dtype=torch.bfloat16
+            ).to("cuda")
+
+            if self.load_lora:
+                loadLoRA(self.pipeline, self.conf_lora)
+
+            self.optimization()
+        else:
+            raise ValueError("CUDA not available")
+
+    def optimization(self):
+        try:
+            try:
+                torch._inductor.config.conv_1x1_as_mm = True
+                torch._inductor.config.coordinate_descent_tuning = True
+                torch._inductor.config.epilogue_fusion = False
+                torch._inductor.config.coordinate_descent_check_all_directions = True
+                torch._inductor.config.max_autotune_gemm = True
+                torch._inductor.config.max_autotune_gemm_backends = "TRITON,ATEN"
+                torch._inductor.config.triton.cudagraphs = False
+            except Exception as e:
+                logger_p.error(f"torch_opt failed: {str(e)}")
+                pass
+            self.enable_flash_attn()
+            self.fuse_qkv_projections()
+            self.optimize_memory_format()
+        except Exception as e:
+            logger_p.error(f"The optimizations could not be applied: {e}")
+            logger_p.info("Running with the non-optimized version")
+            pass
+
+    def optimize_memory_format(self):
+        try:
+            logger_p.info("channels_last memory format")
+            if hasattr(self.pipeline, 'vae'):
+                self.pipeline.vae.to(memory_format=torch.channels_last)
+            if hasattr(self.pipeline, 'transformer'):
+                self.pipeline.transformer.to(memory_format=torch.channels_last)
+        except Exception as e:
+            logger_p.error(f"Error optimizing memory format: {e}")
+            pass
+
+    def fuse_qkv_projections(self):
+        try:
+            self.pipeline.transformer.fuse_qkv_projections()
+            self.pipeline.vae.fuse_qkv_projections()
+            logger_p.info("QKV projection fusion")
+        except Exception as e:
+            logger_p.error(f"Error merging QKV projections: {e}")
+            pass

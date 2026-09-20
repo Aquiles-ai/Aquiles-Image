@@ -70,7 +70,7 @@ FLUX_MODELS = frozenset([
 EDIT_SUPPORTED_MODELS = frozenset([
     ImageModel.FLUX_1_KONTEXT_DEV, ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2,
     ImageModel.QWEN_IMAGE_EDIT_BASE, ImageModel.QWEN_IMAGE_EDIT_2511,
-    ImageModel.QWEN_IMAGE_EDIT_2509, ImageModel.FLUX_2_KLEIN_4B,
+    ImageModel.QWEN_IMAGE_EDIT_2509, ImageModel.QWEN_IMAGE_2_1, ImageModel.FLUX_2_KLEIN_4B,
     ImageModel.FLUX_2_KLEIN_9B, ImageModel.GLM, ImageModel.FLUX_2_KLEIN_9B_KV,
 ])
 
@@ -462,7 +462,7 @@ async def create_image(input_r: CreateImageRequest):
         num_images_per_prompt=n,
         seed=cfg.seed,
     )
-    if input_r.model not in [ImageModel.FLUX_2_KLEIN_9B_KV]:
+    if input_r.model not in [ImageModel.FLUX_2_KLEIN_9B_KV, ImageModel.QWEN_IMAGE_2_1]:
         submit_kwargs["guidance_scale"] = cfg.guidance_scale if cfg.guidance_scale is not None else 4
 
     try:
@@ -572,7 +572,7 @@ async def create_image_edit(
         use_glm=model == ImageModel.GLM,
         seed=cfg.seed,
     )
-    if model not in [ImageModel.FLUX_2_KLEIN_9B_KV]:
+    if model not in [ImageModel.FLUX_2_KLEIN_9B_KV, ImageModel.QWEN_IMAGE_2_1]:
         submit_kwargs["guidance_scale"] = cfg.guidance_scale if cfg.guidance_scale is not None else gd
 
     skip_size = model == ImageModel.FLUX_1_KONTEXT_DEV
