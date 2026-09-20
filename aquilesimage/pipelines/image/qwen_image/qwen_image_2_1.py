@@ -13,7 +13,9 @@ from aquilesimage.models import BasePipeline
 logger_p = setup_colored_logger("Aquiles-Image-Pipelines", logging.DEBUG)
 
 class PipelineQwenImage21(BasePipeline):
-    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("_flash_3_hub", "flash")
+    # Flash backends discarded: the Qwen-Image-2.1 blocks pass `attn_mask`
+    # and flash-attn 2 raises `ValueError: attn_mask is not supported`.
+    ATTENTION_BACKEND_PRIORITY: tuple[str, ...] = ("sage_hub",)
 
     def __init__(self, model_path: str | None = None, dist_inf: bool = False,
                 load_lora: bool = False, conf_lora: LoRAConfig | None = None):
