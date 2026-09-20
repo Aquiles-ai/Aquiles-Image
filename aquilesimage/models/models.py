@@ -40,6 +40,8 @@ class ImageModel(str, Enum):
 
     QWEN_IMAGE_EDIT_2509 = 'Qwen/Qwen-Image-Edit-2509'
 
+    QWEN_IMAGE_2_1 = 'Qwen/Qwen-Image-2.1'
+
     FLUX_2_KLEIN_4B = 'black-forest-labs/FLUX.2-klein-4B'
 
     FLUX_2_KLEIN_9B  = 'black-forest-labs/FLUX.2-klein-9B'
@@ -121,6 +123,7 @@ class ImageModelHybrid(str, Enum):
     FLUX_2_KLEIN_9B = 'black-forest-labs/FLUX.2-klein-9B'
     GLM = 'zai-org/GLM-Image'
     FLUX_2_KLEIN_9B_KV = 'black-forest-labs/FLUX.2-klein-9b-kv'
+    QWEN_IMAGE_2_1 = 'Qwen/Qwen-Image-2.1'
 
 class VideoModels(str, Enum):
     """I plan to have all of these models optimized for the Aquiles-Image runtime"""

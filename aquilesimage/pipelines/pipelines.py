@@ -5,7 +5,7 @@ from aquilesimage.utils import setup_colored_logger
 from aquilesimage.pipelines.image.stable_diff_3_5 import PipelineSD3
 from aquilesimage.pipelines.image.flux import PipelineFlux, PipelineFlux2Klein, PipelineFlux2, PipelineFluxKontext, PipelineFlux2KleinKV
 from aquilesimage.pipelines.image.z_image import PipelineZImageTurbo, PipelineZImage
-from aquilesimage.pipelines.image.qwen_image import PipelineQwenImage, PipelineQwenImageEdit
+from aquilesimage.pipelines.image.qwen_image import PipelineQwenImage, PipelineQwenImageEdit, PipelineQwenImage21
 from aquilesimage.pipelines.image.glm import PipelineGLMImage
 from aquilesimage.pipelines.image.auto import AutoPipelineDiffusers, AutoPipelineI2IDiffusers
 from aquilesimage.pipelines.image.nucleus import PipelineNucelusImage
@@ -76,6 +76,10 @@ class ModelPipelineInit:
             self.models.QWEN_IMAGE_EDIT_2509
         ]
 
+        self.qwen_image_2_1 = [
+            self.models.QWEN_IMAGE_2_1
+        ]
+
         self.flux2 = [
             self.models.FLUX_2_4BNB,
             self.models.FLUX_2
@@ -144,6 +148,8 @@ class ModelPipelineInit:
             self.pipeline = PipelineQwenImage(self.model, self.dist_inf, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.qwen_image_edit:
             self.pipeline = PipelineQwenImageEdit(self.model, self.dist_inf, load_lora=self.load_lora, conf_lora=self.conf_lora)
+        elif self.model in self.qwen_image_2_1:
+            self.pipeline = PipelineQwenImage21(self.model, self.dist_inf, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.flux_kontext:
             self.pipeline = PipelineFluxKontext(self.model, self.low_vram, self.dist_inf, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.flux2_klein:

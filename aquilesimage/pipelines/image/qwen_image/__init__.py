@@ -1,2 +1,3 @@
 from .qwen_image import PipelineQwenImage
 from .qwen_image_edit import PipelineQwenImageEdit
+from .qwen_image_2_1 import PipelineQwenImage21
