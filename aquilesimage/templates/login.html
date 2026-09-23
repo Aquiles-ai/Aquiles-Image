@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign in — Aquiles-Image</title>
+  <title>Sign in · Aquiles-Image</title>
   <link rel="icon" href="/static/aquiles-ai-mark.svg" type="image/svg+xml" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,7 +36,7 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Layout (port de frontend/app/login/page.tsx) ── */
+    /* Layout ported from frontend/app/login/page.tsx */
     .login-layout { display: flex; min-height: 100vh; }
     .login-left {
       display: flex;
@@ -61,7 +61,7 @@
     .heading h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; }
     .heading p { margin-top: 0.375rem; font-size: 0.875rem; color: var(--muted-foreground); }
 
-    /* ── Form (port de components/login/LoginForm.tsx + ui) ── */
+    /* Form ported from components/login/LoginForm.tsx + ui */
     .form { display: flex; flex-direction: column; gap: 1.25rem; }
     .field { display: flex; flex-direction: column; gap: 0.5rem; }
     .label { font-size: 0.875rem; font-weight: 500; line-height: 1; user-select: none; }
@@ -126,7 +126,7 @@
     .footer a { color: inherit; text-underline-offset: 4px; transition: color .15s; }
     .footer a:hover { color: var(--foreground); text-decoration: underline; }
 
-    /* ── Right panel (port de page.tsx + Dither + globals.css) ── */
+    /* Right panel ported from page.tsx + Dither + globals.css */
     .login-right {
       position: relative;
       display: none;
@@ -195,7 +195,7 @@
           <button id="submit" type="submit" class="btn">Sign in</button>
         </form>
         <div class="footer">
-          <a href="https://aquiles-ai.github.io/aquiles-image-docs/" target="_blank" rel="noopener noreferrer">Docs · Check the API documentation</a>
+          <a href="https://aquiles-ai.github.io/aquiles-image-docs/" target="_blank" rel="noopener noreferrer">Docs</a>
         </div>
       </div>
     </div>
@@ -204,7 +204,7 @@
       <div class="overlay-gradient"></div>
       <div class="bg-grid-fade"></div>
       <div class="right-caption">
-        <p>Image generation gateway for OpenAI-compatible APIs.</p>
+        <p>Image generation playground for OpenAI-compatible APIs.</p>
       </div>
     </div>
   </div>

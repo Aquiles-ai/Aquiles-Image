@@ -16,7 +16,7 @@ aquiles_image = (
         "git+https://github.com/huggingface/diffusers",
         "transformers==5.17.0",
         "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.17/flash_attn-2.8.3+cu130torch2.12-cp312-cp312-linux_x86_64.whl",
-        "git+https://github.com/Aquiles-ai/Aquiles-Image.git@Feature-Add-Qwen-Image-2-1",
+        "git+https://github.com/Aquiles-ai/Aquiles-Image.git",
         "bitsandbytes",
         "accelerate",
         "av"
