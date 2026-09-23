@@ -1,427 +1,372 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aquiles-Image Playground</title>
-  <link rel="icon" href="https://res.cloudinary.com/dmtomxyvm/image/upload/v1765043556/aqui_kyhcn8.png" type="image/png">
-
-  <style>
-    @font-face {
-      font-family: 'GeistPixel';
-      font-weight: 400;
-      font-style: normal;
-      font-display: swap;
-      src:
-        url('https://cdn.jsdelivr.net/npm/geist@1.7.0/dist/fonts/geist-pixel/GeistPixel-Square.woff2') format('woff2'),
-    }
-  </style>
-
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/geist-mono@latest/index.css" />
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.development.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.development.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.10/babel.min.js"></script>
-
+  <title>Sign in — Aquiles-Image</title>
+  <link rel="icon" href="/static/aquiles-ai-mark.svg" type="image/svg+xml" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #0f0f0f;
-      --fg:       #ede9df;
-      --accent:   #ea580c;
-      --muted:    rgba(237,233,223,0.42);
-      --border:   rgba(237,233,223,0.75);
-      --border-lt: rgba(237,233,223,0.13);
-      --card-bg:  #141414;
+      --background: #000000;
+      --foreground: oklch(0.985 0 0);
+      --card: oklch(0.145 0 0);
+      --card-foreground: oklch(0.985 0 0);
+      --primary: oklch(0.922 0 0);
+      --primary-foreground: oklch(0.205 0 0);
+      --secondary: oklch(0.269 0 0);
+      --secondary-foreground: oklch(0.985 0 0);
+      --muted: oklch(0.269 0 0);
+      --muted-foreground: oklch(0.708 0 0);
+      --destructive: oklch(0.704 0.191 22.216);
+      --border: oklch(1 0 0 / 10%);
+      --input: oklch(1 0 0 / 15%);
+      --ring: oklch(0.556 0 0);
+      --radius: 0.625rem;
+      --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-mono: ui-monospace, "Geist Mono", monospace;
     }
 
     html, body {
       min-height: 100vh;
-      background-color: var(--bg);
-      /* Dot grid */
-      background-image: radial-gradient(circle, rgba(237,233,223,0.12) 1px, transparent 1px);
-      background-size: 24px 24px;
-      font-family: 'Geist Mono', monospace;
-      color: var(--fg);
+      background: var(--background);
+      color: var(--foreground);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
     }
 
-    #root {
-      min-height: 100vh;
+    /* ── Layout (port de frontend/app/login/page.tsx) ── */
+    .login-layout { display: flex; min-height: 100vh; }
+    .login-left {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 40px 16px;
-    }
-
-    /* ── Section label ── */
-    .section-label {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      width: 100%;
-      max-width: 440px;
-      margin-bottom: 20px;
-      animation: fadeUp .5s cubic-bezier(0.22,1,0.36,1) .05s both;
-    }
-    .section-label span {
-      font-size: 9px;
-      letter-spacing: .2em;
-      text-transform: uppercase;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-    .section-label .line {
       flex: 1;
-      height: 1px;
-      background: var(--border-lt);
-    }
-
-    /* ── Card ── */
-    .card {
-      width: 100%;
-      max-width: 440px;
-      border: 2px solid var(--border);
-      background: var(--card-bg);
-      animation: fadeUp .65s cubic-bezier(0.22,1,0.36,1) .15s both;
-    }
-
-    /* ── Card header (terminal bar) ── */
-    .card-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border-bottom: 2px solid var(--border);
-      padding: 10px 16px;
-    }
-    .dot-orange { width: 8px; height: 8px; background: var(--accent); flex-shrink: 0; }
-    .dot-solid  { width: 8px; height: 8px; background: var(--fg); flex-shrink: 0; }
-    .dot-empty  { width: 8px; height: 8px; border: 1px solid var(--fg); flex-shrink: 0; }
-    .card-header-label {
-      margin-left: auto;
-      font-size: 9px;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    /* ── Title ── */
-    .title-wrap {
-      padding: 28px 24px 20px;
-      border-bottom: 2px solid var(--border);
-    }
-    .title {
-      font-family: 'GeistPixel', 'Geist Mono', monospace;
-      font-size: clamp(1.6rem, 6vw, 2.2rem);
-      font-weight: 400;
-      line-height: 1.1;
-      letter-spacing: .02em;
-      color: var(--fg);
-      image-rendering: pixelated;
-      -webkit-font-smoothing: none;
-      animation: glitch 6s infinite;
-    }
-    /* ── Form body ── */
-    .card-body {
-      padding: 24px;
-    }
-
-    /* ── Field ── */
-    .field {
-      display: flex;
       flex-direction: column;
-      gap: 7px;
-      margin-bottom: 18px;
+      justify-content: center;
+      padding: 3rem 1.5rem;
     }
-    .field-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    .login-inner { margin: 0 auto; width: 100%; max-width: 360px; }
+    @media (min-width: 1024px) {
+      .login-left { max-width: 520px; padding-left: 3rem; padding-right: 3rem; }
     }
-    .field-label {
-      font-size: 9px;
-      letter-spacing: .2em;
-      text-transform: uppercase;
-      color: var(--muted);
-      user-select: none;
-    }
-    .field-tag {
-      font-size: 9px;
-      letter-spacing: .1em;
-      color: var(--accent);
+    @media (min-width: 1280px) {
+      .login-left { padding-left: 4rem; padding-right: 4rem; }
     }
 
-    .field-input {
-      background: transparent;
-      border: 1px solid var(--border-lt);
-      border-left: 2px solid var(--border);
-      color: var(--fg);
-      padding: 11px 13px;
-      font-family: 'Geist Mono', monospace;
-      font-size: 13px;
-      letter-spacing: .04em;
+    .brand { display: flex; align-items: center; gap: 0.625rem; margin-bottom: 2.5rem; }
+    .brand img { height: 1.75rem; width: auto; object-fit: contain; }
+    .brand span { font-size: 0.875rem; font-weight: 600; letter-spacing: -0.01em; }
+
+    .heading { margin-bottom: 2rem; }
+    .heading h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; }
+    .heading p { margin-top: 0.375rem; font-size: 0.875rem; color: var(--muted-foreground); }
+
+    /* ── Form (port de components/login/LoginForm.tsx + ui) ── */
+    .form { display: flex; flex-direction: column; gap: 1.25rem; }
+    .field { display: flex; flex-direction: column; gap: 0.5rem; }
+    .label { font-size: 0.875rem; font-weight: 500; line-height: 1; user-select: none; }
+    .input {
+      height: 2rem;
       width: 100%;
+      min-width: 0;
+      border-radius: calc(var(--radius) - 4px);
+      border: 1px solid var(--input);
+      background: var(--card);
+      padding: 0.25rem 0.625rem;
+      font-size: 0.875rem;
+      color: var(--foreground);
       outline: none;
-      transition: border-color .18s ease, background .18s ease;
+      transition: border-color .15s, box-shadow .15s;
     }
-    .field-input::placeholder { color: rgba(13,13,13,0.22); }
-    .field-input:focus {
-      border-color: var(--fg);
-      border-left-color: var(--accent);
-      background: rgba(13,13,13,0.03);
-    }
+    .input::placeholder { color: var(--muted-foreground); }
+    .input:focus { border-color: var(--ring); box-shadow: 0 0 0 3px oklch(0.556 0 0 / 50%); }
+    .input:disabled { opacity: .5; cursor: not-allowed; }
 
-    /* ── Error ── */
     .error {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      border-left: 2px solid var(--accent);
-      padding: 10px 14px;
-      font-size: 11px;
-      letter-spacing: .04em;
-      color: var(--accent);
-      background: rgba(234,88,12,.06);
-      margin-bottom: 18px;
-      animation: slideIn .25s ease both;
+      border-radius: calc(var(--radius) - 4px);
+      border: 1px solid oklch(0.704 0.191 22.216 / 30%);
+      background: oklch(0.704 0.191 22.216 / 10%);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+      color: var(--destructive);
+      display: none;
     }
-    .error-code {
-      font-size: 9px;
-      letter-spacing: .12em;
-      color: var(--accent);
-      opacity: .6;
-      flex-shrink: 0;
-      padding-top: 1px;
-    }
+    .error.show { display: block; animation: rise .3s ease both; }
 
-    /* ── Button ── */
-    .btn-wrap {
-      width: 100%;
-    }
     .btn {
-      width: 100%;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      background: var(--fg);
-      color: var(--bg);
-      border: none;
-      font-family: 'Geist Mono', monospace;
-      font-size: 11px;
+      justify-content: center;
+      width: 100%;
+      height: 2rem;
+      border-radius: calc(var(--radius) - 2px);
+      border: 1px solid transparent;
+      background: var(--primary);
+      color: var(--primary-foreground);
+      font-size: 0.875rem;
       font-weight: 500;
-      letter-spacing: .16em;
-      text-transform: uppercase;
       cursor: pointer;
-      transition: opacity .15s ease;
-      padding: 0;
+      transition: background .15s, transform .05s;
     }
-    .btn:hover:not(:disabled) { opacity: .88; }
-    .btn:disabled { opacity: .3; cursor: not-allowed; }
+    .btn:hover:not(:disabled) { background: oklch(0.922 0 0 / 80%); }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 
-    .btn-icon {
+    .footer {
+      margin-top: 2rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 44px;
-      height: 44px;
-      background: var(--accent);
-      flex-shrink: 0;
-      font-size: 18px;
-      line-height: 1;
-      color: #fff;
+      border-top: 1px solid oklch(1 0 0 / 10%);
+      padding-top: 1.5rem;
+      font-size: 0.75rem;
+      color: var(--muted-foreground);
     }
-    .btn-text {
-      padding: 0 18px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-    }
+    .footer a { color: inherit; text-underline-offset: 4px; transition: color .15s; }
+    .footer a:hover { color: var(--foreground); text-decoration: underline; }
 
-    .blink { animation: blink 1s step-end infinite; }
+    /* ── Right panel (port de page.tsx + Dither + globals.css) ── */
+    .login-right {
+      position: relative;
+      display: none;
+      flex: 1;
+      overflow: hidden;
+      border-left: 1px solid var(--border);
+      background: var(--background);
+    }
+    @media (min-width: 1024px) { .login-right { display: flex; } }
+    .login-right canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .overlay-gradient {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, oklch(0 0 0 / 40%), transparent 60%, transparent);
+    }
+    .bg-grid-fade {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      opacity: .4;
+      background-image:
+        linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 64px 64px;
+      -webkit-mask-image: linear-gradient(to bottom, black 45%, transparent 98%);
+      mask-image: linear-gradient(to bottom, black 45%, transparent 98%);
+    }
+    .right-caption { position: relative; z-index: 10; display: flex; flex-direction: column; justify-content: flex-end; padding: 2.5rem; margin-top: auto; width: 100%; }
+    .right-caption p { max-width: 28rem; font-size: 0.875rem; font-weight: 500; line-height: 1.6; color: oklch(0.985 0 0 / 80%); }
 
-    /* ── Footer ── */
-    .footer {
-      margin-top: 20px;
-      text-align: center;
-      font-size: 9px;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      color: var(--muted);
-      animation: fadeUp .65s cubic-bezier(0.22,1,0.36,1) .4s both;
-    }
-    .footer a {
-      color: var(--fg);
-      text-decoration: none;
-      transition: color .15s;
-    }
-    .footer a:hover { color: var(--accent); }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #000; }
+    ::-webkit-scrollbar-thumb { background: #e9480d; border-radius: 999px; }
+    * { scrollbar-width: thin; scrollbar-color: #e9480d #000; }
 
-    /* ── Keyframes ── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateX(-6px); }
-      to   { opacity: 1; transform: translateX(0); }
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0; }
-    }
-    @keyframes glitch {
-      0%, 88%, 100% { transform: translate(0); filter: none; }
-      90% { transform: translate(-2px, 1px); filter: hue-rotate(80deg); }
-      92% { transform: translate(2px, -1px); filter: hue-rotate(-80deg); }
-      94% { transform: translate(-1px, 0); filter: none; }
-      96% { transform: translate(1px, 2px); filter: hue-rotate(40deg); }
-    }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    .anim-rise { animation: rise .8s cubic-bezier(0.22,1,0.36,1) both; }
+    @media (prefers-reduced-motion: reduce) { .anim-rise { animation: none; } }
   </style>
 </head>
 <body>
-  <div id="root"></div>
-
-  <script type="text/babel">
-    function LoginApp() {
-      const [username, setUsername] = React.useState("");
-      const [password, setPassword] = React.useState("");
-      const [error,    setError]    = React.useState("");
-      const [loading,  setLoading]  = React.useState(false);
-      const [tick,     setTick]     = React.useState(0);
-
-      React.useEffect(() => {
-        const id = setInterval(() => setTick(t => t + 1), 2000);
-        return () => clearInterval(id);
-      }, []);
-
-      async function handleSubmit(e) {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
-
-        const body = new FormData();
-        body.append("username", username.trim());
-        body.append("password", password);
-
-        try {
-          const res = await fetch("/token", {
-            method: "POST",
-            body,
-            redirect: "follow",
-          });
-
-          if (res.redirected) { window.location.href = res.url; return; }
-          if (res.ok)          { window.location.href = "/";    return; }
-
-          const data = await res.json().catch(() => ({}));
-          setError(data.detail || "Invalid credentials.");
-        } catch (_) {
-          setError("Connection error. Please try again.");
-        } finally {
-          setLoading(false);
-        }
-      }
-
-      const canSubmit = username.trim().length > 0 && password.length > 0 && !loading;
-
-      return (
-        <div>
-          {/* Section label */}
-          <div className="section-label">
-            <span>{"// AUTH: LOGIN_SYS"}</span>
-            <div className="line" />
-            <span>{`TICK:${String(tick).padStart(4, "0")}`}</span>
-          </div>
-
-          {/* Card */}
-          <div className="card">
-
-            {/* Terminal header bar */}
-            <div className="card-header">
-              <div className="dot-orange" />
-              <div className="dot-solid" />
-              <div className="dot-empty" />
-              <span className="card-header-label">aquiles.auth.sys</span>
-            </div>
-
-            {/* Title */}
-            <div className="title-wrap">
-              <h1 className="title">AQUILES-IMAGE<br />PLAYGROUND</h1>
-            </div>
-
-            {/* Form */}
-            <div className="card-body">
-              <form onSubmit={handleSubmit}>
-
-                <div className="field">
-                  <div className="field-row">
-                    <label htmlFor="username" className="field-label">Username</label>
-                    <span className="field-tag">USR_IDENT</span>
-                  </div>
-                  <input
-                    id="username"
-                    type="text"
-                    className="field-input"
-                    placeholder="your_username"
-                    autoComplete="username"
-                    value={username}
-                    onChange={e => setUsername(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="field">
-                  <div className="field-row">
-                    <label htmlFor="password" className="field-label">Password</label>
-                    <span className="field-tag">SEC_KEY</span>
-                  </div>
-                  <input
-                    id="password"
-                    type="password"
-                    className="field-input"
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-
-                {error && (
-                  <div className="error" role="alert">
-                    <span className="error-code">ERR_401</span>
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <div className="btn-wrap">
-                  <button type="submit" className="btn" disabled={!canSubmit}>
-                    <span className="btn-icon">→</span>
-                    <span className="btn-text">
-                      {loading ? (
-                        <span>Verifying<span className="blink">_</span></span>
-                      ) : "Sign In"}
-                    </span>
-                  </button>
-                </div>
-
-              </form>
-            </div>
-
-          </div>
-
-          {/* Footer */}
-          <p className="footer">
-            Powered by{" "}
-            <a href="https://github.com/Aquiles-ai" target="_blank" rel="noopener noreferrer">
-              Aquiles-ai
-            </a>
-          </p>
+  <div class="login-layout">
+    <div class="login-left">
+      <div class="login-inner anim-rise">
+        <div class="brand">
+          <img src="/static/aquiles-ai-mark.svg" alt="Aquiles" />
+          <span>Aquiles-Image</span>
         </div>
-      );
-    }
+        <div class="heading">
+          <h1>Welcome back</h1>
+          <p>Sign in to your account</p>
+        </div>
+        <form id="login-form" class="form">
+          <div class="field">
+            <label class="label" for="username">Email or username</label>
+            <input id="username" class="input" type="text" autocomplete="username"
+                   placeholder="you@example.com or username" required />
+          </div>
+          <div class="field">
+            <label class="label" for="password">Password</label>
+            <input id="password" class="input" type="password" autocomplete="current-password"
+                   placeholder="••••••••" required />
+          </div>
+          <div id="error" class="error" role="alert"></div>
+          <button id="submit" type="submit" class="btn">Sign in</button>
+        </form>
+        <div class="footer">
+          <a href="https://aquiles-ai.github.io/aquiles-image-docs/" target="_blank" rel="noopener noreferrer">Docs · Check the API documentation</a>
+        </div>
+      </div>
+    </div>
+    <div class="login-right">
+      <canvas id="dither"></canvas>
+      <div class="overlay-gradient"></div>
+      <div class="bg-grid-fade"></div>
+      <div class="right-caption">
+        <p>Image generation gateway for OpenAI-compatible APIs.</p>
+      </div>
+    </div>
+  </div>
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<LoginApp />);
+  <script>
+    // Lógica intacta: POST /token -> cookie httponly -> 302 /
+    const form = document.getElementById('login-form');
+    const errorBox = document.getElementById('error');
+    const submitBtn = document.getElementById('submit');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.classList.remove('show');
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      if (!username || !password) {
+        errorBox.textContent = 'Please fill in all fields';
+        errorBox.classList.add('show');
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Signing in...';
+      const body = new FormData();
+      body.append('username', username);
+      body.append('password', password);
+      try {
+        const res = await fetch('/token', { method: 'POST', body, redirect: 'follow' });
+        if (res.redirected) { window.location.href = res.url; return; }
+        if (res.ok) { window.location.href = '/'; return; }
+        const data = await res.json().catch(() => ({}));
+        errorBox.textContent = data.detail || 'Invalid credentials';
+        errorBox.classList.add('show');
+      } catch (_) {
+        errorBox.textContent = 'Connection error. Please try again.';
+        errorBox.classList.add('show');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign in';
+      }
+    });
+  </script>
+
+  <script>
+    // Port directo de frontend/components/Dither.tsx a JS vanilla (mismos shaders y params)
+    (function () {
+      const canvas = document.getElementById('dither');
+      const gl = canvas.getContext('webgl', { antialias: true }) || canvas.getContext('experimental-webgl');
+      if (!gl) return;
+
+      const vertexSrc = 'attribute vec2 position; void main() { gl_Position = vec4(position, 0.0, 1.0); }';
+      const fragmentSrc = `
+precision highp float;
+uniform vec2 resolution; uniform float waveFrequency; uniform float waveAmplitude;
+uniform vec3 waveColor; uniform float colorNum; uniform float pixelSize; uniform float seed;
+vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
+vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+vec2 fade(vec2 t) { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
+float cnoise(vec2 P) {
+  vec4 Pi = floor(P.xyxy) + vec4(0.0, 0.0, 1.0, 1.0);
+  vec4 Pf = fract(P.xyxy) - vec4(0.0, 0.0, 1.0, 1.0);
+  Pi = mod289(Pi); vec4 ix = Pi.xzxz; vec4 iy = Pi.yyww; vec4 fx = Pf.xzxz; vec4 fy = Pf.yyww;
+  vec4 i = permute(permute(ix) + iy);
+  vec4 gx = fract(i * (1.0 / 41.0)) * 2.0 - 1.0; vec4 gy = abs(gx) - 0.5;
+  vec4 tx = floor(gx + 0.5); gx = gx - tx;
+  vec2 g00 = vec2(gx.x, gy.x); vec2 g10 = vec2(gx.y, gy.y); vec2 g01 = vec2(gx.z, gy.z); vec2 g11 = vec2(gx.w, gy.w);
+  vec4 norm = taylorInvSqrt(vec4(dot(g00, g00), dot(g01, g01), dot(g10, g10), dot(g11, g11)));
+  g00 *= norm.x; g01 *= norm.y; g10 *= norm.z; g11 *= norm.w;
+  float n00 = dot(g00, vec2(fx.x, fy.x)); float n10 = dot(g10, vec2(fx.y, fy.y));
+  float n01 = dot(g01, vec2(fx.z, fy.z)); float n11 = dot(g11, vec2(fx.w, fy.w));
+  vec2 fade_xy = fade(Pf.xy); vec2 n_x = mix(vec2(n00, n01), vec2(n10, n11), fade_xy.x);
+  return 2.3 * mix(n_x.x, n_x.y, fade_xy.y);
+}
+const int OCTAVES = 4;
+float fbm(vec2 p) {
+  float value = 0.0; float amp = 1.0; float freq = waveFrequency;
+  for (int i = 0; i < OCTAVES; i++) { value += amp * abs(cnoise(p)); p *= freq; amp *= waveAmplitude; }
+  return value;
+}
+float pattern(vec2 p) { vec2 p2 = p - seed; return fbm(p + fbm(p2)); }
+float bayerValue(float idx) {
+  if (idx < 0.5) return 0.0/64.0; if (idx < 1.5) return 48.0/64.0; if (idx < 2.5) return 12.0/64.0;
+  if (idx < 3.5) return 60.0/64.0; if (idx < 4.5) return 3.0/64.0; if (idx < 5.5) return 51.0/64.0;
+  if (idx < 6.5) return 15.0/64.0; if (idx < 7.5) return 63.0/64.0; if (idx < 8.5) return 32.0/64.0;
+  if (idx < 9.5) return 16.0/64.0; if (idx < 10.5) return 44.0/64.0; if (idx < 11.5) return 28.0/64.0;
+  if (idx < 12.5) return 35.0/64.0; if (idx < 13.5) return 19.0/64.0; if (idx < 14.5) return 47.0/64.0;
+  if (idx < 15.5) return 31.0/64.0; if (idx < 16.5) return 8.0/64.0; if (idx < 17.5) return 56.0/64.0;
+  if (idx < 18.5) return 4.0/64.0; if (idx < 19.5) return 52.0/64.0; if (idx < 20.5) return 11.0/64.0;
+  if (idx < 21.5) return 59.0/64.0; if (idx < 22.5) return 7.0/64.0; if (idx < 23.5) return 55.0/64.0;
+  if (idx < 24.5) return 40.0/64.0; if (idx < 25.5) return 24.0/64.0; if (idx < 26.5) return 36.0/64.0;
+  if (idx < 27.5) return 20.0/64.0; if (idx < 28.5) return 43.0/64.0; if (idx < 29.5) return 27.0/64.0;
+  if (idx < 30.5) return 39.0/64.0; if (idx < 31.5) return 23.0/64.0; if (idx < 32.5) return 2.0/64.0;
+  if (idx < 33.5) return 50.0/64.0; if (idx < 34.5) return 14.0/64.0; if (idx < 35.5) return 62.0/64.0;
+  if (idx < 36.5) return 1.0/64.0; if (idx < 37.5) return 49.0/64.0; if (idx < 38.5) return 13.0/64.0;
+  if (idx < 39.5) return 61.0/64.0; if (idx < 40.5) return 34.0/64.0; if (idx < 41.5) return 18.0/64.0;
+  if (idx < 42.5) return 46.0/64.0; if (idx < 43.5) return 30.0/64.0; if (idx < 44.5) return 33.0/64.0;
+  if (idx < 45.5) return 17.0/64.0; if (idx < 46.5) return 45.0/64.0; if (idx < 47.5) return 29.0/64.0;
+  if (idx < 48.5) return 10.0/64.0; if (idx < 49.5) return 58.0/64.0; if (idx < 50.5) return 6.0/64.0;
+  if (idx < 51.5) return 54.0/64.0; if (idx < 52.5) return 9.0/64.0; if (idx < 53.5) return 57.0/64.0;
+  if (idx < 54.5) return 5.0/64.0; if (idx < 55.5) return 53.0/64.0; if (idx < 56.5) return 42.0/64.0;
+  if (idx < 57.5) return 26.0/64.0; if (idx < 58.5) return 38.0/64.0; if (idx < 59.5) return 22.0/64.0;
+  if (idx < 60.5) return 41.0/64.0; if (idx < 61.5) return 25.0/64.0; if (idx < 62.5) return 37.0/64.0;
+  return 21.0/64.0;
+}
+vec3 dither(vec2 fragCoord, vec3 color) {
+  vec2 scaledCoord = floor(fragCoord / pixelSize);
+  float x = mod(scaledCoord.x, 8.0); float y = mod(scaledCoord.y, 8.0);
+  float threshold = bayerValue(y * 8.0 + x) - 0.25;
+  float step = 1.0 / (colorNum - 1.0);
+  color += threshold * step; color = clamp(color - 0.2, 0.0, 1.0);
+  return floor(color * (colorNum - 1.0) + 0.5) / (colorNum - 1.0);
+}
+void main() {
+  vec2 pixelatedFrag = pixelSize * floor(gl_FragCoord.xy / pixelSize);
+  vec2 uv = pixelatedFrag / resolution.xy; uv -= 0.5; uv.x *= resolution.x / resolution.y;
+  float f = pattern(uv);
+  vec3 col = mix(vec3(0.0), waveColor, f);
+  col = dither(gl_FragCoord.xy, col);
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+      function compile(type, src) {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src); gl.compileShader(s);
+        return s;
+      }
+      const prog = gl.createProgram();
+      gl.attachShader(prog, compile(gl.VERTEX_SHADER, vertexSrc));
+      gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fragmentSrc));
+      gl.linkProgram(prog); gl.useProgram(prog);
+
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, 'position');
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+      const uRes = gl.getUniformLocation(prog, 'resolution');
+      const uFreq = gl.getUniformLocation(prog, 'waveFrequency');
+      const uAmp = gl.getUniformLocation(prog, 'waveAmplitude');
+      const uCol = gl.getUniformLocation(prog, 'waveColor');
+      const uNum = gl.getUniformLocation(prog, 'colorNum');
+      const uPx = gl.getUniformLocation(prog, 'pixelSize');
+      const uSeed = gl.getUniformLocation(prog, 'seed');
+
+      function render() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        const w = Math.floor(canvas.clientWidth * dpr);
+        const h = Math.floor(canvas.clientHeight * dpr);
+        if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+        gl.viewport(0, 0, w, h);
+        gl.uniform2f(uRes, w, h);
+        gl.uniform1f(uFreq, 3); gl.uniform1f(uAmp, 0.4);
+        gl.uniform3f(uCol, 0.91, 0.28, 0.05);
+        gl.uniform1f(uNum, 4); gl.uniform1f(uPx, 2); gl.uniform1f(uSeed, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      }
+      render();
+      let t;
+      new ResizeObserver(() => { clearTimeout(t); t = setTimeout(render, 100); }).observe(canvas);
+    })();
   </script>
 </body>
 </html>
