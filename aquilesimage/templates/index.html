@@ -48,9 +48,6 @@
     .header-desc { display: none; font-size: .75rem; color: var(--muted-foreground); }
     @media (min-width: 640px) { .header-desc { display: block; } }
     .header-right { display: flex; align-items: center; gap: .5rem; }
-    .status-pill { display: flex; align-items: center; gap: .375rem; font-size: .75rem; color: var(--muted-foreground); padding: 0 .5rem; }
-    .status-dot { width: .375rem; height: .375rem; border-radius: 999px; background: var(--muted-foreground); }
-    .status-dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
 
     /* Layout ported from home/page.tsx */
     .page-main { flex: 1; background: var(--background); }
@@ -163,7 +160,6 @@
     .footer { text-align: center; font-size: .75rem; color: var(--muted-foreground); padding: 1rem 0 2rem; }
     .footer a { color: var(--foreground); text-decoration: none; } .footer a:hover { color: var(--accent); }
 
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
     @keyframes loadBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
@@ -315,7 +311,7 @@
       ].join('\n');
     }
 
-    function AppHeader({ modelInfo, serverOnline }) {
+    function AppHeader({ modelInfo }) {
       return (
         <header className="app-header">
           <div className="header-left">
@@ -327,10 +323,6 @@
           </div>
           <div className="header-right">
             {modelInfo && <span className={`type-badge ${typeClass(modelInfo.type)}`}>{typeLabel(modelInfo.type)}</span>}
-            <div className="status-pill">
-              <div className={`status-dot ${serverOnline ? 'online' : ''}`} />
-              <span>{serverOnline ? 'Connected' : 'Disconnected'}</span>
-            </div>
           </div>
         </header>
       );
@@ -377,7 +369,6 @@
     function App() {
       const [modelInfo, setModelInfo] = useState(null);
       const [modelLoading, setModelLoading] = useState(true);
-      const [serverOnline, setServerOnline] = useState(false);
       const [prompt, setPrompt] = useState('');
       const [imageFile, setImageFile] = useState(null);
       const [imagePreview, setImagePreview] = useState(null);
@@ -400,11 +391,10 @@
           if (!typeRes.ok) throw new Error(`HTTP ${typeRes.status}`);
           const modelsData = await modelsRes.json();
           const typeData = await typeRes.json();
-          setServerOnline(true);
           let modelId = '';
           if (modelsData.data && modelsData.data.length > 0) modelId = modelsData.data[modelsData.data.length - 1].id;
           setModelInfo({ name: modelId, type: normalizeType(typeData.type), raw: modelId });
-        } catch(e) { console.error('Error fetching model:', e); setServerOnline(false); }
+        } catch(e) { console.error('Error fetching model:', e); }
         finally { setModelLoading(false); }
       }, []);
 
@@ -413,7 +403,6 @@
           const res = await fetch(`${BASE_URL}/stats`, { headers: { 'Authorization': `Bearer ${API_KEY}` } });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           setStats(await res.json());
-          setServerOnline(true);
         } catch(e) { console.error('Error fetching stats:', e); }
       }, []);
 
@@ -493,7 +482,7 @@
 
       return (
         <div>
-          <AppHeader modelInfo={modelInfo} serverOnline={serverOnline} />
+          <AppHeader modelInfo={modelInfo} />
           <main className="page-main">
             <div className="page-inner">
 
