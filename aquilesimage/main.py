@@ -611,7 +611,7 @@ async def get_models():
     return ListModelsResponse(
         object="list",
         data=[Model(id=f"{cfg.model_name}", object="model",
-                    created=int(datetime.now().timestamp()), owned_by="custom")]
+                    created=int(datetime.now().timestamp()), owned_by="Aquiles-ai")]
     )
 
 @app.get("/v1/configs", response_model=ServerConfigs, dependencies=[Depends(verify_api_key)], tags=["Configs"], operation_id="get_configs_v1")
