@@ -167,9 +167,16 @@ class ModelPipelineInit:
         elif self.model in self.ideogram4:
             self.pipeline = PipelineIdeogram4(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model in self.krea2lora:
+            krea_lora_scale = 1.0
             if self.load_lora:
-                logger_p.info("It was identified that you want to load a custom LoRA, this is not possible with this model")
-            self.pipeline = PipelineKrea2LoRA(self.model)
+                if self.conf_lora is not None and self.conf_lora.scale is not None:
+                    krea_lora_scale = float(self.conf_lora.scale)
+                else:
+                    logger_p.warning(
+                        "Krea2-LoRA models already include their style adapter; "
+                        "a custom LoRA on top is not supported and will be ignored."
+                    )
+            self.pipeline = PipelineKrea2LoRA(self.model, lora_scale=krea_lora_scale)
         elif self.model in self.krea2:
             self.pipeline = PipelineKrea2(self.model, load_lora=self.load_lora, conf_lora=self.conf_lora)
         elif self.model.startswith("gguf:"):

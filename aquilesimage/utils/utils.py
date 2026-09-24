@@ -366,7 +366,7 @@ _lora_conf_krea2 = {
         "trigger" : "vintage tarot style"
     },
     "krea/Krea-2-LoRA-rainywindow": {
-        "weight_name": "vintagetarot.safetensors",
+        "weight_name": "rainywindow.safetensors",
         "trigger" : "rainy window style"
     },
     "krea/Krea-2-LoRA-darkbrush": {

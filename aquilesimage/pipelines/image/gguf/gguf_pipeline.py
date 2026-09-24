@@ -64,6 +64,10 @@ class PipelineGGUFAuto(BasePipeline):
         ).to("cuda")
  
         if self.load_lora:
+            logger_p.warning(
+                "LoRA on a GGUF-quantized transformer is experimental and may fail "
+                "or be silently ignored by the quantized kernels."
+            )
             loadLoRA(self.pipeline, self.conf_lora)
  
         self.optimization()

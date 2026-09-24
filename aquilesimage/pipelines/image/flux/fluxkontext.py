@@ -64,9 +64,12 @@ class PipelineFluxKontext(BasePipeline):
             config.epilogue_fusion = False
             config.shape_padding = True
 
-            logger_p.info("Fusing QKV projections...")
-            self.pipeline.transformer.fuse_qkv_projections()
-            self.pipeline.vae.fuse_qkv_projections()
+            if getattr(self, "load_lora", False):
+                logger_p.info("Skipping QKV fusion (LoRA active: fusing after injection can silence the adapter)")
+            else:
+                logger_p.info("Fusing QKV projections...")
+                self.pipeline.transformer.fuse_qkv_projections()
+                self.pipeline.vae.fuse_qkv_projections()
 
             logger_p.info("Converting to channels_last memory format...")
             self.pipeline.transformer.to(memory_format=torch.channels_last)

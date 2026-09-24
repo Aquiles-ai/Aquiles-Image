@@ -82,6 +82,9 @@ class PipelineQwenImageEdit(BasePipeline):
 
     def fuse_qkv_projections(self):
         try:
+            if getattr(self, "load_lora", False):
+                logger_p.info("Skipping QKV fusion (LoRA active: fusing after injection can silence the adapter)")
+                return
             self.pipeline.transformer.fuse_qkv_projections()
             self.pipeline.vae.fuse_qkv_projections()
             logger_p.info("QKV projection fusion")

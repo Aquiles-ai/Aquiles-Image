@@ -113,9 +113,12 @@ class PipelineFlux2(BasePipeline):
     def optimization(self):
         try:
             if self.model_path == "black-forest-labs/FLUX.2-dev":
-                logger_p.info("QKV projections fused")
-                self.pipeline.transformer.fuse_qkv_projections()
-                self.pipeline.vae.fuse_qkv_projections()
+                if getattr(self, "load_lora", False):
+                    logger_p.info("Skipping QKV fusion (LoRA active: fusing after injection can silence the adapter)")
+                else:
+                    logger_p.info("QKV projections fused")
+                    self.pipeline.transformer.fuse_qkv_projections()
+                    self.pipeline.vae.fuse_qkv_projections()
             logger_p.info("Channels last memory format enabled")
             self.pipeline.transformer.to(memory_format=torch.channels_last)
             self.pipeline.vae.to(memory_format=torch.channels_last)

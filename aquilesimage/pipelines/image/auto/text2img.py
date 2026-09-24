@@ -66,6 +66,9 @@ class AutoPipelineDiffusers(BasePipeline):
 
     def fuse_qkv_projections(self):        
         try:
+            if getattr(self, "load_lora", False):
+                logger_p.info("Skipping QKV fusion (LoRA active: fusing after injection can silence the adapter)")
+                return
             self.pipeline.fuse_qkv_projections()
             logger_p.info("QKV projection fusion")
         except AttributeError:
