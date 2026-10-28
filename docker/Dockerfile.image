@@ -4,6 +4,7 @@ ARG PYTHON_VERSION=3.12
 ARG FROM_SOURCE=false
 ARG EXTRA_DEPS=""
 ARG TORCH_VERSION=2.9
+ARG AQUILES_VERSION=0.8.3
 
 RUN apt-get update && apt-get install -y \
     git curl build-essential libgl1 libglib2.0-0 \
@@ -37,7 +38,7 @@ RUN if [ "$FROM_SOURCE" = "true" ]; then \
             git+https://github.com/Aquiles-ai/Aquiles-Image.git \
             && rm -rf /root/.cache/uv; \
     else \
-        uv pip install --system --python ${PYTHON_VERSION} diffusers==0.40.0 aquiles-image==0.8.3 \
+        uv pip install --system --python ${PYTHON_VERSION} diffusers==0.40.0 aquiles-image==${AQUILES_VERSION} \
         && rm -rf /root/.cache/uv; \
     fi
 

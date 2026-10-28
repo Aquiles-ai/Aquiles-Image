@@ -27,6 +27,7 @@ Both Dockerfiles support the same build-time arguments:
 | `FROM_SOURCE` | `false` | If `true`, installs `diffusers` and `aquiles-image` directly from GitHub instead of PyPI. |
 | `EXTRA_DEPS` | `""` | Space-separated list of extra pip packages to install (e.g. `"wandb accelerate"`). |
 | `TORCH_VERSION` | `2.9.0 (Image) and 2.8.0 (Video)` | Pinned PyTorch version. |
+| `AQUILES_VERSION` | `0.8.3 (Image) and 0.8.0 (Video)` | `aquiles-image` version installed from PyPI when `FROM_SOURCE=false`. |
 
 > **Note**: `Dockerfile.video` pins the CUDA 13.0 flash-attn wheel to `torch2.9` in its URL. If you override `TORCH_VERSION` to a different patch, update that URL too — the prebuilt wheel is compiled against a specific torch build and won't work otherwise.
 

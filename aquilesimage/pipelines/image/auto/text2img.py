@@ -29,6 +29,11 @@ class AutoPipelineDiffusers(BasePipeline):
                 loadLoRA(self.pipeline, self.conf_lora)
             
             self.optimization()
+        else:
+            raise RuntimeError(
+                "AutoPipeline requires CUDA. The pipeline was not loaded, so requests "
+                "must not fall back to synthetic responses."
+            )
 
     def optimization(self):
         try:

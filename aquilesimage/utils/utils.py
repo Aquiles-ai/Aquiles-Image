@@ -83,10 +83,10 @@ def setup_colored_logger(name: str, level: int = logging.INFO) -> logging.Logger
 
 logger_utils = setup_colored_logger("Aquiles-Image-Utils", logging.WARNING)
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 async def verify_api_key(
-    credentials: HTTPAuthorizationCredentials = Security(security)
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(security)
 ):
     configs = await load_config_app()
 
@@ -111,9 +111,12 @@ async def verify_api_key(
 
     return api_key
 
+def build_image_url(base_url: str, filename: str) -> str:
+    return f"{base_url.rstrip('/')}/images/{filename}"
+
+
 class Utils:
-    def __init__(self, host: str = '0.0.0.0', port: int = 8500):
-        self.service_url = f"http://{host}:{port}"
+    def __init__(self):
         self.image_dir = os.path.join(tempfile.gettempdir(), "images")
         if not os.path.exists(self.image_dir):
             os.makedirs(self.image_dir)
@@ -145,7 +148,7 @@ class Utils:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-        return os.path.join(self.service_url, "images", filename)
+        return filename
 
 def load_dev_mode_image(DEV_MODE_IMAGE_PATH, DEV_MODE_IMAGE_URL) -> Optional[PILImage.Image]:
     logger = setup_colored_logger("Utils-Dev", logging.INFO)
@@ -179,6 +182,7 @@ def create_dev_mode_response(
     n: int,
     response_format: str,
     output_format: str,
+    base_url: str,
     size: Optional[str] = None,
     quality: Optional[str] = None,
     background: Optional[str] = None,
@@ -218,8 +222,8 @@ def create_dev_mode_response(
             img_str = base64.b64encode(buffer.getvalue()).decode()
             image_obj["b64_json"] = img_str
         else:
-            url = utils_app.save_image(dev_image)
-            image_obj["url"] = url
+            filename = utils_app.save_image(dev_image)
+            image_obj["url"] = build_image_url(base_url, filename)
         
         images_data.append(image_obj)
     

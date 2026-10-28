@@ -94,6 +94,12 @@ print(f"Image URL: {result.data[0].url}")
 
 That's it! You're now generating images with the same API you'd use for OpenAI.
 
+Image URLs are built from the request `Host` header, so they work with whatever address the client used to reach the server. If the server sits behind a proxy or a public domain, set the public base explicitly:
+
+```bash
+aquiles-image serve --model "stabilityai/stable-diffusion-3.5-medium" --public-url https://images.example.com
+```
+
 ## 🎨 Supported Models
 
 ### Text-to-Image (`/images/generations`)
@@ -430,6 +436,8 @@ aquiles-image serve --model "stabilityai/stable-diffusion-3.5-medium" --no-cpu-o
 - Reduces VRAM usage significantly for SD3/SD3.5 models
 - Works in single-device and distributed mode
 
+Check whether it actually engaged with `GET /v1/configs`: `cpu_offload` shows the requested value and `cpu_offload_active` shows the value applied at runtime. If `cpu_offload=true` but `cpu_offload_active=false`, the offload branch did not run.
+
 > ⚠️ Only compatible with SD3/SD3.5 models (`stabilityai/stable-diffusion-3-medium`, `stabilityai/stable-diffusion-3.5-medium`, `stabilityai/stable-diffusion-3.5-large`, `stabilityai/stable-diffusion-3.5-large-turbo`). Other pipelines ignore this option.
 >
 > ⚠️ For `stable-diffusion-3.5-large` on GPUs with 16 GB of VRAM, model offloading may not be enough since the full transformer is moved to GPU during execution. Use the `-medium` variant for that VRAM range.
@@ -443,10 +451,22 @@ aquiles-image serve --no-load-model
 ```
 
 **What it does:**
-- Starts server instantly without GPU
+- `--no-load-model` starts the server instantly without GPU and persists `load_model=false`
 - Returns test images that simulate real responses
 - All endpoints functional with realistic formats
 - Same API structure as production
+
+Dev mode is explicit so it cannot be mistaken for a model load failure:
+
+- `/health` returns `{"status": "dev", "dev_mode": true, "model_loaded": false}`
+- Every response includes the `X-Aquiles-Dev-Mode: true` header
+- The startup log prints a warning and the effective configuration
+
+To return to normal mode, run:
+
+```bash
+aquiles-image serve --load-model
+```
 
 ### API Key Protection & Playground
 

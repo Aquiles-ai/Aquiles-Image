@@ -332,10 +332,8 @@ def create_basic_config_if_not_exists(model: str |  None = None, load_model: boo
     
     try:
         default_model = model or "stabilityai/stable-diffusion-3.5-medium"
-        if load_model:
-            basic_config = ConfigsServe(model=default_model, load_model=load_model)
-        else:
-            basic_config = ConfigsServe(model=default_model)
+        load_model = True if load_model is None else load_model
+        basic_config = ConfigsServe(model=default_model, load_model=load_model)
         configs_image_serve(basic_config, force=True)
         return True
     except Exception as e:

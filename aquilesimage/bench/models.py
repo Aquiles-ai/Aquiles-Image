@@ -117,7 +117,7 @@ class BenchReport(BaseModel):
 
 
 class BenchConfig(BaseModel):
-    base_url: str = "http://192.168.1.20:5500"
+    base_url: str = "http://127.0.0.1:5500"
     api_key: Optional[str] = None
 
     num_prompts: int = Field(default=100, ge=1)

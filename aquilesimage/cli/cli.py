@@ -33,7 +33,7 @@ def serve(
     max_concurrent_infer: Optional[int] = typer.Option(None, help="Maximum concurrent inferences"),
     block_request: Optional[bool] = typer.Option(None, "--block-request/--no-block-request", help="Block requests during maximum concurrent inferences"),
     force: bool = typer.Option(False, "--force", is_flag=True, help="Force overwrite existing configuration"),
-    no_load_model: bool = typer.Option(False, "--no-load-model", is_flag=True, help="Not loading the model simply allows for faster development without having to load the model constantly."),
+    load_model: Optional[bool] = typer.Option(None, "--load-model/--no-load-model", help="Load the model at startup. --no-load-model enables dev mode (synthetic responses) and persists the setting; use --load-model to leave dev mode."),
     set_steps: Optional[int] = typer.Option(None, help="Set the steps that the model will use"),
     auto_pipeline: Optional[bool] = typer.Option(None, "--auto-pipeline/--no-auto-pipeline", help="Load a model that is compatible with diffusers but is not mentioned in the Aquiles-Image documentation"),
     device_map: Optional[str] = typer.Option(None, help="Device map option in which to load the model (Only compatible with diffusers/FLUX.2-dev-bnb-4bit)"),
@@ -50,7 +50,8 @@ def serve(
     lora_config: Optional[str] = typer.Option(None, "--lora-config", help="Path to the LoRA config JSON file (relative or absolute)"),
     mode: Optional[str] = typer.Option(None,"--mode", help="Compilation mode: 'eager' applies diffusers' base optimizations only (default behavior); 'piecewise' additionally compiles the pipeline per-shape via warmup compilation."),
     cpu_offload: Optional[bool] = typer.Option(None, "--cpu-offload/--no-cpu-offload", help="Enable CPU offloading for SD3/SD3.5 pipelines (StableDiffusion3Pipeline) to reduce VRAM usage. Other pipelines ignore this option."),
-    inductor_cache_dir: Optional[str] = typer.Option(None, "--inductor-cache-dir", help="Base directory for the torch inductor / HyperKernels compilation cache. A versioned subdirectory per toolchain+model is created inside.")
+    inductor_cache_dir: Optional[str] = typer.Option(None, "--inductor-cache-dir", help="Base directory for the torch inductor / HyperKernels compilation cache. A versioned subdirectory per toolchain+model is created inside."),
+    public_url: Optional[str] = typer.Option(None, "--public-url", help="Public base URL used to build image links (for example https://images.example.com). Defaults to the request Host header.")
 ):
     """Start the Aquiles-Image server."""
 
@@ -60,6 +61,10 @@ def serve(
 
     if load_lora and lora_config is None:
         err("--load-lora requires --lora-config to be specified")
+        raise typer.Exit(code=1)
+
+    if public_url is not None and not public_url.startswith(("http://", "https://")):
+        err("--public-url must start with http:// or https://")
         raise typer.Exit(code=1)
 
     try:
@@ -81,7 +86,7 @@ def serve(
         if model:
             info(f"No configuration found. Creating basic configuration with model: {model}")
             try:
-                if no_load_model:
+                if load_model is False:
                     create_basic_config_if_not_exists(model, False)
                 else:
                     create_basic_config_if_not_exists(model)
@@ -114,7 +119,7 @@ def serve(
         api_key is not None,
         max_concurrent_infer is not None,
         block_request is not None,
-        no_load_model,
+        load_model is not None,
         set_steps is not None,
         auto_pipeline is not None,
         device_map is not None,
@@ -131,7 +136,8 @@ def serve(
         lora_config is not None,
         mode is not None,
         cpu_offload is not None,
-        inductor_cache_dir is not None
+        inductor_cache_dir is not None,
+        public_url is not None
     ])
 
     if config_needs_update:
@@ -146,7 +152,7 @@ def serve(
                 allows_api_keys=existing_api_keys,
                 max_concurrent_infer=max_concurrent_infer if max_concurrent_infer is not None else conf.get("max_concurrent_infer"),
                 block_request=block_request if block_request is not None else conf.get("block_request"),
-                load_model=False if no_load_model else conf.get("load_model", True),
+                load_model=load_model if load_model is not None else conf.get("load_model", True),
                 steps_n=set_steps if set_steps is not None else conf.get("steps_n"),
                 auto_pipeline=auto_pipeline if auto_pipeline is not None else conf.get("auto_pipeline"),
                 device_map=device_map if device_map is not None else conf.get("device_map"),
@@ -162,7 +168,8 @@ def serve(
                 lora_config_path=lora_config if lora_config is not None else conf.get("lora_config_path"),
                 mode=mode if mode is not None else conf.get("mode", "eager"),
                 cpu_offload=cpu_offload if cpu_offload is not None else conf.get("cpu_offload"),
-                inductor_cache_dir=inductor_cache_dir if inductor_cache_dir is not None else conf.get("inductor_cache_dir")
+                inductor_cache_dir=inductor_cache_dir if inductor_cache_dir is not None else conf.get("inductor_cache_dir"),
+                public_url=public_url if public_url is not None else conf.get("public_url")
             )
 
             configs_image_serve(updated_conf, force=True)
@@ -180,15 +187,12 @@ def serve(
 
     try:
         from aquilesimage.main import app as fastapi_app
-    except TypeError as e:
-        err("Error loading application (Pydantic validation). This might be caused by invalid configuration values.")
-        hint("aquiles-image configs --reset")
-        raise typer.Exit(code=1)
     except Exception as e:
-        err(f"Error loading application: {e}")
+        err(f"Error loading application ({type(e).__name__}): {e}")
         raise typer.Exit(code=1)
 
-    startup_banner(host, port, final_model, len(conf), dev_mode=no_load_model)
+    effective_load_model = load_model if load_model is not None else conf.get("load_model", True)
+    startup_banner(host, port, final_model, len(conf), dev_mode=effective_load_model is False)
 
     try:
         from aquilesimage.utils.rich_logging import uvicorn_log_config

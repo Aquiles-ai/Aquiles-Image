@@ -67,9 +67,24 @@ class PipelineZImageTurbo(BasePipeline):
             if self.load_lora:
                 loadLoRA(self.pipeline, self.conf_lora)
 
+            self.optimization()
             self.enable_flash_attn()
             self.pipeline.vae.disable_tiling()
             self._warmup()
+
+    def optimization(self):
+        self.optimize_memory_format()
+
+    def optimize_memory_format(self):
+        try:
+            logger_p.info("channels_last memory format")
+            if hasattr(self.pipeline, 'vae') and self.pipeline.vae is not None:
+                self.pipeline.vae.to(memory_format=torch.channels_last)
+            if hasattr(self.pipeline, 'transformer') and self.pipeline.transformer is not None:
+                self.pipeline.transformer.to(memory_format=torch.channels_last)
+        except Exception as e:
+            logger_p.error(f"Error optimizing memory format: {e}")
+            pass
 
     def _warmup(self):
         try:

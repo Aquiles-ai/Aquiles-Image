@@ -19,6 +19,7 @@ class PipelineSD3(BasePipeline):
         self.load_lora = load_lora
         self.conf_lora = conf_lora
         self.cpu_offload = cpu_offload
+        self.cpu_offload_enabled = False
 
     def start(self):
         torch.set_float32_matmul_precision("high")
@@ -49,10 +50,18 @@ class PipelineSD3(BasePipeline):
             )
 
             if self.cpu_offload:
+                if getattr(self.pipeline, "hf_device_map", None):
+                    logger_p.warning(
+                        "Pipeline was loaded with a device map; resetting it before CPU offloading"
+                    )
+                    self.pipeline.reset_device_map()
                 logger_p.info("Enabling model CPU offloading")
                 self.pipeline.enable_model_cpu_offload()
+                self.cpu_offload_enabled = True
+                logger_p.info("Model CPU offloading enabled")
             else:
                 self.pipeline.to(device=self.device)
+                self.cpu_offload_enabled = False
 
             if self.load_lora:
                 loadLoRA(self.pipeline, self.conf_lora)

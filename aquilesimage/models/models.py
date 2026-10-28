@@ -361,16 +361,21 @@ class ConfigsServe(BaseModel):
     mode: Literal["eager", "piecewise"] | None = Field(default="eager")
     cpu_offload: bool | None = Field(default=None, description="Enable CPU offloading for SD3/SD3.5 pipelines (StableDiffusion3Pipeline) to reduce VRAM usage")
     inductor_cache_dir: str | None = Field(default=None, description="Base directory for the torch inductor / HyperKernels compilation cache. A versioned subdirectory per toolchain+model is created inside.")
+    public_url: str | None = Field(default=None, description="Public base URL used to build image links. Defaults to the request Host header.")
 
 class ServerConfigs(BaseModel):
     """Whitelist of runtime config values exposed by GET /v1/configs. Never include secrets here."""
     model_name: str
     load_model: bool | None = Field(default=None)
+    dev_mode: bool = Field(default=False)
+    model_loaded: bool = Field(default=False)
+    pipeline: Literal["image", "video"] = Field(default="image")
     auto_pipeline: bool | None = Field(default=None)
     auto_type: str | None = Field(default=None)
     device_map_flux2: str | None = Field(default=None)
     dist_inference: bool | None = Field(default=None)
     max_concurrent_infer: int = Field(default=4)
+    block_request: bool = Field(default=False)
     steps: int | None = Field(default=None)
     guidance_scale: float | None = Field(default=None)
     seed: int | None = Field(default=None)
@@ -380,8 +385,10 @@ class ServerConfigs(BaseModel):
     worker_sleep: float = Field(default=0.05)
     mode: Literal["eager", "piecewise"] = Field(default="eager")
     cpu_offload: bool = Field(default=False)
+    cpu_offload_active: bool = Field(default=False)
     inductor_cache_dir: str | None = Field(default=None)
     hyperkernels_cache_key: str | None = Field(default=None)
+    public_url: str | None = Field(default=None)
     versions: dict[str, str | None] = Field(default_factory=dict)
 
 class LoRAConfig(BaseModel):

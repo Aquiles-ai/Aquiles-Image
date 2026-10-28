@@ -42,7 +42,8 @@ from aquilesimage.models import (CreateImageRequest, CreateVideoBody,
                                   ServerConfigs, VideoListResource, VideoModels, VideoQuality,
                                   VideoResource)
 from aquilesimage.runtime.batch_inf import BatchPipeline
-from aquilesimage.utils import (Utils, VideoTaskGeneration, create_dev_mode_response,
+from aquilesimage.utils import (Utils, VideoTaskGeneration, build_image_url,
+                                 create_dev_mode_response,
                                  create_dev_mode_video_response, getTypeModel,
                                  setup_colored_logger, verify_api_key, get_b_to_compile, total_to_compile)
 
@@ -99,6 +100,8 @@ class AppConfig:
     worker_sleep: float = 0.05
     mode: Literal["eager", "piecewise"] = "eager"
     cpu_offload: bool = False
+    block_request: bool = False
+    public_url: Optional[str] = None
     inductor_cache_base: Optional[str] = None
     inductor_cache_dir: Optional[str] = None
     hyperkernels_cache_key: Optional[str] = None
@@ -118,6 +121,12 @@ def parse_size(size: Optional[str]) -> tuple[int, int, str]:
     canonical = size if size in SIZE_MAP else "1024x1024"
     return h, w, canonical
 
+
+def _request_base_url(request: Request) -> str:
+    if cfg.public_url:
+        return cfg.public_url.rstrip("/")
+    return str(request.base_url).rstrip("/")
+
 class DummyOutput:
     def __init__(self, images):
         self.images = images if isinstance(images, list) else [images]
@@ -130,6 +139,7 @@ def build_images_response(
     size: Optional[str],
     quality: Optional[str],
     background: Optional[str],
+    base_url: str,
     skip_size: bool = False,
 ) -> ImagesResponse:
     images_data = []
@@ -139,7 +149,8 @@ def build_images_response(
             img.save(buf, format=output_format.upper())
             images_data.append(Image(b64_json=base64.b64encode(buf.getvalue()).decode()))
         else:
-            images_data.append(Image(url=utils_app.save_image(img)))
+            filename = utils_app.save_image(img)
+            images_data.append(Image(url=build_image_url(base_url, filename)))
 
     payload: dict[str, Any] = {"created": int(time.time()), "data": images_data}
     if not skip_size and size:
@@ -236,6 +247,12 @@ def _load_single_pipeline(cfg: AppConfig, conf_lora):
     pipeline = init.initialize_pipeline()
     pipeline.start()
 
+    if getattr(pipeline, "pipeline", None) is None:
+        raise RuntimeError(
+            f"Model '{cfg.model_name}' did not produce a loaded pipeline. "
+            "Check that the model is supported and that a CUDA/MPS device is available."
+        )
+
     bp = _init_batch_pipeline(pipeline.pipeline, [], cfg)
     logger.info(f"Model '{cfg.model_name}' loaded successfully")
     if cfg.mode == "piecewise":
@@ -254,6 +271,8 @@ def load_models():
 
     cfg.model_name       = raw.get("model") or ""
     cfg.load_model       = raw.get("load_model")
+    if cfg.load_model is None:
+        cfg.load_model = True
     cfg.auto_pipeline    = raw.get("auto_pipeline")
     cfg.device_map_flux2 = raw.get("device_map")
     cfg.dist_inference   = raw.get("dist_inference")
@@ -268,7 +287,9 @@ def load_models():
     cfg.batch_timeout    = float(raw["batch_timeout"]) if raw.get("batch_timeout") else 0.5
     cfg.worker_sleep     = float(raw["worker_sleep"]) if raw.get("worker_sleep") else 0.05
     cfg.mode = raw.get("mode") or "eager"
-    cfg.cpu_offload = raw.get("cpu_offload") or False
+    cfg.cpu_offload = bool(raw.get("cpu_offload") or False)
+    cfg.block_request = bool(raw.get("block_request") or False)
+    cfg.public_url = raw.get("public_url") or None
     cfg.inductor_cache_base = raw.get("inductor_cache_dir") or None
 
     allows = raw.get("allows_users") or []
@@ -278,10 +299,20 @@ def load_models():
     if not cfg.model_name:
         raise ValueError("No model specified in configuration. Please configure a model first.")
 
+    logger.info(
+        f"Effective config: load_model={cfg.load_model} dev_mode={cfg.load_model is False} "
+        f"auto_pipeline={cfg.auto_pipeline} auto_type={cfg.auto_type} "
+        f"mode={cfg.mode} cpu_offload={cfg.cpu_offload} "
+        f"dist_inference={cfg.dist_inference} block_request={cfg.block_request} "
+        f"public_url={cfg.public_url or 'request-host'}"
+    )
     logger.info(f"Loading model: {cfg.model_name}")
 
     if cfg.load_model is False:
-        logger.info("Dev mode — model loading skipped")
+        logger.warning(
+            "Dev mode active (load_model=false): model loading is skipped and API "
+            "responses are synthetic. Run with --load-model to load the model."
+        )
         return
 
     conf_lora = _load_lora_conf(cfg)
@@ -308,7 +339,9 @@ async def lifespan(app: FastAPI):
     app.state.total_requests = 0
     app.state.active_inferences = 0
     app.state.metrics_lock = asyncio.Lock()
+    app.state.inference_condition = asyncio.Condition(app.state.metrics_lock)
     app.state.config = await load_config_app()
+    app.state.dev_mode = cfg.load_model is False
     app.state.MODEL_INITIALIZER = initializer
     app.state.MODEL_PIPELINE = model_pipeline
     app.state.REQUEST_PIPE = request_pipe
@@ -317,7 +350,7 @@ async def lifespan(app: FastAPI):
     app.state.WORKER_MANAGER = worker_manager
     app.state.model = cfg.model_name
     app.state.load_model = cfg.load_model
-    app.state.utils_app = Utils(host="0.0.0.0", port=5500)
+    app.state.utils_app = Utils()
 
     vt_pipeline = (
         model_pipeline if cfg.model_name in ("ltx-2", "ltx-2.3", "ltx-2.5", "minimax-h3")
@@ -326,6 +359,13 @@ async def lifespan(app: FastAPI):
 
     video_task_gen = VideoTaskGeneration(pipeline=vt_pipeline, max_concurrent_tasks=1, enable_queue=False)
     await video_task_gen.start()
+
+    if app.state.dev_mode:
+        app.state.model_loaded = False
+    elif cfg.model_name in VIDEO_MODELS:
+        app.state.model_loaded = model_pipeline is not None
+    else:
+        app.state.model_loaded = batch_pipeline is not None and initializer is not None
 
     if batch_pipeline is not None:
         await batch_pipeline.start()
@@ -411,7 +451,10 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True,
 async def count_requests_middleware(request: Request, call_next):
     async with app.state.metrics_lock:
         app.state.total_requests += 1
-    return await call_next(request)
+    response = await call_next(request)
+    if getattr(app.state, "dev_mode", False):
+        response.headers["X-Aquiles-Dev-Mode"] = "true"
+    return response
 
 def _cleanup_gpu():
     if torch.cuda.is_available():
@@ -421,12 +464,42 @@ def _cleanup_gpu():
         torch.cuda.ipc_collect()
     gc.collect()
 
+
+async def _acquire_inference_slot():
+    if not cfg.block_request:
+        async with app.state.metrics_lock:
+            if app.state.active_inferences >= cfg.max_concurrent_infer:
+                raise HTTPException(429)
+            app.state.active_inferences += 1
+        return
+
+    condition = app.state.inference_condition
+    async with condition:
+        try:
+            await asyncio.wait_for(
+                condition.wait_for(
+                    lambda: app.state.active_inferences < cfg.max_concurrent_infer
+                ),
+                timeout=600.0,
+            )
+        except asyncio.TimeoutError:
+            raise HTTPException(503, "Timed out waiting for an inference slot")
+        app.state.active_inferences += 1
+
+
+async def _release_inference_slot():
+    condition = app.state.inference_condition
+    async with condition:
+        app.state.active_inferences = max(0, app.state.active_inferences - 1)
+        condition.notify_all()
+
 @app.post("/v1/images/generations", response_model=ImagesResponse, tags=["Generation"],
           dependencies=[Depends(verify_api_key)], operation_id="create_image_v1")
 @app.post("/images/generations", response_model=ImagesResponse, tags=["Generation"],
           dependencies=[Depends(verify_api_key)], operation_id="create_image")
-async def create_image(input_r: CreateImageRequest):
+async def create_image(input_r: CreateImageRequest, request: Request):
     utils_app = app.state.utils_app
+    base_url = _request_base_url(request)
     response_format = input_r.response_format or "url"
     output_format   = input_r.output_format   or "png"
     quality         = input_r.quality         or "auto"
@@ -434,18 +507,15 @@ async def create_image(input_r: CreateImageRequest):
     n               = input_r.n or 1
     h, w, size      = parse_size(input_r.size)
 
-    if app.state.load_model is False:
+    if app.state.dev_mode:
         logger.info("[DEV MODE] Generating mock response")
         data = create_dev_mode_response(DEV_MODE_IMAGE_PATH, DEV_MODE_IMAGE_URL,
                                         n=n, response_format=response_format,
-                                        output_format=output_format, size=size,
-                                        quality=quality, background=background,
+                                        output_format=output_format, base_url=base_url,
+                                        size=size, quality=quality, background=background,
                                         utils_app=utils_app)
         data["data"] = [Image(**i) for i in data["data"]]
         return ImagesResponse(**data)
-
-    if app.state.active_inferences >= cfg.max_concurrent_infer:
-        raise HTTPException(429)
 
     valid_models = {e.value for e in ImageModel} | {app.state.model}
     if input_r.model not in valid_models:
@@ -465,12 +535,12 @@ async def create_image(input_r: CreateImageRequest):
     if input_r.model not in [ImageModel.FLUX_2_KLEIN_9B_KV, ImageModel.QWEN_IMAGE_2_1]:
         submit_kwargs["guidance_scale"] = cfg.guidance_scale if cfg.guidance_scale is not None else 4
 
+    await _acquire_inference_slot()
     try:
-        async with app.state.metrics_lock:
-            app.state.active_inferences += 1
         images = await batch_pipeline.submit(**submit_kwargs)
         return build_images_response(
-            DummyOutput(images), utils_app, response_format, output_format, size, quality, background
+            DummyOutput(images), utils_app, response_format, output_format,
+            size, quality, background, base_url
         )
     except asyncio.TimeoutError:
         logger.error("Request timed out")
@@ -479,8 +549,7 @@ async def create_image(input_r: CreateImageRequest):
         logger.error(f"Error during inference: {e}")
         raise HTTPException(500, f"Error in processing: {e}")
     finally:
-        async with app.state.metrics_lock:
-            app.state.active_inferences = max(0, app.state.active_inferences - 1)
+        await _release_inference_slot()
         _cleanup_gpu()
 
 
@@ -489,6 +558,7 @@ async def create_image(input_r: CreateImageRequest):
 @app.post("/images/edits", response_model=ImagesResponse, tags=["Edit"],
           dependencies=[Depends(verify_api_key)], operation_id="edit_image")
 async def create_image_edit(
+    request: Request,
     image: Optional[UploadFile] = File(None, description="Single image to edit (legacy format)"),
     image_array: Optional[List[UploadFile]] = File(None, alias="image[]", description="Image(s) to edit (OpenAI/OpenWebUI format)"),
     mask: Optional[UploadFile] = File(None, description="An additional image to be used as a mask"),
@@ -519,24 +589,22 @@ async def create_image_edit(
         raise HTTPException(500, "Model not available")
 
     utils_app       = app.state.utils_app
+    base_url        = _request_base_url(request)
     response_format = response_format or "url"
     output_format   = output_format   or "png"
     quality         = quality         or "auto"
     n               = n or 1
     h, w, size      = parse_size(size)
 
-    if app.state.load_model is False:
+    if app.state.dev_mode:
         logger.info("[DEV MODE] Generating mock edit response")
         data = create_dev_mode_response(DEV_MODE_IMAGE_PATH, DEV_MODE_IMAGE_URL,
                                         n=n, response_format=response_format,
-                                        output_format=output_format, size=size,
-                                        quality=quality, background=background or "auto",
+                                        output_format=output_format, base_url=base_url,
+                                        size=size, quality=quality, background=background or "auto",
                                         utils_app=utils_app)
         data["data"] = [Image(**i) for i in data["data"]]
         return ImagesResponse(**data)
-
-    if app.state.active_inferences >= cfg.max_concurrent_infer:
-        raise HTTPException(429)
 
     try:
         images_pil = []
@@ -577,20 +645,18 @@ async def create_image_edit(
 
     skip_size = model == ImageModel.FLUX_1_KONTEXT_DEV
 
+    await _acquire_inference_slot()
     try:
-        async with app.state.metrics_lock:
-            app.state.active_inferences += 1
         result = await batch_pipeline.submit(**submit_kwargs)
         return build_images_response(
             DummyOutput(result), utils_app, response_format, output_format,
-            size, quality, background, skip_size=skip_size
+            size, quality, background, base_url, skip_size=skip_size
         )
     except Exception as e:
         logger.error(f"Error during inference: {e}")
         raise HTTPException(500, f"Error in processing: {e}")
     finally:
-        async with app.state.metrics_lock:
-            app.state.active_inferences = max(0, app.state.active_inferences - 1)
+        await _release_inference_slot()
         _cleanup_gpu()
 
 
@@ -627,11 +693,15 @@ async def get_configs():
     return ServerConfigs(
         model_name=cfg.model_name,
         load_model=cfg.load_model,
+        dev_mode=bool(getattr(app.state, "dev_mode", False)),
+        model_loaded=bool(getattr(app.state, "model_loaded", False)),
+        pipeline="video" if cfg.model_name in VIDEO_MODELS else "image",
         auto_pipeline=cfg.auto_pipeline,
         auto_type=cfg.auto_type,
         device_map_flux2=cfg.device_map_flux2,
         dist_inference=cfg.dist_inference,
         max_concurrent_infer=cfg.max_concurrent_infer,
+        block_request=cfg.block_request,
         steps=cfg.steps,
         guidance_scale=cfg.guidance_scale,
         seed=cfg.seed,
@@ -641,8 +711,10 @@ async def get_configs():
         worker_sleep=cfg.worker_sleep,
         mode=cfg.mode,
         cpu_offload=cfg.cpu_offload,
+        cpu_offload_active=bool(getattr(getattr(initializer, "pipeline", None), "cpu_offload_enabled", False)),
         inductor_cache_dir=cfg.inductor_cache_dir,
         hyperkernels_cache_key=cfg.hyperkernels_cache_key,
+        public_url=cfg.public_url,
         versions={
             "aquiles_image": _pkg("aquiles-image"),
             "torch": torch.__version__,
@@ -695,7 +767,7 @@ async def create_video(request: Request):
     else:
         input_r = CreateVideoBody(**(await request.json()))
 
-    if app.state.load_model is False:
+    if app.state.dev_mode:
         return create_dev_mode_video_response(model=input_r.model, prompt=input_r.prompt,
                                               size=input_r.size, seconds=input_r.seconds,
                                               quality=input_r.quality, status="processing", progress=50)
@@ -712,7 +784,7 @@ async def create_video(request: Request):
 @app.get("/videos/{video_id}", response_model=VideoResource,
          dependencies=[Depends(verify_api_key)], tags=["Video APIs"], operation_id="get_video")
 async def get_video(video_id: str):
-    if app.state.load_model is False:
+    if app.state.dev_mode:
         return create_dev_mode_video_response(model="sora-2", prompt="Mock", status="completed", progress=100)
     _require_video_model()
     video = await video_task_gen.get_task(video_id)
@@ -726,7 +798,7 @@ async def get_video(video_id: str):
 @app.get("/videos", response_model=VideoListResource,
          dependencies=[Depends(verify_api_key)], tags=["Video APIs"], operation_id="list_videos")
 async def list_videos(limit: int = 20, after: Optional[str] = None):
-    if app.state.load_model is False:
+    if app.state.dev_mode:
         mock = create_dev_mode_video_response(model="sora-2", prompt="Mock", status="completed", progress=100)
         return VideoListResource(data=[mock], object="list", has_more=False,
                                  first_id=mock.id, last_id=mock.id)
@@ -742,7 +814,7 @@ async def list_videos(limit: int = 20, after: Optional[str] = None):
 @app.delete("/videos/{video_id}", response_model=DeletedVideoResource,
             dependencies=[Depends(verify_api_key)], tags=["Video APIs"], operation_id="delete_video")
 async def delete_video(video_id: str):
-    if app.state.load_model is False:
+    if app.state.dev_mode:
         return DeletedVideoResource(id=video_id, object="video.deleted", deleted=True)
     _require_video_model()
     if not await video_task_gen.delete_task(video_id):
@@ -761,7 +833,7 @@ async def get_video_content(video_id: str):
 @app.get("/v1/stats", dependencies=[Depends(verify_api_key)], tags=["Stats APIs"], operation_id="get_stats_v1")
 @app.get("/stats", dependencies=[Depends(verify_api_key)], tags=["Stats APIs"], operation_id="get_stats")
 async def get_stats():
-    if app.state.load_model is False:
+    if app.state.dev_mode:
         return {"mode": "single-device", "total_requests": 150, "total_batches": 42,
                 "total_images": 180, "queued": 3, "completed": 147, "failed": 0,
                 "processing": True, "available": False}
@@ -773,14 +845,26 @@ async def get_stats():
 @app.get("/v1/health", tags=["Stats APIs"], operation_id="health_v1")
 @app.get("/health", tags=["Stats APIs"], operation_id="health")
 async def health_check():
-    status = "loading" if app.state.load_model is False else "ok"
-    
+    dev_mode = bool(getattr(app.state, "dev_mode", False))
+    model_loaded = bool(getattr(app.state, "model_loaded", False))
+    if dev_mode:
+        status = "dev"
+    elif model_loaded:
+        status = "ok"
+    else:
+        status = "error"
+
     health: dict[str, Any] = {
         "status": status,
         "model": cfg.model_name,
+        "pipeline": "video" if cfg.model_name in VIDEO_MODELS else "image",
         "mode": "video" if cfg.model_name in VIDEO_MODELS else ("distributed" if cfg.dist_inference else "single-device"),
+        "dev_mode": dev_mode,
+        "model_loaded": model_loaded,
         "timestamp": int(time.time()),
     }
+    if dev_mode:
+        health["warning"] = "Dev mode active: model is not loaded and responses are synthetic"
 
     if torch.cuda.is_available():
         try:
@@ -799,7 +883,7 @@ async def health_check():
     else:
         health["devices"] = []
 
-    code = 200 if status == "ok" else 503
+    code = 200 if status in ("ok", "dev") else 503
     return JSONResponse(content=health, status_code=code)
 
 
@@ -839,4 +923,8 @@ if cfg.allow_users:
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=5500)
+    uvicorn.run(
+        app,
+        host=os.getenv("AQUILES_HOST", "0.0.0.0"),
+        port=int(os.getenv("AQUILES_PORT", "5500")),
+    )
