@@ -468,6 +468,17 @@ To return to normal mode, run:
 aquiles-image serve --load-model
 ```
 
+### Concurrency Control
+
+`--max-concurrent-infer` sets how many image generations can run at the same time (default: 4). By default, requests above that limit are rejected with HTTP 429. Use `--block-request` to make them wait for a free slot instead; if no slot becomes available within 10 minutes, the request returns HTTP 503.
+
+```bash
+aquiles-image serve \
+  --model "stabilityai/stable-diffusion-3.5-medium" \
+  --max-concurrent-infer 2 \
+  --block-request
+```
+
 ### API Key Protection & Playground
 
 #### Securing Your Server with an API Key
@@ -522,8 +533,8 @@ Once running, open `http://localhost:5500` in your browser. The playground lets 
 
 A public endpoint (no API key required) designed for orchestrators like Kubernetes, Docker, Modal, etc.
 
-- Returns `200 OK` when the server is ready to accept requests
-- Returns `503 Service Unavailable` while the model is still loading
+- Returns `200 OK` when the server is ready (`status: ok`) or running in dev mode (`status: dev`)
+- Returns `503 Service Unavailable` when the model is not available (`status: error`)
 
 ```bash
 curl http://localhost:5500/health
@@ -533,7 +544,10 @@ curl http://localhost:5500/health
 {
   "status": "ok",
   "model": "black-forest-labs/FLUX.1-dev",
+  "pipeline": "image",
   "mode": "single-device",
+  "dev_mode": false,
+  "model_loaded": true,
   "timestamp": 1745623410,
   "devices": [
     {
@@ -659,7 +673,7 @@ The response varies depending on the model type and configuration:
 
 ### `/configs` - Server Configuration Snapshot
 
-Returns the effective runtime configuration of the running server (requires API key). Useful to keep benchmark reports reproducible:
+Returns the effective runtime configuration of the running server (requires API key). Useful to keep benchmark reports reproducible. It includes load/runtime diagnostics such as `dev_mode`, `model_loaded`, `cpu_offload`, `cpu_offload_active` and `public_url`:
 
 ```bash
 curl http://localhost:5500/v1/configs -H "Authorization: Bearer YOUR_API_KEY"
@@ -668,16 +682,34 @@ curl http://localhost:5500/v1/configs -H "Authorization: Bearer YOUR_API_KEY"
 ```json
 {
   "model_name": "stabilityai/stable-diffusion-3.5-medium",
-  "mode": "eager",
+  "load_model": true,
+  "dev_mode": false,
+  "model_loaded": true,
+  "pipeline": "image",
+  "auto_pipeline": null,
+  "auto_type": null,
+  "device_map_flux2": null,
+  "dist_inference": false,
+  "max_concurrent_infer": 4,
+  "block_request": false,
   "steps": 30,
+  "guidance_scale": null,
+  "seed": null,
+  "load_lora": false,
   "max_batch_size": 4,
   "batch_timeout": 0.5,
-  "max_concurrent_infer": 4,
+  "worker_sleep": 0.05,
+  "mode": "eager",
+  "cpu_offload": false,
+  "cpu_offload_active": false,
+  "inductor_cache_dir": null,
+  "hyperkernels_cache_key": null,
+  "public_url": null,
   "versions": {
-    "aquiles_image": "0.7.6",
-    "torch": "2.8.0",
-    "cuda": "12.8",
-    "diffusers": "0.38.0"
+    "aquiles_image": "0.8.5",
+    "torch": "2.9.0+cu130",
+    "cuda": "13.0",
+    "diffusers": "0.42.1"
   }
 }
 ```
