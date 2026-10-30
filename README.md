@@ -800,7 +800,6 @@ Reports land in `./bench_results/` by default, ready to compare across runs.
 | 🚀 **AI Startups** | Build image generation features without API costs |
 | 👨‍💻 **Developers** | Prototype with multiple models using one interface |
 | 🔬 **Researchers** | Experiment with cutting-edge models easily |
-| 🏢 **Enterprises** | Need a full private AI platform beyond image generation? [Check out Ishikawa](https://ishikawaai.vercel.app), deploy chat, agents, and multimodal AI entirely on your infrastructure. |
 
 
 ## 📋 Prerequisites
