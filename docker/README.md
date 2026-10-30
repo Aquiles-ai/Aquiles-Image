@@ -15,21 +15,29 @@ docker pull f4k3r22/aquiles-video:latest   # video models
 ### Available Dockerfiles
 
 - `Dockerfile.image` — Image generation (diffusers-based models: Flux, StableDiffusion, etc).
-- `Dockerfile.video` — Video generation (adds `ffmpeg`, `LightX2V`, `LTX-2`, `bitsandbytes`, `accelerate`).
+- `Dockerfile.video` — Video generation (adds `ffmpeg`, `LightX2V`, `LTX-2`, `bitsandbytes`, `accelerate`, `vLLM`).
 
 ### Build arguments
 
-Both Dockerfiles support the same build-time arguments:
+Both Dockerfiles share these build-time arguments:
 
 | Argument | Default | Description |
 |---|---|---|
 | `PYTHON_VERSION` | `3.12` | Python version installed via `uv python install`. |
 | `FROM_SOURCE` | `false` | If `true`, installs `diffusers` and `aquiles-image` directly from GitHub instead of PyPI. |
 | `EXTRA_DEPS` | `""` | Space-separated list of extra pip packages to install (e.g. `"wandb accelerate"`). |
-| `TORCH_VERSION` | `2.9.0 (Image) and 2.8.0 (Video)` | Pinned PyTorch version. |
-| `AQUILES_VERSION` | `0.8.3 (Image) and 0.8.0 (Video)` | `aquiles-image` version installed from PyPI when `FROM_SOURCE=false`. |
+| `TORCH_VERSION` | `2.9` (Image), `2.13.0` (Video) | Pinned PyTorch version. |
+| `AQUILES_VERSION` | `0.8.5` | `aquiles-image` version installed from PyPI when `FROM_SOURCE=false`. |
 
-> **Note**: `Dockerfile.video` pins the CUDA 13.0 flash-attn wheel to `torch2.9` in its URL. If you override `TORCH_VERSION` to a different patch, update that URL too — the prebuilt wheel is compiled against a specific torch build and won't work otherwise.
+`Dockerfile.video` adds these arguments:
+
+| Argument | Default | Description |
+|---|---|---|
+| `TORCHVISION_VERSION` | `0.28.0` | `torchvision` version matching `TORCH_VERSION`. |
+| `TRANSFORMERS_VERSION` | `5.19.0` | Must stay below `5.20` while vLLM 0.32 is pinned. |
+| `VLLM_VERSION` | `0.32.0` | vLLM version. Requires `torch==2.13.0`. |
+
+> **Note**: `Dockerfile.video` installs `torch` from the CUDA 13.0 PyTorch index and pins the flash-attn wheel to `torch2.13` (release `v0.9.47`). Keep `TORCH_VERSION`, `TORCHVISION_VERSION`, `TRANSFORMERS_VERSION`, `VLLM_VERSION` and the flash-attn URL in sync. The wheel is compiled against a specific torch build, and vLLM 0.32 only accepts `transformers<5.20`. Overriding one without the others will break the build or the runtime.
 
 ### How to build
 

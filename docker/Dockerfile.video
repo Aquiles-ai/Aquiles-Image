@@ -3,8 +3,11 @@ FROM nvidia/cuda:13.0.0-base-ubuntu22.04
 ARG PYTHON_VERSION=3.12
 ARG FROM_SOURCE=false
 ARG EXTRA_DEPS=""
-ARG TORCH_VERSION=2.9
-ARG AQUILES_VERSION=0.8.0
+ARG TORCH_VERSION=2.13.0
+ARG TORCHVISION_VERSION=0.28.0
+ARG TRANSFORMERS_VERSION=5.19.0
+ARG VLLM_VERSION=0.32.0
+ARG AQUILES_VERSION=0.8.5
 
 RUN apt-get update && apt-get install -y \
     git curl build-essential libgl1 libglib2.0-0 wget ffmpeg libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavfilter-dev libavdevice-dev \
@@ -26,10 +29,17 @@ ENV UV_BREAK_SYSTEM_PACKAGES=1
 WORKDIR /app
 
 RUN uv pip install --system --python ${PYTHON_VERSION} \
-    torch==${TORCH_VERSION} torchvision \
+    --index-url https://download.pytorch.org/whl/cu130 \
+    torch==${TORCH_VERSION} torchvision==${TORCHVISION_VERSION} \
     && rm -rf /root/.cache/uv
 
-RUN uv pip install --system --python ${PYTHON_VERSION} transformers==5.17.0 git+https://github.com/ModelTC/LightX2V.git bitsandbytes accelerate av https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.8.2/flash_attn_3-3.0.0+cu130torch2.9gite2743ab-cp39-abi3-linux_x86_64.whl vllm \
+# vllm 0.32 needs torch 2.13 and transformers <5.20; the flash-attn wheel targets that same pair.
+RUN uv pip install --system --python ${PYTHON_VERSION} \
+    transformers==${TRANSFORMERS_VERSION} \
+    git+https://github.com/ModelTC/LightX2V.git \
+    bitsandbytes accelerate av torchao \
+    https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.47/flash_attn_3-3.0.0+cu130torch2.13gite2743ab-cp39-abi3-linux_x86_64.whl \
+    vllm==${VLLM_VERSION} \
     && rm -rf /root/.cache/uv
 
 RUN if [ "$FROM_SOURCE" = "true" ]; then \
@@ -38,7 +48,7 @@ RUN if [ "$FROM_SOURCE" = "true" ]; then \
             git+https://github.com/Aquiles-ai/Aquiles-Image.git \
             && rm -rf /root/.cache/uv; \
     else \
-        uv pip install --system --python ${PYTHON_VERSION} diffusers==0.40.0 aquiles-image==${AQUILES_VERSION} \
+        uv pip install --system --python ${PYTHON_VERSION} diffusers==0.42.1 aquiles-image==${AQUILES_VERSION} \
         && rm -rf /root/.cache/uv; \
     fi
 
