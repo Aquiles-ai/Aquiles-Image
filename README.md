@@ -100,6 +100,34 @@ Image URLs are built from the request `Host` header, so they work with whatever 
 aquiles-image serve --model "stabilityai/stable-diffusion-3.5-medium" --public-url https://images.example.com
 ```
 
+### Image Storage & Cleanup
+
+Generated images are written to the system temp directory (`/tmp/images` on Linux) by default. Use `--image-dir`, the `image_dir` config key, or the `AQUILES_IMAGE_DIR` environment variable to store them on a persistent volume:
+
+```bash
+aquiles-image serve --model "stabilityai/stable-diffusion-3.5-medium" --image-dir /var/lib/aquiles/images
+```
+
+Remove old files with the `clean-images` command. It only matches generated `img*` files with `.png`, `.jpg`, `.jpeg`, or `.webp` extensions, so unrelated files in the directory are left untouched:
+
+```bash
+# Delete generated images older than 60 minutes (default)
+aquiles-image clean-images --image-dir /var/lib/aquiles/images
+
+# Preview the selection without deleting anything
+aquiles-image clean-images --image-dir /var/lib/aquiles/images --dry-run
+
+# Delete every generated image
+aquiles-image clean-images --image-dir /var/lib/aquiles/images --all
+```
+
+The command is designed to run from an external cron, keeping cleanup logic out of the API process:
+
+```cron
+# Run every hour
+0 * * * * aquiles-image clean-images --image-dir /var/lib/aquiles/images >> /var/log/aquiles-clean-images.log 2>&1
+```
+
 ## 🎨 Supported Models
 
 ### Text-to-Image (`/images/generations`)

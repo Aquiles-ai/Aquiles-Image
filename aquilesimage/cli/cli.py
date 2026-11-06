@@ -51,6 +51,7 @@ def serve(
     mode: Optional[str] = typer.Option(None,"--mode", help="Compilation mode: 'eager' applies diffusers' base optimizations only (default behavior); 'piecewise' additionally compiles the pipeline per-shape via warmup compilation."),
     cpu_offload: Optional[bool] = typer.Option(None, "--cpu-offload/--no-cpu-offload", help="Enable CPU offloading for SD3/SD3.5 pipelines (StableDiffusion3Pipeline) to reduce VRAM usage. Other pipelines ignore this option."),
     inductor_cache_dir: Optional[str] = typer.Option(None, "--inductor-cache-dir", help="Base directory for the torch inductor / HyperKernels compilation cache. A versioned subdirectory per toolchain+model is created inside."),
+    image_dir: Optional[str] = typer.Option(None, "--image-dir", help="Directory where generated images are stored. Defaults to AQUILES_IMAGE_DIR or the system temp directory."),
     public_url: Optional[str] = typer.Option(None, "--public-url", help="Public base URL used to build image links (for example https://images.example.com). Defaults to the request Host header.")
 ):
     """Start the Aquiles-Image server."""
@@ -137,6 +138,7 @@ def serve(
         mode is not None,
         cpu_offload is not None,
         inductor_cache_dir is not None,
+        image_dir is not None,
         public_url is not None
     ])
 
@@ -169,6 +171,7 @@ def serve(
                 mode=mode if mode is not None else conf.get("mode", "eager"),
                 cpu_offload=cpu_offload if cpu_offload is not None else conf.get("cpu_offload"),
                 inductor_cache_dir=inductor_cache_dir if inductor_cache_dir is not None else conf.get("inductor_cache_dir"),
+                image_dir=image_dir if image_dir is not None else conf.get("image_dir"),
                 public_url=public_url if public_url is not None else conf.get("public_url")
             )
 
@@ -240,6 +243,58 @@ def configs(
 
     ctx = typer.get_current_context()
     typer.echo(ctx.get_help())
+
+
+@app.command("clean-images")
+def clean_images(
+    image_dir: Optional[str] = typer.Option(None, "--image-dir", help="Directory containing generated images. Defaults to the configured image_dir, AQUILES_IMAGE_DIR or the system temp directory."),
+    older_than_minutes: float = typer.Option(60.0, "--older-than-minutes", help="Delete images older than this many minutes."),
+    delete_all: bool = typer.Option(False, "--all", help="Delete every generated image, regardless of age."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="List the images that would be deleted without removing them."),
+):
+    """Delete generated image files from the configured image directory."""
+    try:
+        from aquilesimage.configs import load_config_cli
+        from aquilesimage.utils.cleanup import delete_images, find_images, resolve_image_dir, total_size
+    except ImportError as e:
+        err(f"Error importing required modules: {e}")
+        raise typer.Exit(code=1)
+
+    if image_dir is None:
+        try:
+            image_dir = load_config_cli().get("image_dir")
+        except Exception:
+            image_dir = None
+
+    directory = resolve_image_dir(image_dir)
+    if not directory.is_dir():
+        warn(f"Image directory does not exist: {directory}")
+        return
+
+    older_than_seconds = None if delete_all else max(0.0, older_than_minutes * 60.0)
+    candidates = find_images(directory, older_than_seconds)
+    if not candidates:
+        ok(f"No images to delete in {directory}")
+        return
+
+    selected_bytes = total_size(candidates)
+    info(f"Directory: {directory}")
+    info(f"Images selected: {len(candidates)} ({selected_bytes / (1024 * 1024):.2f} MB)")
+
+    if dry_run:
+        for path in candidates:
+            typer.echo(f"  {path}")
+        warn("Dry run: no files were deleted.")
+        return
+
+    deleted, failed, bytes_freed = delete_images(candidates)
+    ok(f"Deleted {len(deleted)} image(s), freed {bytes_freed / (1024 * 1024):.2f} MB.")
+
+    if failed:
+        warn(f"Failed to delete {len(failed)} image(s):")
+        for path, reason in failed:
+            typer.echo(f"  {path}: {reason}")
+        raise typer.Exit(code=1)
 
 
 @app.command("validate")

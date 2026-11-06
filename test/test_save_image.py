@@ -111,6 +111,25 @@ def test_save_image_uses_unique_names(utils):
     assert first != second
 
 
+def test_utils_uses_custom_image_dir(tmp_path):
+    target = tmp_path / "custom-images"
+
+    app = Utils(image_dir=str(target))
+
+    assert app.image_dir == str(target.resolve())
+    assert target.is_dir()
+
+
+def test_utils_uses_image_dir_env_var(tmp_path, monkeypatch):
+    target = tmp_path / "env-images"
+    monkeypatch.setenv("AQUILES_IMAGE_DIR", str(target))
+
+    app = Utils()
+
+    assert app.image_dir == str(target.resolve())
+    assert target.is_dir()
+
+
 def test_dev_mode_response_uses_requested_format(utils, tmp_path):
     source = tmp_path / "source.png"
     PILImage.new("RGB", (32, 32), "blue").save(source)

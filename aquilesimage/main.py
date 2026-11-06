@@ -109,6 +109,7 @@ class AppConfig:
     cpu_offload: bool = False
     block_request: bool = False
     public_url: Optional[str] = None
+    image_dir: Optional[str] = None
     inductor_cache_base: Optional[str] = None
     inductor_cache_dir: Optional[str] = None
     hyperkernels_cache_key: Optional[str] = None
@@ -301,6 +302,7 @@ def load_models():
     cfg.cpu_offload = bool(raw.get("cpu_offload") or False)
     cfg.block_request = bool(raw.get("block_request") or False)
     cfg.public_url = raw.get("public_url") or None
+    cfg.image_dir = raw.get("image_dir") or None
     cfg.inductor_cache_base = raw.get("inductor_cache_dir") or None
 
     allows = raw.get("allows_users") or []
@@ -315,7 +317,7 @@ def load_models():
         f"auto_pipeline={cfg.auto_pipeline} auto_type={cfg.auto_type} "
         f"mode={cfg.mode} cpu_offload={cfg.cpu_offload} "
         f"dist_inference={cfg.dist_inference} block_request={cfg.block_request} "
-        f"public_url={cfg.public_url or 'request-host'}"
+        f"image_dir={cfg.image_dir or 'system-temp'} public_url={cfg.public_url or 'request-host'}"
     )
     logger.info(f"Loading model: {cfg.model_name}")
 
@@ -361,7 +363,7 @@ async def lifespan(app: FastAPI):
     app.state.WORKER_MANAGER = worker_manager
     app.state.model = cfg.model_name
     app.state.load_model = cfg.load_model
-    app.state.utils_app = Utils()
+    app.state.utils_app = Utils(image_dir=cfg.image_dir)
 
     vt_pipeline = (
         model_pipeline if cfg.model_name in ("ltx-2", "ltx-2.3", "ltx-2.5", "minimax-h3")
@@ -740,6 +742,7 @@ async def get_configs():
         cpu_offload_active=bool(getattr(getattr(initializer, "pipeline", None), "cpu_offload_enabled", False)),
         inductor_cache_dir=cfg.inductor_cache_dir,
         hyperkernels_cache_key=cfg.hyperkernels_cache_key,
+        image_dir=cfg.image_dir,
         public_url=cfg.public_url,
         versions={
             "aquiles_image": _pkg("aquiles-image"),

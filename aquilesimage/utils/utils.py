@@ -119,10 +119,14 @@ _IMAGE_FORMAT_EXTENSIONS = {"png": ".png", "jpeg": ".jpg", "webp": ".webp"}
 
 
 class Utils:
-    def __init__(self):
-        self.image_dir = os.path.join(tempfile.gettempdir(), "images")
-        if not os.path.exists(self.image_dir):
-            os.makedirs(self.image_dir)
+    def __init__(self, image_dir: Optional[str] = None):
+        resolved_image_dir = (
+            image_dir
+            or os.getenv("AQUILES_IMAGE_DIR")
+            or os.path.join(tempfile.gettempdir(), "images")
+        )
+        self.image_dir = os.path.abspath(os.path.expanduser(resolved_image_dir))
+        os.makedirs(self.image_dir, exist_ok=True)
 
         self.video_dir = os.path.join(tempfile.gettempdir(), "videos")
         if not os.path.exists(self.video_dir):

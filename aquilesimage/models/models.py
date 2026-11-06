@@ -361,6 +361,7 @@ class ConfigsServe(BaseModel):
     mode: Literal["eager", "piecewise"] | None = Field(default="eager")
     cpu_offload: bool | None = Field(default=None, description="Enable CPU offloading for SD3/SD3.5 pipelines (StableDiffusion3Pipeline) to reduce VRAM usage")
     inductor_cache_dir: str | None = Field(default=None, description="Base directory for the torch inductor / HyperKernels compilation cache. A versioned subdirectory per toolchain+model is created inside.")
+    image_dir: str | None = Field(default=None, description="Directory where generated images are stored. Defaults to AQUILES_IMAGE_DIR or the system temp directory.")
     public_url: str | None = Field(default=None, description="Public base URL used to build image links. Defaults to the request Host header.")
 
 class ServerConfigs(BaseModel):
@@ -388,6 +389,7 @@ class ServerConfigs(BaseModel):
     cpu_offload_active: bool = Field(default=False)
     inductor_cache_dir: str | None = Field(default=None)
     hyperkernels_cache_key: str | None = Field(default=None)
+    image_dir: str | None = Field(default=None)
     public_url: str | None = Field(default=None)
     versions: dict[str, str | None] = Field(default_factory=dict)
 

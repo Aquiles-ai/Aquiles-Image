@@ -55,6 +55,7 @@ def serve():
         str(AQUILES_PORT),
         "--model",
         MODEL_NAME,
+        "--image-dir", "/root/.local/share/images",
         "--set-steps", "20",
         "--api-key", "dummy-api-key",
         "--device-map", "cuda",

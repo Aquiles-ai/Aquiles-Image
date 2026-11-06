@@ -54,6 +54,7 @@ def serve():
         str(AQUILES_PORT),
         "--model",
         MODEL_NAME,
+        "--image-dir", "/root/.local/share/images",
         # For Ideogram 4: 12 steps - Turbo, 20 steps - Default, 48 steps - Quality
         "--set-steps", "20",
         "--api-key", "dummy-api-key",
