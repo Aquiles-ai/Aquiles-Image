@@ -3,7 +3,6 @@ from fastapi import Security, HTTPException
 import os
 import torch
 import uuid
-import gc
 import tempfile
 import logging
 import sys
@@ -115,6 +114,10 @@ def build_image_url(base_url: str, filename: str) -> str:
     return f"{base_url.rstrip('/')}/images/{filename}"
 
 
+_IMAGE_FORMAT_ALIASES = {"jpg": "jpeg"}
+_IMAGE_FORMAT_EXTENSIONS = {"png": ".png", "jpeg": ".jpg", "webp": ".webp"}
+
+
 class Utils:
     def __init__(self):
         self.image_dir = os.path.join(tempfile.gettempdir(), "images")
@@ -125,7 +128,16 @@ class Utils:
         if not os.path.exists(self.video_dir):
             os.makedirs(self.video_dir)
 
-    def save_image(self, image):
+    @staticmethod
+    def _normalize_image_format(output_format: Optional[str]) -> str:
+        fmt = (output_format or "png").lower()
+        fmt = _IMAGE_FORMAT_ALIASES.get(fmt, fmt)
+        if fmt not in _IMAGE_FORMAT_EXTENSIONS:
+            raise ValueError(f"Unsupported output format: {output_format}")
+        return fmt
+
+    @staticmethod
+    def _to_pil_image(image):
         if hasattr(image, "to"):
             try:
                 image = image.to("cpu")
@@ -137,16 +149,51 @@ class Utils:
             to_pil = transforms.ToPILImage()
             image = to_pil(image.squeeze(0).clamp(0, 1))
 
-        filename = "img" + str(uuid.uuid4()).split("-")[0] + ".png"
+        return image
+
+    @staticmethod
+    def _prepare_image_for_format(image, fmt: str):
+        if fmt != "jpeg":
+            return image
+
+        if image.mode in ("RGBA", "LA") or (image.mode == "P" and "transparency" in image.info):
+            rgba = image.convert("RGBA")
+            background = PILImage.new("RGB", rgba.size, (255, 255, 255))
+            background.paste(rgba, mask=rgba.getchannel("A"))
+            return background
+
+        if image.mode != "RGB":
+            return image.convert("RGB")
+        return image
+
+    @staticmethod
+    def _encode_kwargs(fmt: str, output_compression: Optional[int]) -> dict:
+        if fmt == "png":
+            return {"optimize": False, "compress_level": 1}
+
+        quality = 100 if output_compression is None else max(1, min(100, int(output_compression)))
+        if fmt == "jpeg":
+            return {"quality": quality, "optimize": False, "progressive": False}
+        return {"quality": quality, "method": 0}
+
+    def encode_image(self, image, output_format: str = "png", output_compression: Optional[int] = None) -> bytes:
+        fmt = self._normalize_image_format(output_format)
+        image = self._to_pil_image(image)
+        image = self._prepare_image_for_format(image, fmt)
+
+        buffer = io.BytesIO()
+        image.save(buffer, format=fmt.upper(), **self._encode_kwargs(fmt, output_compression))
+        return buffer.getvalue()
+
+    def save_image(self, image, output_format: str = "png", output_compression: Optional[int] = None) -> str:
+        fmt = self._normalize_image_format(output_format)
+        filename = "img" + str(uuid.uuid4()).split("-")[0] + _IMAGE_FORMAT_EXTENSIONS[fmt]
         image_path = os.path.join(self.image_dir, filename)
         logger_utils.warning(f"Saving image to {image_path}")
 
-        image.save(image_path, format="PNG", optimize=True)
-
-        del image
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        data = self.encode_image(image, fmt, output_compression)
+        with open(image_path, "wb") as f:
+            f.write(data)
 
         return filename
 
@@ -186,6 +233,7 @@ def create_dev_mode_response(
     size: Optional[str] = None,
     quality: Optional[str] = None,
     background: Optional[str] = None,
+    output_compression: Optional[int] = None,
     utils_app = None,
 ) -> dict:
     dev_image = load_dev_mode_image(DEV_MODE_IMAGE_PATH, DEV_MODE_IMAGE_URL)
@@ -217,12 +265,15 @@ def create_dev_mode_response(
         image_obj = {}
         
         if response_format == "b64_json":
-            buffer = io.BytesIO()
-            dev_image.save(buffer, format=output_format.upper())
-            img_str = base64.b64encode(buffer.getvalue()).decode()
-            image_obj["b64_json"] = img_str
+            if utils_app is not None:
+                img_bytes = utils_app.encode_image(dev_image, output_format, output_compression)
+            else:
+                buffer = io.BytesIO()
+                dev_image.save(buffer, format=output_format.upper())
+                img_bytes = buffer.getvalue()
+            image_obj["b64_json"] = base64.b64encode(img_bytes).decode()
         else:
-            filename = utils_app.save_image(dev_image)
+            filename = utils_app.save_image(dev_image, output_format, output_compression)
             image_obj["url"] = build_image_url(base_url, filename)
         
         images_data.append(image_obj)

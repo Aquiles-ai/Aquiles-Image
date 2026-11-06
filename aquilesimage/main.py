@@ -62,6 +62,13 @@ SIZE_MAP: dict[str, tuple[int, int]] = {
     "2048x2048": (2048, 2048)
 }
 
+IMAGE_MEDIA_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+}
+
 FLUX_MODELS = frozenset([
     ImageModel.FLUX_1_DEV, ImageModel.FLUX_1_KREA_DEV, ImageModel.FLUX_1_SCHNELL,
     ImageModel.FLUX_2_4BNB, ImageModel.FLUX_2, ImageModel.FLUX_2_KLEIN_4B,
@@ -141,15 +148,19 @@ def build_images_response(
     background: Optional[str],
     base_url: str,
     skip_size: bool = False,
+    output_compression: Optional[int] = None,
 ) -> ImagesResponse:
+    output_format = (output_format or "png").lower()
+    if output_format == "jpg":
+        output_format = "jpeg"
+
     images_data = []
     for img in output.images:
         if response_format == "b64_json":
-            buf = io.BytesIO()
-            img.save(buf, format=output_format.upper())
-            images_data.append(Image(b64_json=base64.b64encode(buf.getvalue()).decode()))
+            encoded = utils_app.encode_image(img, output_format, output_compression)
+            images_data.append(Image(b64_json=base64.b64encode(encoded).decode()))
         else:
-            filename = utils_app.save_image(img)
+            filename = utils_app.save_image(img, output_format, output_compression)
             images_data.append(Image(url=build_image_url(base_url, filename)))
 
     payload: dict[str, Any] = {"created": int(time.time()), "data": images_data}
@@ -505,6 +516,7 @@ async def create_image(input_r: CreateImageRequest, request: Request):
     quality         = input_r.quality         or "auto"
     background      = input_r.background      or "auto"
     n               = input_r.n or 1
+    output_compression = input_r.output_compression
     h, w, size      = parse_size(input_r.size)
 
     if app.state.dev_mode:
@@ -513,6 +525,7 @@ async def create_image(input_r: CreateImageRequest, request: Request):
                                         n=n, response_format=response_format,
                                         output_format=output_format, base_url=base_url,
                                         size=size, quality=quality, background=background,
+                                        output_compression=output_compression,
                                         utils_app=utils_app)
         data["data"] = [Image(**i) for i in data["data"]]
         return ImagesResponse(**data)
@@ -538,10 +551,6 @@ async def create_image(input_r: CreateImageRequest, request: Request):
     await _acquire_inference_slot()
     try:
         images = await batch_pipeline.submit(**submit_kwargs)
-        return build_images_response(
-            DummyOutput(images), utils_app, response_format, output_format,
-            size, quality, background, base_url
-        )
     except asyncio.TimeoutError:
         logger.error("Request timed out")
         raise HTTPException(504, "Request timed out")
@@ -551,6 +560,13 @@ async def create_image(input_r: CreateImageRequest, request: Request):
     finally:
         await _release_inference_slot()
         _cleanup_gpu()
+
+    return await run_in_threadpool(
+        build_images_response,
+        DummyOutput(images), utils_app, response_format, output_format,
+        size, quality, background, base_url,
+        output_compression=output_compression,
+    )
 
 
 @app.post("/v1/images/edits", response_model=ImagesResponse, tags=["Edit"],
@@ -591,7 +607,11 @@ async def create_image_edit(
     utils_app       = app.state.utils_app
     base_url        = _request_base_url(request)
     response_format = response_format or "url"
-    output_format   = output_format   or "png"
+    output_format   = (output_format or "png").lower()
+    if output_format == "jpg":
+        output_format = "jpeg"
+    if output_format not in ("png", "jpeg", "webp"):
+        raise HTTPException(400, "output_format must be one of: png, jpeg, webp")
     quality         = quality         or "auto"
     n               = n or 1
     h, w, size      = parse_size(size)
@@ -602,6 +622,7 @@ async def create_image_edit(
                                         n=n, response_format=response_format,
                                         output_format=output_format, base_url=base_url,
                                         size=size, quality=quality, background=background or "auto",
+                                        output_compression=output_compression,
                                         utils_app=utils_app)
         data["data"] = [Image(**i) for i in data["data"]]
         return ImagesResponse(**data)
@@ -648,16 +669,19 @@ async def create_image_edit(
     await _acquire_inference_slot()
     try:
         result = await batch_pipeline.submit(**submit_kwargs)
-        return build_images_response(
-            DummyOutput(result), utils_app, response_format, output_format,
-            size, quality, background, base_url, skip_size=skip_size
-        )
     except Exception as e:
         logger.error(f"Error during inference: {e}")
         raise HTTPException(500, f"Error in processing: {e}")
     finally:
         await _release_inference_slot()
         _cleanup_gpu()
+
+    return await run_in_threadpool(
+        build_images_response,
+        DummyOutput(result), utils_app, response_format, output_format,
+        size, quality, background, base_url, skip_size=skip_size,
+        output_compression=output_compression,
+    )
 
 
 @app.get("/v1/images/{filename}", tags=["Download Images"], operation_id="serve_image_v1")
@@ -666,7 +690,9 @@ async def serve_image(filename: str):
     path = os.path.join(app.state.utils_app.image_dir, filename)
     if not os.path.isfile(path):
         raise HTTPException(404, "Image not found")
-    return FileResponse(path, media_type="image/png")
+    ext = os.path.splitext(filename)[1].lower()
+    media_type = IMAGE_MEDIA_TYPES.get(ext, "application/octet-stream")
+    return FileResponse(path, media_type=media_type)
 
 
 @app.get("/v1/models", response_model=ListModelsResponse,
