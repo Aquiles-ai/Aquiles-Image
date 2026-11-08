@@ -4,7 +4,7 @@ ARG PYTHON_VERSION=3.12
 ARG FROM_SOURCE=false
 ARG EXTRA_DEPS=""
 ARG TORCH_VERSION=2.9
-ARG AQUILES_VERSION=0.8.5
+ARG AQUILES_VERSION=0.8.6
 
 RUN apt-get update && apt-get install -y \
     git curl build-essential libgl1 libglib2.0-0 \
