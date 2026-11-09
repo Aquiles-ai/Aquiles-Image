@@ -14,7 +14,6 @@
 [![PyPI Version](https://img.shields.io/pypi/v/aquiles-image.svg)](https://pypi.org/project/aquiles-image/)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/aquiles-image?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=MAGENTA&left_text=downloads)](https://pypi.org/project/aquiles-image/)
 [![Docs](https://img.shields.io/badge/Docs-Read%20the%20Docs-brightgreen.svg)](https://aquiles-ai.github.io/aquiles-image-docs/) 
-<a href="https://deepwiki.com/Aquiles-ai/Aquiles-Image"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 [![View Code Wiki](https://www.gstatic.com/_/boq-sdlc-agents-ui/_/r/YUi5dj2UWvE.svg)](https://codewiki.google/github.com/aquiles-ai/aquiles-image)
 [![Docker Pulls](https://img.shields.io/endpoint?url=https://statsapi-umber.vercel.app/docker/stats/aquiles-image&style=flat-square&logo=docker)](https://hub.docker.com/u/f4k3r22)
 
